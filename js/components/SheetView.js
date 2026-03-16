@@ -1,5 +1,6 @@
-// js/components/SheetView.js
+
 const { useState } = React;
+
 
 import { DiceRoller } from './DiceRoller.js';
 
@@ -16,7 +17,7 @@ export function SheetView({
     recentRolls
 }) {
 
-
+    const [isEditingInventory, setIsEditingInventory] = useState(false);
     // Menu flutuante de dados interno
     const [isDiceMenuOpen, setIsDiceMenuOpen] = React.useState(false);
     const el = React.createElement;
@@ -344,7 +345,7 @@ export function SheetView({
                                     type: 'text',
                                     className: "w-full bg-transparent text-xs text-purple-300 font-black uppercase mb-1 outline-none placeholder:text-purple-900/30",
                                     placeholder: "Nome do Talento...",
-                               
+
                                     key: `title-input-${idx}-${talentTitle}`,
                                     defaultValue: talentTitle,
                                     onBlur: (e) => {
@@ -352,7 +353,7 @@ export function SheetView({
                                         if (newValue === talentTitle) return;
 
                                         const newTalents = [...(characterSheetData.outros?.['Talentos'] || [])];
-             
+
                                         while (newTalents.length <= idx) newTalents.push("");
 
                                         newTalents[idx] = newValue;
@@ -369,7 +370,7 @@ export function SheetView({
                                     defaultValue: talentDesc,
                                     onBlur: (e) => {
                                         const newValue = e.target.value;
-                                        if (newValue === talentDesc) return; 
+                                        if (newValue === talentDesc) return;
                                         updateSheetField('outros', `desc_talento_${idx}`, newValue);
                                     }
                                 })
@@ -387,77 +388,144 @@ export function SheetView({
                     )
                 ))
             ),
+
             // --- BLOCO 7: BOLSA DE TESOUROS E INVENTÁRIO ---
-            el('div', { className: "mt-12 space-y-8 border-t border-slate-800 pt-12" },
+            el('div', { key: 'block-7', className: "mt-12 space-y-8 border-t border-slate-800 pt-12" }, [
                 el('h3', { className: "text-3xl font-black text-amber-500 uppercase tracking-tighter italic flex items-center gap-4" }, "🔨 Bolsa de Tesouros e Itens"),
-                el('div', { className: "grid grid-cols-1 lg:grid-cols-12 gap-8" },
-                    // Moedas (4 colunas)
+
+                el('div', { className: "grid grid-cols-1 lg:grid-cols-12 gap-8" }, [
+
+                    // 1. MOEDAS (Editáveis)
                     el('div', { className: "lg:col-span-4 grid grid-cols-1 gap-4" },
                         [['PO', 'Ouro', 'bg-amber-500/20 text-amber-500'],
                         ['PP', 'Prata', 'bg-slate-400/20 text-slate-400'],
                         ['PC', 'Cobre', 'bg-orange-700/20 text-orange-700']
                         ].map(([sigla, nome, colorClass]) =>
-                            el('div', { key: sigla, className: "bg-slate-900 border-2 border-slate-800 p-6 rounded-[2rem] flex items-center justify-between shadow-xl group hover:border-amber-500/30 transition-all" },
-                                el('div', { className: "flex items-center gap-4" },
+                            el('div', {
+                                key: sigla,
+                                className: "bg-slate-900 border-2 border-slate-800 p-6 rounded-[2rem] flex items-center justify-between shadow-xl group hover:border-amber-500/30 transition-all"
+                            }, [
+                                el('div', { className: "flex items-center gap-4" }, [
                                     el('div', { className: `${colorClass} w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner` }, sigla),
                                     el('p', { className: "text-sm font-black text-slate-500 uppercase tracking-widest" }, nome)
-                                ),
-                                el('p', { className: "text-3xl font-black text-white text-right" }, characterSheetData.outros?.[sigla] || '0')
-                            )
+                                ]),
+                                el('input', {
+                                    type: 'text',
+                                    className: "bg-transparent text-3xl font-black text-white text-right w-24 outline-none focus:text-amber-500 transition-colors",
+                                    defaultValue: characterSheetData.outros?.[sigla] || '0',
+                                    onBlur: (e) => updateSheetField('outros', sigla, e.target.value)
+                                })
+                            ])
                         )
                     ),
-                    // Inventário (8 colunas)
-                    el('div', { className: "lg:col-span-8 bg-slate-900 border-2 border-slate-800 p-8 rounded-[3rem] shadow-xl flex flex-col" },
-                        el('div', { className: "flex justify-between items-center mb-6" },
-                            el('h4', { className: "text-slate-400 font-black uppercase text-xs tracking-widest flex items-center gap-2 italic" }, "🎒 Gerenciar Mochila"),
-                            el('span', { className: "text-[10px] text-slate-600 font-bold uppercase tracking-tighter italic" }, "Visualização dos Itens")
-                        ),
-                        el('div', { className: "bg-slate-950/50 border-2 border-slate-800 rounded-2xl p-6 flex-grow min-h-[200px]" },
-                            el('div', { className: "flex flex-wrap gap-3" },
-                                (characterSheetData.outros?.['Equipamento'] || "").split(',').map((item, idx) => {
-                                    if (!item || !item.trim() || item.trim() === '-') return null;
-                                    return el('div', { key: idx, className: "flex items-center gap-3 bg-slate-800/50 border border-slate-700 px-4 py-2 rounded-xl transition-all hover:border-amber-500/30" },
-                                        el('span', { className: "text-slate-300 font-bold text-[11px] capitalize" }, item.trim())
-                                    );
-                                })
-                            )
-                        )
-                    )
-                )
-            ),
-            // --- BLOCO 8: GRIMÓRIO ARCANO (LARGURA TOTAL) ---
-            characterSheetData.magias?.temMagia && el('div', { className: "mt-12 space-y-8 border-t border-slate-800 pt-12" },
-                el('div', { className: "flex flex-col md:flex-row items-center justify-between gap-6" },
-                    el('h3', { className: "text-3xl font-black text-blue-500 uppercase tracking-tighter italic flex items-center gap-4" }, "🧙🏾‍♂️ Grimório Arcano"),
-                    // Stats de Magia
-                    el('div', { className: "flex gap-4" },
-                        Object.entries(characterSheetData.statsMagia || {}).map(([key, value]) => (
-                            el('div', { key: key, className: "bg-blue-950/20 border border-blue-500/30 px-6 py-3 rounded-2xl text-center shadow-lg" },
-                                el('p', { className: "text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1" }, key),
-                                el('p', { className: "text-xl font-black text-blue-50" }, key === 'Salvaguarda' ? value : fmtNum(value))
-                            )
-                        ))
-                    )
-                ),
-                // Lista de Magias (Círculos)
-                el('div', { className: "grid grid-cols-1 xl:grid-cols-2 gap-10" },
-                    Object.entries(characterSheetData.magias || {}).map(([nivel, lista]) => {
-                        if (nivel === 'temMagia' || !Array.isArray(lista)) return null;
-                        const magiasValidas = lista.filter(m => m && m.trim() !== '-' && m.trim() !== '');
-                        if (magiasValidas.length === 0) return null;
 
-                        return el('div', { key: nivel, className: "bg-slate-900 border-2 border-slate-800 p-8 rounded-[3.5rem] shadow-2xl" },
-                            el('h4', { className: "text-blue-400 font-black uppercase text-xl italic tracking-widest mb-8 border-b border-blue-900/30 pb-5" }, nivel),
-                            el('div', { className: "space-y-5" },
-                                magiasValidas.map((magia, idx) => el('div', { key: idx, className: "bg-slate-950/60 border border-slate-800 hover:border-blue-500/30 rounded-[2rem] p-6 transition-all shadow-md" },
-                                    el('p', { className: "text-blue-50 text-base font-black uppercase tracking-tight" }, magia),
-                                    el('p', { className: "text-[11px] text-slate-500 italic mt-2 leading-tight" }, characterSheetData.outros?.[`spell_desc_${nivel}_${idx}`] || "Dano, alcance, componentes...")
-                                ))
+                    // --- BLOCO DA MOCHILA (MODO VISUALIZAÇÃO COM BOLHAS + MODO EDIÇÃO) ---
+                    el('div', { className: "lg:col-span-8 bg-slate-900 border-2 border-slate-800 p-8 rounded-[3rem] shadow-xl flex flex-col" }, [
+                        el('div', { className: "flex justify-between items-center mb-6" }, [
+                            el('h4', { className: "text-slate-400 font-black uppercase text-xs tracking-widest flex items-center gap-2 italic" }, "🎒 Mochila de Itens"),
+                            el('span', { className: "text-[10px] text-slate-600 font-bold uppercase" },
+                                isEditingInventory ? "Editando..." : "Clique para editar"
                             )
-                        );
-                    })
+                        ]),
+
+                        el('div', {
+                            // ADICIONEI min-h-[160px] E bg-slate-950/40 PARA VISIBILIDADE
+                            className: `bg-slate-950/40 border-2 border-slate-800 rounded-3xl p-6 flex-grow min-h-[160px] transition-all cursor-text ${isEditingInventory ? 'border-amber-500/50 ring-2 ring-amber-500/10' : 'hover:border-slate-700 hover:bg-slate-950/60'}`,
+                            onClick: () => !isEditingInventory && setIsEditingInventory(true)
+                        },
+                            isEditingInventory ?
+                                // --- MODO EDIÇÃO (TEXTAREA) ---
+                                el('textarea', {
+                                    autoFocus: true,
+                                    className: "w-full h-full bg-transparent text-slate-300 font-medium text-sm outline-none resize-none leading-relaxed",
+                                    placeholder: "Item 1, Item 2, Item 3...",
+                                    defaultValue: characterSheetData.outros?.['Equipamento'] || "",
+                                    onBlur: (e) => {
+                                        setIsEditingInventory(false);
+                                        updateSheetField('outros', 'Equipamento', e.target.value);
+                                    }
+                                }) :
+                                // --- MODO VISUALIZAÇÃO (BOLHAS) ---
+                                // ADICIONEI flex E flex-wrap PARA ORGANIZAR AS BOLHAS
+                                el('div', { className: "flex flex-wrap gap-2.5 content-start" }, [
+                                    (characterSheetData.outros?.['Equipamento'] || "").split(',').map((item, idx) => {
+                                        const cleanItem = item.trim();
+                                        // Ignora itens vazios ou apenas traços
+                                        if (!cleanItem || cleanItem === '-') return null;
+
+                                        // ESTILIZAÇÃO DAS BOLHAS PARA ALTO CONTRASTE (ESTILO DADOS/MOEDAS)
+                                        return el('span', {
+                                            key: idx,
+                                            className: "bg-amber-600/10 text-amber-400 px-4 py-1.5 rounded-full text-[10px] font-black border border-amber-600/20 shadow-sm transition-all hover:scale-105 hover:bg-amber-600/20 uppercase tracking-tight"
+                                        }, cleanItem);
+                                    }).filter(Boolean), // Remove os itens nulos do array para renderização limpa
+
+                                    // Texto de feedback se estiver vazia (aparece mesmo sem altura colapsada)
+                                    (characterSheetData.outros?.['Equipamento'] || "").split(',').filter(item => item.trim() !== "" && item.trim() !== "-").length === 0 &&
+                                    el('p', { className: "text-slate-700 italic text-sm" }, "Mochila vazia... Clique para adicionar itens.")
+                                ])
+                        )
+                    ])
+                ])
+            ]),
+            // --- BLOCO 8: GRIMÓRIO ARCANO ---
+            el('div', { key: 'grimoire', className: "mt-12 space-y-8 border-t border-slate-800 pt-12" }, [
+                el('div', { className: "flex flex-col md:flex-row items-center justify-between gap-6" }, [
+                    el('h3', { className: "text-3xl font-black text-blue-500 uppercase tracking-tighter italic flex items-center gap-4" }, "🧙🏾‍♂️ Grimório Arcano"),
+
+                    // BOTÃO PARA ADICIONAR CÍRCULO
+                    el('select', {
+                        className: "bg-slate-800 text-blue-400 text-[10px] font-black uppercase p-2 rounded-xl border border-blue-500/30 outline-none",
+                        onChange: (e) => {
+                            const nivel = e.target.value;
+                            if (!nivel) return;
+                            // Inicializa o nível no Firebase/Estado
+                            const novaMagia = { ...characterSheetData.magias, temMagia: true };
+                            if (!novaMagia[nivel]) novaMagia[nivel] = ["", "", "", ""];
+                            updateSheetField('magias', nivel, novaMagia[nivel]);
+                        }
+                    }, [
+                        el('option', { value: "" }, "+ ADICIONAR CÍRCULO"),
+                        ["Infusões", "Círculo 0 (Truques)", "Círculo 1", "Círculo 2", "Círculo 3", "Círculo 4", "Círculo 5", "Círculo 6", "Círculo 7", "Círculo 8", "Círculo 9"].map(n => el('option', { key: n, value: n }, n))
+                    ])
+                ]),
+
+                // Renderiza apenas os círculos que têm dados ou foram adicionados
+                el('div', { className: "grid grid-cols-1 xl:grid-cols-2 gap-10" },
+                    Object.keys(characterSheetData.magias)
+                        .filter(k => k !== 'temMagia' && Array.isArray(characterSheetData.magias[k]))
+                        .sort() // Organiza por ordem alfabética/numérica
+                        .map((nivel) => (
+                            el('div', { key: nivel, className: "bg-slate-900 border-2 border-slate-800 p-8 rounded-[3.5rem] shadow-2xl" }, [
+                                el('h4', { className: "text-blue-400 font-black uppercase text-xl italic mb-8 border-b border-blue-900/30 pb-5" }, nivel),
+                                el('div', { className: "space-y-5" },
+                                    [0, 1, 2, 3].map((idx) => {
+                                        const nomeMagia = characterSheetData.magias[nivel]?.[idx] || "";
+                                        const descMagia = characterSheetData.outros?.[`spell_desc_${nivel}_${idx}`] || "";
+
+                                        return el('div', { key: idx, className: "bg-slate-950/60 border border-slate-800 rounded-[2rem] p-6 focus-within:border-blue-500/50" }, [
+                                            el('input', {
+                                                type: 'text',
+                                                className: "w-full bg-transparent text-blue-50 text-base font-black uppercase outline-none",
+                                                defaultValue: nomeMagia,
+                                                onBlur: (e) => {
+                                                    const novaLista = [...(characterSheetData.magias[nivel] || ["", "", "", ""])];
+                                                    novaLista[idx] = e.target.value;
+                                                    updateSheetField('magias', nivel, novaLista);
+                                                }
+                                            }),
+                                            el('textarea', {
+                                                className: "w-full bg-transparent text-[11px] text-slate-500 italic mt-2 outline-none resize-none",
+                                                defaultValue: descMagia,
+                                                onBlur: (e) => updateSheetField('outros', `spell_desc_${nivel}_${idx}`, e.target.value)
+                                            })
+                                        ]);
+                                    })
+                                )
+                            ])
+                        ))
                 )
-            )
+            ])
         ),
         // --- MENU FIXO INFERIOR (CONTROLES) ---
         el('div', { className: "fixed bottom-0 left-0 w-full p-6 z-[60] pointer-events-none" },

@@ -48,23 +48,45 @@ export function parseCSV(csvText) {
     return list;
   };
 
-  const truques = getVerticalList(9, 16, 5, "Truques");
-  const circulo1 = getVerticalList(20, 17, 12, "Círculo 1");
-  const circulo2 = getVerticalList(38, 17, 12, "Círculo 2");
-  const infusoes = getVerticalList(44, 23, 8, "Infusões");
+  // --- CONFIGURAÇÃO DE MAGIAS E DESCRIÇÕES ---
+  const listaNiveis = ["Infusões", "Círculo 0 (Truques)", "Círculo 1", "Círculo 2", "Círculo 3", "Círculo 4", "Círculo 5", "Círculo 6", "Círculo 7", "Círculo 8", "Círculo 9"];
 
+  // Mapeamento de colunas para descrições (D=3, F=5, H=7, J=9)
+  const mapaColunasDesc = {
+    "Infusões": 3, "Círculo 0 (Truques)": 5, "Círculo 1": 7, "Círculo 2": 9,
+    "Círculo 3": 3, "Círculo 4": 5, "Círculo 5": 7, "Círculo 6": 9,
+    "Círculo 7": 3, "Círculo 8": 5, "Círculo 9": 7
+  };
+
+  const magiasData = { temMagia: false };
+  const descricoesMagias = {};
+
+  listaNiveis.forEach(nivel => {
+    // 1. Pega os nomes (pode vir de colunas fixas se existirem ou ser preenchido pelo Firebase dps)
+    // Aqui um exemplo de leitura genérica de nomes na coluna A (índice 0) a partir da 115
+    const nomesNivel = [];
+    for (let i = 0; i < 4; i++) {
+      const rowIndex = 114 + i;
+      const nome = rows[rowIndex]?.[0] || ""; // Nome na coluna A
+      const colDesc = mapaColunasDesc[nivel];
+      const desc = rows[rowIndex]?.[colDesc] || ""; // Descrição na coluna mapeada
+
+      if (nome) {
+        nomesNivel.push(nome);
+        magiasData.temMagia = true;
+      }
+      descricoesMagias[`spell_desc_${nivel}_${i}`] = desc;
+    }
+    magiasData[nivel] = nomesNivel;
+  });
+
+  // Captura de Talentos (Coluna B, linha 115+)
   const descricoesExtras = {};
-
   for (let i = 0; i < 8; i++) {
     const rowIndex = 114 + i;
-    const linhaBruta = rows[rowIndex];
-
-    if (linhaBruta) {
-      const colunasComDados = linhaBruta.filter(c => c.trim() !== "");
-      descricoesExtras[`desc_talento_${i}`] = colunasComDados[1] || "";
-    }
+    const colunasLimpas = rows[rowIndex]?.filter(c => c.trim() !== "") || [];
+    descricoesExtras[`desc_talento_${i}`] = colunasLimpas[1] || "";
   }
-
 
   return {
     isBase: rows[1]?.[0]?.toLowerCase() === 'base',
@@ -89,20 +111,7 @@ export function parseCSV(csvText) {
       'PV Temporário': (rows[13]?.[6] || '0').replace(/[^0-9]/g, ''),
       'PV Perdido': (rows[15]?.[7] || '0').replace(/[^0-9]/g, '')
     },
-    salvaguardas: { 'Força': rows[8]?.[3] || '0', 'Destreza': rows[9]?.[3] || '0', 'Constituição': rows[10]?.[3] || '0', 'Inteligência': rows[11]?.[3] || '0', 'Sabedoria': rows[12]?.[3] || '0', 'Carisma': rows[13]?.[3] || '0' },
-    tracosFicha: { 'Inspiração': rows[5]?.[2] || '0', 'Bônus de Proficiência': rows[7]?.[2] || '+2', 'Sabedoria Passiva (Percepção)': rows[14]?.[0] || '10' },
-    pericias: { 'Acrobacia': rows[17]?.[3] || '0', 'Arcanismo': rows[18]?.[3] || '0', 'Atletismo': rows[19]?.[3] || '0', 'Atuação': rows[20]?.[3] || '0', 'Enganação': rows[21]?.[3] || '0', 'Furtividade': rows[22]?.[3] || '0', 'História': rows[23]?.[3] || '0', 'Intimidação': rows[24]?.[3] || '0', 'Intuição': rows[25]?.[3] || '0', 'Investigação': rows[26]?.[3] || '0', 'Lidar com animais': rows[27]?.[3] || '0', 'Medicina': rows[28]?.[3] || '0', 'Natureza': rows[29]?.[3] || '0', 'Percepção': rows[30]?.[3] || '0', 'Persuasão': rows[31]?.[3] || '0', 'Prestidigitação': rows[32]?.[3] || '0', 'Religião': rows[33]?.[3] || '0' },
-    magias: {
-      temMagia: truques.length > 0 || circulo1.length > 0 || circulo2.length > 0 || infusoes.length > 0,
-      'Círculo 0 (Truques)': truques,
-      'Círculo 1': circulo1,
-      'Círculo 2': circulo2,
-      'Infusões': infusoes
-    },
-    slotsInfo: {
-      'Círculo 1': parseInt(rows[20]?.[17]) || 0,
-      'Círculo 2': parseInt(rows[38]?.[17]) || 0,
-    },
+    magias: magiasData,
     statsMagia: {
       'Modificador': rows[0]?.[20] || '0',
       'Salvaguarda': rows[0]?.[25] || '8',
@@ -111,20 +120,16 @@ export function parseCSV(csvText) {
     outros: {
       'Talentos': rows[25]?.[13]?.split('/') || [],
       ...descricoesExtras,
-      'Equipamento': getVerticalList(38, 0, 1, "Inventário").join(', '),
-
-      'PO': rows[50]?.[1], 'PP': rows[51]?.[1], 'PC': rows[52]?.[1],
+      ...descricoesMagias,
+      'Equipamento': rows[37]?.[0] || "",
+      'PO': rows[50]?.[1] || '0', 'PP': rows[51]?.[1] || '0', 'PC': rows[52]?.[1] || '0',
     },
     personalidade: { 'Traços': rows[5]?.[13] || '', 'Ideais': rows[10]?.[13] || '', 'Vínculos': rows[15]?.[13] || '', 'Defeitos': rows[20]?.[13] || '' },
     ataques: [
       { nome: rows[26]?.[6] || '', bonus: rows[26]?.[8] || '', dano: rows[26]?.[10] || '', tipo: rows[26]?.[11] || '' },
-      { nome: rows[27]?.[6] || '', bonus: rows[27]?.[8] || '', dano: rows[27]?.[10] || '', tipo: rows[27]?.[11] || '' },
-      { nome: rows[28]?.[6] || '', bonus: rows[28]?.[8] || '', dano: rows[28]?.[10] || '', tipo: rows[28]?.[11] || '' },
-      { nome: rows[29]?.[6] || '', bonus: rows[29]?.[8] || '', dano: rows[29]?.[10] || '', tipo: rows[29]?.[11] || '' }
+      { nome: rows[27]?.[6] || '', bonus: rows[27]?.[8] || '', dano: rows[27]?.[10] || '', tipo: rows[27]?.[11] || '' }
     ].filter(atk => atk.nome && atk.nome.trim() !== '' && atk.nome.trim() !== '-')
-
   };
-
 }
 
 export async function loadSheetViaCSV(spreadsheetId) {

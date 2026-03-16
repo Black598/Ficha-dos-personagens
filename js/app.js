@@ -238,72 +238,50 @@ function App() {
       return;
     }
 
-    // Define o nome global no estado do App
     setCharacterName(charName);
 
-    // 1. Busca o personagem na lista global (dados do Firebase + Planilha Mestre)
+    // 1. Busca o personagem na lista carregada (que já veio do Firebase no useEffect)
     const charFromFirebase = allCharacters.find(c => {
-      const n = c.name || c.Personagem || c.personagem || "";
+      const n = c.name || c.Personagem || "";
       return n.toLowerCase().trim() === charName.toLowerCase().trim();
     });
 
-    const sheetUrl = charFromFirebase?.url || charFromFirebase?.URL || charFromFirebase?.Ficha;
-
     try {
+      // ESTRATÉGIA: Usar Firebase se os dados da ficha já existirem lá
+      if (charFromFirebase && charFromFirebase.sheetData) {
+        console.log("⚡ Carregando via Firebase (Cache Local)");
+        setCharacterData(charFromFirebase);
+        setCharacterSheetData(charFromFirebase.sheetData);
+        setView('sheet');
+        return;
+      }
+
+      // 2. Se não tem no Firebase, busca na Planilha (Primeira vez do herói)
+      const sheetUrl = charFromFirebase?.url || charFromFirebase?.URL;
       if (sheetUrl) {
-        console.log("📡 Carregando planilha de:", charName);
+        console.log("📡 Firebase vazio. Importando da Planilha pela primeira vez...");
         const dataFromSheet = await loadCharacterSheet(sheetUrl);
 
         if (dataFromSheet) {
-          // MESCLAGEM CRÍTICA:
-          // Unimos os dados da planilha com os dados persistentes do Firebase
           const mergedData = {
             ...charFromFirebase,
-            name: charName, // Garante o nome na raiz do objeto
-            sheetData: {
-              ...dataFromSheet,
-              info: {
-                ...dataFromSheet.info,
-                ...charFromFirebase?.sheetData?.info,
-                // A LINHA ABAIXO resolve o problema do nome sumir na ficha:
-                'Nome do Personagem': charName
-              },
-              recursos: {
-                ...dataFromSheet.recursos,
-                ...charFromFirebase?.sheetData?.recursos
-              }
-            }
+            name: charName,
+            sheetData: dataFromSheet
           };
 
-          // Atualiza os estados para refletir na TreeView e no SheetView
+          // 3. Salva no Firebase para que no próximo F5 não precise ler a planilha
+          await saveCharacter(charName, mergedData);
+
           setCharacterData(mergedData);
-          setCharacterSheetData(mergedData.sheetData);
+          setCharacterSheetData(dataFromSheet);
           setView('sheet');
-          return;
         }
       }
-
-      // Se não houver link de planilha, carrega apenas os dados do Firebase (TreeView)
-      const fallbackData = {
-        ...charFromFirebase,
-        name: charName
-      };
-
-      setCharacterData(fallbackData);
-
-      // Se já existirem dados de ficha salvos no Firebase, carrega eles
-      if (charFromFirebase?.sheetData) {
-        setCharacterSheetData(charFromFirebase.sheetData);
-        setView('sheet');
-      } else {
-        setView('character');
-      }
-
     } catch (e) {
       console.error("❌ Erro ao carregar personagem:", e);
       setView('character');
     }
-  }
+  };
 
   // --- 7. CRIAR NOVO HERÓI ---
   // A criação de heróis agora salva o herói no Firebase, que por sua vez é ouvida em tempo real para atualizar o feed de heróis
@@ -338,18 +316,16 @@ function App() {
   // --- 9. ATUALIZAR CAMPO DA FICHA ---
   // Esta função é chamada toda vez que um campo da ficha é editado
   const updateSheetField = (section, field, value) => {
-    // 1. Cria a cópia profunda
-    const updatedSheetData = JSON.parse(JSON.stringify(characterSheetData));
+    // 1. Cópia segura dos dados atuais
+    const updatedSheetData = {
+      ...characterSheetData,
+      [section]: {
+        ...characterSheetData[section],
+        [field]: value
+      }
+    };
 
-    // 2. Garante que a seção existe
-    if (!updatedSheetData[section]) {
-      updatedSheetData[section] = {};
-    }
-
-    // 3. Define o valor
-    updatedSheetData[section][field] = value;
-
-    // 4. Atualiza os estados do React
+    // 2. Atualiza o estado visual (React)
     setCharacterSheetData(updatedSheetData);
 
     const updatedFullData = {
@@ -358,9 +334,20 @@ function App() {
     };
     setCharacterData(updatedFullData);
 
-    // 5. Salva no Firebase (Isso chamará o saveCharacter)
+    // 3. Salva no Firebase
     saveCharacter(characterName, updatedFullData);
-  }
+
+    // 4. Sincroniza com a Planilha (Onde estava o erro)
+    // Usamos o extractSpreadsheetId que está no seu utils.js
+    const sheetId = extractSpreadsheetId(characterData.url || characterData.URL);
+
+    if (sheetId && typeof scriptUrl !== 'undefined') {
+      console.log("📤 Enviando atualização para a planilha...");
+      updateSheetViaScript(scriptUrl, sheetId, updatedSheetData);
+    } else {
+      console.warn("⚠️ Não foi possível sincronizar com a planilha: scriptUrl ou sheetId ausentes.");
+    }
+  };
 
   // --- RENDERIZAÇÃO ---
 
