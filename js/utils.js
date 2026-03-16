@@ -49,33 +49,35 @@ export function parseCSV(csvText) {
   };
 
   // --- CONFIGURAÇÃO DE MAGIAS E DESCRIÇÕES ---
+  // Lista de niveis de magia
   const listaNiveis = ["Infusões", "Círculo 0 (Truques)", "Círculo 1", "Círculo 2", "Círculo 3", "Círculo 4", "Círculo 5", "Círculo 6", "Círculo 7", "Círculo 8", "Círculo 9"];
-
-  // Mapeamento de colunas para descrições (D=3, F=5, H=7, J=9)
+// Mapeamento de linhas para cada nível de magia (baseado na estrutura da planilha)
+  const mapaLinhasOffset = {
+    "Infusões": 0, "Círculo 0 (Truques)": 0, "Círculo 1": 0, "Círculo 2": 0,
+    "Círculo 3": 16, "Círculo 4": 16, "Círculo 5": 16, "Círculo 6": 16,
+    "Círculo 7": 32, "Círculo 8": 32, "Círculo 9": 32
+  };
+// Mapeamento de colunas para descrições de cada nível de magia
   const mapaColunasDesc = {
     "Infusões": 3, "Círculo 0 (Truques)": 5, "Círculo 1": 7, "Círculo 2": 9,
     "Círculo 3": 3, "Círculo 4": 5, "Círculo 5": 7, "Círculo 6": 9,
     "Círculo 7": 3, "Círculo 8": 5, "Círculo 9": 7
   };
-
-  const magiasData = { temMagia: false };
-  const descricoesMagias = {};
-
+// Estrutura para armazenar magias e descrições
   listaNiveis.forEach(nivel => {
-    // 1. Pega os nomes (pode vir de colunas fixas se existirem ou ser preenchido pelo Firebase dps)
-    // Aqui um exemplo de leitura genérica de nomes na coluna A (índice 0) a partir da 115
+    const offset = mapaLinhasOffset[nivel];
+    const col = mapaColunasDesc[nivel];
     const nomesNivel = [];
-    for (let i = 0; i < 4; i++) {
-      const rowIndex = 114 + i;
-      const nome = rows[rowIndex]?.[0] || ""; // Nome na coluna A
-      const colDesc = mapaColunasDesc[nivel];
-      const desc = rows[rowIndex]?.[colDesc] || ""; // Descrição na coluna mapeada
 
-      if (nome) {
-        nomesNivel.push(nome);
-        magiasData.temMagia = true;
+    for (let i = 0; i < 4; i++) {
+      const rowIndex = 114 + offset + i;
+      const nome = rows[rowIndex]?.[0] || ""; 
+      const desc = rows[rowIndex]?.[col] || "";
+
+      if (nome || desc) {
+        nomesNivel[i] = nome;
+        descricoesMagias[`spell_desc_${nivel}_${i}`] = desc;
       }
-      descricoesMagias[`spell_desc_${nivel}_${i}`] = desc;
     }
     magiasData[nivel] = nomesNivel;
   });

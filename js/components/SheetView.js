@@ -469,20 +469,31 @@ export function SheetView({
                 ])
             ]),
             // --- BLOCO 8: GRIMÓRIO ARCANO ---
-            el('div', { key: 'grimoire', className: "mt-12 space-y-8 border-t border-slate-800 pt-12" }, [
+            el('div', { key: 'grimoire-section', className: "mt-12 space-y-8 border-t border-slate-800 pt-12" }, [
+
+                // CABEÇALHO: Stats de Magia (Sempre Renderiza)
                 el('div', { className: "flex flex-col md:flex-row items-center justify-between gap-6" }, [
                     el('h3', { className: "text-3xl font-black text-blue-500 uppercase tracking-tighter italic flex items-center gap-4" }, "🧙🏾‍♂️ Grimório Arcano"),
 
-                    // BOTÃO PARA ADICIONAR CÍRCULO
+                    el('div', { className: "flex gap-4" },
+                        Object.entries(characterSheetData.statsMagia || {}).map(([key, value]) => (
+                            el('div', { key, className: "bg-blue-950/20 border border-blue-500/30 px-6 py-3 rounded-2xl text-center shadow-lg" }, [
+                                el('p', { className: "text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1" }, key),
+                                el('p', { className: "text-xl font-black text-blue-50" }, key === 'Salvaguarda' ? value : fmtNum(value))
+                            ])
+                        ))
+                    ),
+
+                    // Botão de Adicionar Círculo (Sempre Visível)
                     el('select', {
-                        className: "bg-slate-800 text-blue-400 text-[10px] font-black uppercase p-2 rounded-xl border border-blue-500/30 outline-none",
+                        className: "bg-slate-800 text-blue-400 text-[10px] font-black uppercase p-2 rounded-xl border border-blue-500/30 outline-none cursor-pointer",
                         onChange: (e) => {
                             const nivel = e.target.value;
                             if (!nivel) return;
-                            // Inicializa o nível no Firebase/Estado
                             const novaMagia = { ...characterSheetData.magias, temMagia: true };
                             if (!novaMagia[nivel]) novaMagia[nivel] = ["", "", "", ""];
                             updateSheetField('magias', nivel, novaMagia[nivel]);
+                            e.target.value = ""; // Reseta o select
                         }
                     }, [
                         el('option', { value: "" }, "+ ADICIONAR CÍRCULO"),
@@ -490,40 +501,76 @@ export function SheetView({
                     ])
                 ]),
 
-                // Renderiza apenas os círculos que têm dados ou foram adicionados
+                // LISTA DE CÍRCULOS (Renderiza apenas se houver círculos com nomes ou se "temMagia" for true)
                 el('div', { className: "grid grid-cols-1 xl:grid-cols-2 gap-10" },
-                    Object.keys(characterSheetData.magias)
+                    Object.keys(characterSheetData.magias || {})
                         .filter(k => k !== 'temMagia' && Array.isArray(characterSheetData.magias[k]))
-                        .sort() // Organiza por ordem alfabética/numérica
-                        .map((nivel) => (
-                            el('div', { key: nivel, className: "bg-slate-900 border-2 border-slate-800 p-8 rounded-[3.5rem] shadow-2xl" }, [
+                        .sort()
+                        .map((nivel) => {
+                            const lista = characterSheetData.magias[nivel];
+                            // Lógica para esconder círculo se estiver totalmente vazio (opcional)
+                            // Se quiser que ele suma ao apagar tudo, descomente a linha abaixo:
+                            // if (lista.every(m => !m || m === "")) return null;
+
+                            return el('div', { key: nivel, className: "bg-slate-900 border-2 border-slate-800 p-8 rounded-[3.5rem] shadow-2xl relative group" }, [
+
+                                // Botão para Apagar Círculo Inteiro
+                                el('button', {
+                                    className: "absolute top-6 right-6 text-slate-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100",
+                                    onClick: () => {
+                                        if (confirm(`Deseja apagar todo o ${nivel}?`)) {
+                                            const novasMagias = { ...characterSheetData.magias };
+                                            delete novasMagias[nivel];
+                                            // Verifica se sobrou algum círculo
+                                            const restouAlgum = Object.keys(novasMagias).some(k => k !== 'temMagia' && Array.isArray(novasMagias[k]));
+                                            novasMagias.temMagia = restouAlgum;
+                                            updateSheetField('magias', null, novasMagias); // Envia o objeto inteiro atualizado
+                                        }
+                                    }
+                                }, "🗑️"),
+
                                 el('h4', { className: "text-blue-400 font-black uppercase text-xl italic mb-8 border-b border-blue-900/30 pb-5" }, nivel),
+
                                 el('div', { className: "space-y-5" },
                                     [0, 1, 2, 3].map((idx) => {
-                                        const nomeMagia = characterSheetData.magias[nivel]?.[idx] || "";
+                                        const nomeMagia = lista[idx] || "";
                                         const descMagia = characterSheetData.outros?.[`spell_desc_${nivel}_${idx}`] || "";
 
-                                        return el('div', { key: idx, className: "bg-slate-950/60 border border-slate-800 rounded-[2rem] p-6 focus-within:border-blue-500/50" }, [
+                                        return el('div', { key: idx, className: "bg-slate-950/60 border border-slate-800 rounded-[2rem] p-6 focus-within:border-blue-500/50 relative" }, [
+
+                                            // Botão para Limpar apenas uma Magia
+                                            nomeMagia && el('button', {
+                                                className: "absolute top-2 right-4 text-[10px] text-slate-700 hover:text-red-400",
+                                                onClick: () => {
+                                                    const novaLista = [...lista];
+                                                    novaLista[idx] = "";
+                                                    updateSheetField('magias', nivel, novaLista);
+                                                    updateSheetField('outros', `spell_desc_${nivel}_${idx}`, "");
+                                                }
+                                            }, "limpar"),
+
                                             el('input', {
                                                 type: 'text',
                                                 className: "w-full bg-transparent text-blue-50 text-base font-black uppercase outline-none",
+                                                placeholder: "Vazio...",
                                                 defaultValue: nomeMagia,
                                                 onBlur: (e) => {
-                                                    const novaLista = [...(characterSheetData.magias[nivel] || ["", "", "", ""])];
+                                                    const novaLista = [...lista];
                                                     novaLista[idx] = e.target.value;
                                                     updateSheetField('magias', nivel, novaLista);
                                                 }
                                             }),
                                             el('textarea', {
                                                 className: "w-full bg-transparent text-[11px] text-slate-500 italic mt-2 outline-none resize-none",
+                                                placeholder: "Descrição...",
                                                 defaultValue: descMagia,
                                                 onBlur: (e) => updateSheetField('outros', `spell_desc_${nivel}_${idx}`, e.target.value)
                                             })
                                         ]);
                                     })
                                 )
-                            ])
-                        ))
+                            ]);
+                        })
                 )
             ])
         ),

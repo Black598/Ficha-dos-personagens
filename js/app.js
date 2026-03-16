@@ -316,14 +316,20 @@ function App() {
   // --- 9. ATUALIZAR CAMPO DA FICHA ---
   // Esta função é chamada toda vez que um campo da ficha é editado
   const updateSheetField = (section, field, value) => {
-    // 1. Cópia segura dos dados atuais
-    const updatedSheetData = {
-      ...characterSheetData,
-      [section]: {
+    // 1. Cópia profunda dos dados atuais
+    let updatedSheetData = { ...characterSheetData };
+
+    if (field === null) {
+      // Se 'field' for null, significa que estamos substituindo a seção INTEIRA
+      // (Útil para apagar círculos de magia ou resetar blocos)
+      updatedSheetData[section] = value;
+    } else {
+      // Caso contrário, atualiza apenas o campo específico dentro da seção
+      updatedSheetData[section] = {
         ...characterSheetData[section],
         [field]: value
-      }
-    };
+      };
+    }
 
     // 2. Atualiza o estado visual (React)
     setCharacterSheetData(updatedSheetData);
@@ -334,18 +340,20 @@ function App() {
     };
     setCharacterData(updatedFullData);
 
-    // 3. Salva no Firebase
+    // 3. Salva no Firebase (Fonte de verdade do App)
     saveCharacter(characterName, updatedFullData);
 
-    // 4. Sincroniza com a Planilha (Onde estava o erro)
-    // Usamos o extractSpreadsheetId que está no seu utils.js
+    // 4. Sincroniza com a Planilha Google
     const sheetId = extractSpreadsheetId(characterData.url || characterData.URL);
 
     if (sheetId && typeof scriptUrl !== 'undefined') {
       console.log("📤 Enviando atualização para a planilha...");
+
+      // Enviamos a ação de UPDATE para o Apps Script processar
+      // Passamos o objeto completo para que a planilha reflita o estado atual
       updateSheetViaScript(scriptUrl, sheetId, updatedSheetData);
     } else {
-      console.warn("⚠️ Não foi possível sincronizar com a planilha: scriptUrl ou sheetId ausentes.");
+      console.warn("⚠️ Sincronização pendente: scriptUrl ou sheetId não encontrados.");
     }
   };
 
