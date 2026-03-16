@@ -40,6 +40,62 @@ input[type="text"], input[type="email"], input[type="password"], textarea {
   animation: bounce-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+/* --- NOVAS ANIMAÇÕES PREMIUM --- */
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+.animate-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+
+@keyframes sparkle {
+  0% { box-shadow: 0 0 0px 0px rgba(34, 197, 94, 0); transform: scale(1); }
+  50% { box-shadow: 0 0 30px 10px rgba(34, 197, 94, 0.5); transform: scale(1.02); }
+  100% { box-shadow: 0 0 0px 0px rgba(34, 197, 94, 0); transform: scale(1); }
+}
+.animate-sparkle { animation: sparkle 0.6s ease-out; }
+
+@keyframes neon-glow {
+  0%, 100% { border-color: rgba(139, 92, 246, 0.3); box-shadow: 0 0 5px rgba(139, 92, 246, 0.1); }
+  50% { border-color: rgba(139, 92, 246, 0.8); box-shadow: 0 0 15px rgba(139, 92, 246, 0.4); }
+}
+.animate-neon-glow { animation: neon-glow 2s infinite; }
+
+@keyframes shield-up {
+  0% { box-shadow: 0 0 0px 0px rgba(56, 189, 248, 0); transform: scale(1); }
+  50% { box-shadow: 0 0 40px 15px rgba(56, 189, 248, 0.4); transform: scale(1.03); }
+  100% { box-shadow: 0 0 0px 0px rgba(56, 189, 248, 0); transform: scale(1); }
+}
+.animate-shield { animation: shield-up 0.8s ease-out; }
+
+@keyframes rest-fade {
+  0% { filter: brightness(1) sepia(0); }
+  50% { filter: brightness(0.6) sepia(0.5) hue-rotate(240deg); }
+  100% { filter: brightness(1) sepia(0); }
+}
+.animate-rest { animation: rest-fade 2s ease-in-out; }
+
+@keyframes bag-open {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+.animate-bag { animation: bag-open 0.3s ease-out; }
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.animate-pulse-soft { animation: pulse-soft 2s infinite ease-in-out; }
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+
 /* --- 3D Dice Roller Styles --- */
 .dice-display {
     width: 320px;

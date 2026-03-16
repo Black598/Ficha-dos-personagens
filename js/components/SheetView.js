@@ -3,6 +3,7 @@ const { useState } = React;
 
 
 import { DiceRoller } from './DiceRoller.js';
+import { AudioManager } from '../AudioManager.js';
 
 export function SheetView({
     characterName,
@@ -21,6 +22,13 @@ export function SheetView({
 }) {
 
     const [isEditingInventory, setIsEditingInventory] = useState(false);
+    const [effectClass, setEffectClass] = useState(''); // Classe temporária (shake, sparkle)
+
+    const triggerEffect = (type) => {
+        setEffectClass(`animate-${type}`);
+        AudioManager.play(type === 'shake' ? 'damage' : 'heal');
+        setTimeout(() => setEffectClass(''), 1000);
+    };
     
     // Nível Up
     const [showLevelUpModal, setShowLevelUpModal] = useState(false);
@@ -31,6 +39,32 @@ export function SheetView({
         hpChoice: 'roll', // 'roll' ou 'fixed'
         hpRolledValue: 0
     });
+
+    // Monitor de HP para feedback (Reativo ao estado)
+    const currentHP = parseInt(characterSheetData?.recursos?.['PV Atual']) || 0;
+    const [lastHP, setLastHP] = React.useState(currentHP);
+    
+    // Monitor de PV Temporário
+    const currentTempHP = parseInt(characterSheetData?.recursos?.['PV Temporário']) || 0;
+    const [lastTempHP, setLastTempHP] = React.useState(currentTempHP);
+
+    React.useEffect(() => {
+        if (currentHP === lastHP) return;
+        if (currentHP < lastHP) {
+            triggerEffect('shake');
+        } else if (currentHP > lastHP) {
+            triggerEffect('sparkle');
+        }
+        setLastHP(currentHP);
+    }, [currentHP]);
+
+    React.useEffect(() => {
+        if (currentTempHP === lastTempHP) return;
+        if (currentTempHP !== lastTempHP) {
+            triggerEffect('shield');
+        }
+        setLastTempHP(currentTempHP);
+    }, [currentTempHP]);
     
     // Rastreador de círculos de magia ativos
     const [activeCircles, setActiveCircles] = React.useState(() => {
@@ -44,6 +78,10 @@ export function SheetView({
         });
         return circles;
     });
+
+    React.useEffect(() => {
+        AudioManager.play('paper');
+    }, []);
 
     React.useEffect(() => {
         const circlesToAdd = [];
@@ -146,7 +184,7 @@ export function SheetView({
     const isMyTurn = turnState?.activeChar === characterName;
 
     return el('div', { 
-        className: `min-h-screen bg-slate-950 text-slate-100 pb-32 animate-fade-in relative transition-all duration-500 ${isMyTurn ? 'ring-8 ring-amber-500/30' : ''}` 
+        className: `min-h-screen bg-slate-950 text-slate-100 pb-32 animate-fade-in relative transition-all duration-500 ${isMyTurn ? 'ring-8 ring-amber-500/30' : ''} ${effectClass}` 
     }, [
         // --- NÉVOA DE FUNDO ---
         activeConditions.length > 0 && el('div', { 
@@ -588,9 +626,14 @@ export function SheetView({
                         ]),
 
                         el('div', {
-                            // ADICIONEI min-h-[160px] E bg-slate-950/40 PARA VISIBILIDADE
                             className: `bg-slate-950/40 border-2 border-slate-800 rounded-3xl p-6 flex-grow min-h-[160px] transition-all cursor-text ${isEditingInventory ? 'border-amber-500/50 ring-2 ring-amber-500/10' : 'hover:border-slate-700 hover:bg-slate-950/60'}`,
-                            onClick: () => !isEditingInventory && setIsEditingInventory(true)
+                            onClick: () => {
+                                if (!isEditingInventory) {
+                                    AudioManager.play('bag');
+                                    triggerEffect('bag');
+                                    setIsEditingInventory(true);
+                                }
+                            }
                         },
                             isEditingInventory ?
                                 // --- MODO EDIÇÃO (TEXTAREA) ---
@@ -643,7 +686,6 @@ export function SheetView({
                         ))
                     ),
 
-                    // Botão de Adicionar Círculo (Sempre Visível)
                     el('select', {
                         className: "bg-slate-800 text-blue-400 text-[10px] font-black uppercase p-2 rounded-xl border border-blue-500/30 outline-none cursor-pointer",
                         onChange: (e) => {
@@ -782,7 +824,10 @@ export function SheetView({
 
                     // Botão Descanso
                     el('button', {
-                        onClick: handleDescansoLongo,
+                        onClick: () => {
+                            triggerEffect('rest');
+                            handleDescansoLongo();
+                        },
                         className: "w-14 h-14 bg-slate-800 hover:bg-purple-900 text-purple-400 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl"
                     }, "🌙"),
 

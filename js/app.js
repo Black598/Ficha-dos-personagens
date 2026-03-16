@@ -32,6 +32,7 @@ function App() {
   const [editableSheetData, setEditableSheetData] = useState(null);
   const [isRollingModalOpen, setRollingModalOpen] = useState(false);
   const [turnState, setTurnState] = useState({ activeChar: '', round: 1 });
+  const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
 
   // --- 1. EFEITO DE AUTENTICAÇÃO ---
   useEffect(() => {
@@ -479,6 +480,66 @@ function App() {
 
   if (loading) return React.createElement('div', { className: "min-h-screen bg-slate-950 flex items-center justify-center text-amber-500 font-mono" }, "CARREGANDO REINO...");
 
+  // --- 8.4 INICIATIVA ---
+  const updateInitiative = async (newOrder) => {
+    try {
+      await db.collection('artifacts').doc(appId)
+        .collection('public').doc('data').collection('global').doc('turnState')
+        .set({ 
+          ...turnState,
+          initiativeOrder: newOrder 
+        }, { merge: true });
+    } catch (e) { console.error("Erro ao salvar iniciativa:", e); }
+  };
+
+  // --- 8.3 INTEGRAÇÃO GEMINI ---
+  const askGemini = async (prompt) => {
+    if (!geminiApiKey) throw new Error("API Key do Gemini não configurada!");
+
+    const systemInstruction = "Você é um mestre de RPG baseado em todos os livros de dungeon and dragons, principalmente na edição 5e. Responda de forma útil, mística e em português brasileiro.";
+    
+    // Lista de modelos atualizada conforme diagnóstico de 2026
+    const MODELS_TO_TRY = [
+      'gemini-2.5-flash',
+      'gemini-flash-latest',
+      'gemini-2.5-pro',
+      'gemini-pro-latest'
+    ];
+
+    let lastError = null;
+
+    for (const modelId of MODELS_TO_TRY) {
+      try {
+        console.log(`Tentando Gemini com modelo: ${modelId}...`);
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${geminiApiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemInstruction }] },
+            contents: [{ role: 'user', parts: [{ text: prompt }] }]
+          })
+        });
+
+        const data = await response.json();
+        
+        if (data.error) {
+           console.warn(`Modelo ${modelId} falhou:`, data.error.message);
+           lastError = data.error.message;
+           continue; // Tenta o próximo
+        }
+        
+        if (data.candidates && data.candidates[0].content) {
+          return data.candidates[0].content.parts[0].text;
+        }
+      } catch (e) {
+        console.warn(`Erro na tentativa com ${modelId}:`, e.message);
+        lastError = e.message;
+      }
+    }
+
+    throw new Error(`O Oráculo está silenciando... (Nenhum modelo compatível encontrado. Último erro: ${lastError})`);
+  };
+
   // Se estivermos na visão do mestre, renderizamos a MasterView
   if (view === 'master') {
     return React.createElement(MasterView, {
@@ -487,6 +548,10 @@ function App() {
       updateCharacterConditions,
       advanceTurn,
       turnState,
+      geminiApiKey,
+      setGeminiApiKey: (key) => { setGeminiApiKey(key); localStorage.setItem('gemini_api_key', key); },
+      askGemini,
+      updateInitiative,
       onViewSheet: (char) => { setCharacterSheetData(char.sheetData); setCharacterName(char.name); setView('sheet'); }
     })
   }
@@ -517,6 +582,7 @@ function App() {
           newData.recursos['PV Atual'] = max;
 
           await onUpdateSheet(newData);
+          AudioManager.play('rest');
 
           alert("🌙Foi uma noite tranquila. Descanso realizado!");
         },
