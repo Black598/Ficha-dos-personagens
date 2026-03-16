@@ -1,9 +1,16 @@
 export function DiceRoller({ rollDice, recentRolls, characterName, view, isRollingModalOpen, setRollingModalOpen }) {
     const el = React.createElement;
     const [visibleRolls, setVisibleRolls] = React.useState([]);
+    const [isFirstLoad, setIsFirstLoad] = React.useState(true);
 
     React.useEffect(() => {
         if (recentRolls && recentRolls.length > 0) {
+            // Ignora o primeiro load vindo do firebase para nao chutar rolls velhos na tela
+            if (isFirstLoad) {
+                setIsFirstLoad(false);
+                return;
+            }
+
             const latestRoll = recentRolls[0];
             setVisibleRolls(prev => {
                 if (prev.find(r => r.id === latestRoll.id)) return prev;
@@ -11,7 +18,7 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
             });
             const timer = setTimeout(() => {
                 setVisibleRolls(prev => prev.filter(r => r.id !== latestRoll.id));
-            }, 4500);
+            }, 2500); // Reduzido de 4500 para 2500
             return () => clearTimeout(timer);
         }
     }, [recentRolls]);
@@ -382,7 +389,25 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
                 let labelStr = '';
                 if(modifier !== 0) labelStr += (modifier > 0 ? '+'+modifier : modifier);
                 if(mode !== 'normal') labelStr += (mode === 'vantagem' ? ' (Vant)' : ' (Desv)');
-                rollDice(sides, finalResult, labelStr.trim());
+
+                const isSecret = document.getElementById('secretRollToggle')?.checked;
+
+                if (!isSecret) {
+                    rollDice(sides, finalResult, labelStr.trim());
+                } else {
+                    // Adiciona o balão localmente só pra quem rolou:
+                    const secretRoll = {
+                        id: 'secret_' + Date.now(),
+                        playerName: 'Mestre (Oculto)',
+                        sides: sides,
+                        result: finalResult,
+                        label: labelStr.trim()
+                    };
+                    setVisibleRolls(prev => [secretRoll, ...prev].slice(0, 4));
+                    setTimeout(() => {
+                        setVisibleRolls(prev => prev.filter(r => r.id !== secretRoll.id));
+                    }, 2500);
+                }
             }
 
             function createParticles(color = 'var(--primary-light)', count = 10) {
@@ -462,6 +487,12 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
                             <input type="radio" name="rollMode" value="desvantagem" class="accent-purple-500 w-4 h-4 cursor-pointer">
                             <span class="text-sm font-bold uppercase tracking-wider">Desvantagem</span>
                         </label>
+                        ${characterName && characterName.toLowerCase() === 'mestre' ? `
+                        <label class="mode-label flex items-center gap-2 cursor-pointer text-red-500 hover:text-red-400 transition-colors group ml-4 border-l border-slate-700 pl-4">
+                            <input type="checkbox" id="secretRollToggle" class="accent-red-500 w-4 h-4 cursor-pointer">
+                            <span class="text-sm font-black uppercase tracking-wider">Rolar Oculto 👁️</span>
+                        </label>
+                        ` : ''}
                     </div>
                     
                     <div class="modifiers flex items-center gap-3 bg-slate-950/50 p-2 px-4 rounded-2xl border border-slate-800">

@@ -1,5 +1,3 @@
-console.log("🚀 O arquivo app.js foi lido pelo navegador!")
-
 // 1. IMPORTAÇÕES
 import { TALENT_TREES, firebaseConfig, appId, iconMap } from './data.js';
 import { loadCharacterSheet, loadPlayerList, getCharacterByName, updateSheetViaScript, extractSpreadsheetId } from './utils.js'
@@ -33,12 +31,12 @@ function App() {
   const [tooltip, setTooltip] = useState({ show: false, content: null, x: 0, y: 0 });
   const [editableSheetData, setEditableSheetData] = useState(null);
   const [isRollingModalOpen, setRollingModalOpen] = useState(false);
+  const [turnState, setTurnState] = useState({ activeChar: '', round: 1 });
 
   // --- 1. EFEITO DE AUTENTICAÇÃO ---
   useEffect(() => {
     const unsubAuth = auth.onAuthStateChanged((user) => {
       if (user) {
-        console.log("👤 Usuário logado:", user.uid);
         setUser(user);
       } else {
         auth.signInAnonymously();
@@ -47,12 +45,22 @@ function App() {
     return () => unsubAuth();
   }, [])
 
+  // --- 1.1 ESCUTA ESTADO DE TURNOS ---
+  useEffect(() => {
+    if (!user) return;
+    const unsubTurns = db.collection('artifacts').doc(appId)
+      .collection('public').doc('data').collection('global').doc('turnState')
+      .onSnapshot((doc) => {
+        if (doc.exists) setTurnState(doc.data());
+      });
+    return () => unsubTurns();
+  }, [user]);
+
   // --- 2. CARREGAMENTO DE DADOS (PLANILHA + FIREBASE) ---
   useEffect(() => {
     if (!user) return;
 
     const initAppData = async () => {
-      console.log("Iniciando carregamento de dados...");
       let googlePlayers = [];
       try {
         googlePlayers = await loadPlayerList(); // Pega a lista da Planilha Mestre
@@ -102,8 +110,10 @@ function App() {
     );
 
     if (updatedChar) {
-      console.log("🔄 Sincronizando dados do Firebase para:", characterName);
       setCharacterData(updatedChar);
+      if (updatedChar.sheetData) {
+        setCharacterSheetData(updatedChar.sheetData);
+      }
     }
   }, [allCharacters, characterName])
 
@@ -162,16 +172,8 @@ function App() {
 
       const idPlanilha = extractSpreadsheetId(sheetUrl);
 
-      console.log("🔍 Diagnóstico de Busca:");
-      console.log("- Nome buscado:", characterName);
-      console.log("- Linha encontrada na planilha:", playerFromSheet);
-      console.log("- URL extraída:", sheetUrl);
-      console.log("- ID Final:", idPlanilha);
-
       if (idPlanilha && scriptWebhook) {
-        console.log(`📡 Enviando para Google Script: ${idPlanilha}`);
         await updateSheetViaScript(scriptWebhook, idPlanilha, newData);
-        console.log("✅ Sincronização enviada!");
       } else {
         console.error("❌ Erro: ID da planilha não encontrado para este herói.");
       }
@@ -251,7 +253,6 @@ function App() {
     try {
       // ESTRATÉGIA: Usar Firebase se os dados da ficha já existirem lá
       if (charFromFirebase && charFromFirebase.sheetData) {
-        console.log("⚡ Carregando via Firebase (Cache Local)");
         setCharacterData(charFromFirebase);
         setCharacterSheetData(charFromFirebase.sheetData);
         setView('sheet');
@@ -264,7 +265,6 @@ function App() {
                 const fbDataStr = JSON.stringify(charFromFirebase.sheetData);
                 const shDataStr = JSON.stringify(dataFromSheet);
                 if (fbDataStr !== shDataStr) {
-                    console.log("⚠️ Planilha e Firebase divergiram! Atualizando app.js e Firebase com dados novos da Planilha...");
                     const mergedData = { ...charFromFirebase, sheetData: dataFromSheet };
                     setCharacterData(mergedData);
                     setCharacterSheetData(dataFromSheet);
@@ -274,8 +274,6 @@ function App() {
                        .collection('public').doc('data')
                        .collection('characters').doc(charName.toLowerCase())
                        .set(mergedData, { merge: true });
-                } else {
-                    console.log("✅ Os dados da Planilha são os mesmos do Firebase.");
                 }
              }
            }).catch(console.error);
@@ -288,7 +286,6 @@ function App() {
       // 2. Se não tem no Firebase, busca na Planilha (Primeira vez do herói)
       const sheetUrl = charFromFirebase?.url || charFromFirebase?.URL;
       if (sheetUrl) {
-        console.log("📡 Firebase vazio. Importando da Planilha pela primeira vez...");
         const dataFromSheet = await loadCharacterSheet(sheetUrl);
 
         if (dataFromSheet) {
@@ -332,13 +329,102 @@ function App() {
   // --- 8. ATUALIZAR XP DO PERSONAGEM ---
   // A função de atualizar XP agora salva o XP no Firebase, que por sua vez é ouvida em tempo real para atualizar a ficha do personagem
   const updateCharacterXP = async (name, newXP) => {
-    const charRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('characters').doc(name.toLowerCase());
-    const snap = await charRef.get();
-    if (snap.exists) {
-      const data = snap.data();
-      if (!data.sheetData) data.sheetData = { info: {} };
-      data.sheetData.info['XP'] = newXP.toString();
-      await charRef.set(data);
+    try {
+      const charRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('characters').doc(name.toLowerCase());
+      const snap = await charRef.get();
+      if (snap.exists) {
+        const data = snap.data();
+        if (!data.sheetData) return;
+        if (!data.sheetData.info) data.sheetData.info = {};
+        
+        data.sheetData.info['XP'] = newXP.toString();
+        
+        // 1. Salvar no Firebase
+        await charRef.set(data);
+
+        // 2. Tentar Sincronizar na Planilha Google
+        const sheetUrl = data.url || data.sheetUrl || (data.sheetData && data.sheetData.url);
+        const idPlanilha = extractSpreadsheetId(sheetUrl);
+        if (idPlanilha && typeof scriptWebhook !== 'undefined') {
+          updateSheetViaScript(scriptWebhook, idPlanilha, data.sheetData);
+        }
+      }
+    } catch(e) {
+      console.error("Erro ao atualizar XP:", e);
+    }
+  }
+
+  // --- 8.1 ATUALIZAR CONDIÇÕES DO PERSONAGEM ---
+  const updateCharacterConditions = async (name, conditionsArray) => {
+    try {
+      const charRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('characters').doc(name.toLowerCase());
+      const snap = await charRef.get();
+      if (snap.exists) {
+        const data = snap.data();
+        if (!data.sheetData) return;
+        if (!data.sheetData.info) data.sheetData.info = {};
+        
+        // Salvamos as condições ativas na aba info como JSON string pra manter os objetos
+        data.sheetData.info['Condicoes'] = JSON.stringify(conditionsArray);
+        
+        await charRef.set(data);
+
+        const sheetUrl = data.url || data.sheetUrl || (data.sheetData && data.sheetData.url);
+        const idPlanilha = extractSpreadsheetId(sheetUrl);
+        if (idPlanilha && typeof scriptWebhook !== 'undefined') {
+          updateSheetViaScript(scriptWebhook, idPlanilha, data.sheetData);
+        }
+      }
+    } catch(e) {
+      console.error("Erro ao atualizar Condições:", e);
+    }
+  }
+
+  // --- 8.2 AVANÇAR TURNO / GERENCIAR RODADA ---
+  const advanceTurn = async (targetCharName) => {
+    try {
+      const turnRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('global').doc('turnState');
+      
+      // Se clicar no personagem que já tem a vez, remove a vez dele (Limpa o estado)
+      // Ou se passar null (botão Limpar Turnos)
+      if (!targetCharName || turnState?.activeChar === targetCharName) {
+        await turnRef.set({
+          activeChar: null,
+          lastUpdate: Date.now()
+        }, { merge: true });
+        return;
+      }
+
+      // 1. Atualiza quem é o personagem ativo
+      await turnRef.set({
+        activeChar: targetCharName,
+        lastUpdate: Date.now()
+      }, { merge: true });
+
+      // 2. Decrementa turnos das condições do personagem que acabou de começar o turno
+      const charId = targetCharName.toLowerCase();
+      const charRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('characters').doc(charId);
+      const snap = await charRef.get();
+      
+      if (snap.exists) {
+        const data = snap.data();
+        let conds = [];
+        try {
+          conds = JSON.parse(data.sheetData?.info?.['Condicoes'] || '[]');
+        } catch(e) { conds = []; }
+
+        if (conds.length > 0) {
+          // Decrementa e remove quem chegou a 0
+          const updatedConds = conds.map(c => ({ ...c, turns: parseInt(c.turns) - 1 }))
+                                   .filter(c => c.turns > 0);
+          
+          if (JSON.stringify(conds) !== JSON.stringify(updatedConds)) {
+            await updateCharacterConditions(targetCharName, updatedConds);
+          }
+        }
+      }
+    } catch(e) {
+      console.error("Erro ao avançar turno:", e);
     }
   }
 
@@ -376,8 +462,6 @@ function App() {
     const sheetId = extractSpreadsheetId(characterData.url || characterData.URL);
 
     if (sheetId && typeof scriptWebhook !== 'undefined') {
-      console.log("📤 Enviando atualização para a planilha...");
-
       // Enviamos a ação de UPDATE para o Apps Script processar
       // Passamos o objeto completo para que a planilha reflita o estado atual
       updateSheetViaScript(scriptWebhook, sheetId, updatedSheetData);
@@ -400,6 +484,9 @@ function App() {
     return React.createElement(MasterView, {
       allCharacters, rollHistory, onBack: () => setView('login'),
       updateCharacterXP,
+      updateCharacterConditions,
+      advanceTurn,
+      turnState,
       onViewSheet: (char) => { setCharacterSheetData(char.sheetData); setCharacterName(char.name); setView('sheet'); }
     })
   }
@@ -417,6 +504,7 @@ function App() {
         iconMap,
         updateSheetField: updateSheetField,
         onUpdateSheet: onUpdateSheet,
+        turnState,
         handleDescansoLongo: async () => {
           if (!confirm("Realizar Descanso Longo? Isso zerará o dano acumulado e escudos.")) return;
 
@@ -427,8 +515,6 @@ function App() {
 
           const max = parseInt(newData.recursos['PV Máximo']) || 0;
           newData.recursos['PV Atual'] = max;
-
-          console.log("🌙 Resetando ficha para descanso...", newData.recursos);
 
           await onUpdateSheet(newData);
 

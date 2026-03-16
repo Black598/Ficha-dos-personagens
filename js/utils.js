@@ -66,7 +66,6 @@ export function parseCSV(csvText) {
   const descricoesMagias = {};
   const magiasData = {};
 
-  console.log("=== INICIANDO MAPEAMENTO DE MAGIAS ===");
   listaNiveisInfo.forEach(({ nivel, anchor, header }) => {
      let anchorR = -1;
      let anchorC = -1;
@@ -83,8 +82,6 @@ export function parseCSV(csvText) {
      }
 
      if (anchorR !== -1) {
-        console.log(`[🔍 MAGIAS] Ancora '${anchor}' achada na Linha ${anchorR + 1}, Coluna ${anchorC}. Procurando sub-titulos ('${header}')...`);
-        
         // 2. Procurar na "vizinhança de baixo" pela real coluna da palavra 'Magia', 'Truque' ou 'Infusão'
         let headerR = -1;
         let nameCol = anchorC; // fallback
@@ -108,8 +105,6 @@ export function parseCSV(csvText) {
         }
 
         if (headerR !== -1) {
-            console.log(`[🎯 MAGIAS] '${nivel}' => O subtítulo '${header}' está na Linha ${headerR + 1}, Coluna ${nameCol}. Lendo slots:`);
-            
             // 3. Varrer as mágicas nos espaços corretos debaixo do Sub-titulo!
             let count = 0;
             // Limita a ler no maximo 10 linhas seguidas apos o sub-titulo para nao invadir a proxima tabela
@@ -121,14 +116,12 @@ export function parseCSV(csvText) {
                 
                 // Quebrar a roda de busca se ele achar um próximo NVX logo em baixo (ex: espaço vazio entre NVs)
                 if (spellName && ["nv0", "nv1", "nv1", "nv2", "nv3", "nv4", "nv5", "nv6", "nv7", "nv8", "nv9", "infusão", "nível"].includes(spellName.toLowerCase())) {
-                   console.log(`[🛑 MAGIAS] '${nivel}' encontrou a barreira: '${spellName}' na linha ${r+1}. Encerrando leitura.`);
                    break;
                 }
 
                 if (spellName === "-" || spellName === "") {
                    nomesNivel.push("");
                    descricoesMagias[`spell_desc_${nivel}_${count}`] = "";
-                   console.log(`   - Slot ${count + 1}: Vazio (Linha ${r + 1})`);
                 } 
                 else if (spellName.toLowerCase() !== "magia" && spellName.toLowerCase() !== "truque" && spellName.toLowerCase() !== "infusão") {
                    // Achar a descrição (varrendo +8 colunas pra direita do nome)
@@ -139,24 +132,18 @@ export function parseCSV(csvText) {
                            break;
                        }
                    }
-                   console.log(`   - Slot ${count + 1}: '${spellName}' | Desc: '${desc.substring(0, 15)}...' (Linha ${r + 1})`);
                    nomesNivel.push(spellName);
                    descricoesMagias[`spell_desc_${nivel}_${count}`] = desc;
                 }
                 count++;
             }
-        } else {
-            console.log(`[⚠️ MAGIAS] Ancora '${anchor}' da Linha ${anchorR + 1} não tem sub-títulos visíveis por perto! Lendo cegas...`);
         }
-     } else {
-         console.log(`[❌ MAGIAS] O nível '${nivel}' não possui a âncora principal '${anchor}' na planilha inteira.`);
      }
      
      // Garantir que devolva vazio no react pra nao dar crash
      while (nomesNivel.length < 4) nomesNivel.push("");
      magiasData[nivel] = nomesNivel;
   });
-  console.log("=== FIM DO MAPEAMENTO DE MAGIAS ===");
 
   // Captura de Talentos (Coluna B, linha 115+)
   const descricoesExtras = {};
@@ -192,11 +179,6 @@ export function parseCSV(csvText) {
           const modStr = row[cIndex - 1]?.trim() || '+0';
           const proStr = row[cIndex - 2]?.trim()?.toLowerCase() || '';
 
-          // DEBUGS:
-          if (nomePericia === 'História' || nomePericia === 'Prestidigitação' || nomePericia === 'Acrobacia') {
-              console.log(`[DEBUG PERICIA] Achou ${nomePericia} na linha ${r}, coluna ${cIndex}. RAW PRO: '${row[cIndex-2]}', PRO Tratado: '${proStr}', MOD Tratado: '${modStr}'`);
-          }
-          
           periciasDinamicas[nomePericia] = {
             val: modStr,
             prof: proStr === 'true' || proStr === 'o' || proStr === 'x'
@@ -277,17 +259,13 @@ export function parseCSV(csvText) {
 
     const equipamentoItems = [];
     if (inventarioIndexStart !== -1) {
-      console.log(`[DEBUG INVENTÁRIO] Iniciando leitura da linha real ${inventarioIndexStart + 1} até a linha real ${inventarioIndexEnd} (antes de ROLAGEM/Moedas)`);
       for (let r = inventarioIndexStart; r < inventarioIndexEnd; r++) {
          const item = rows[r][0];
          // Aceita itens não vazios e ignora o próprio cabeçalho se ele se repetir
          if (item && typeof item === 'string' && item.trim() !== '' && item.trim() !== '-' && item.trim().toLowerCase() !== 'inventário') {
-           console.log(`[DEBUG INVENTÁRIO] Item encontrado na linha da Planilha ${r + 1}: '${item.trim()}'`);
            equipamentoItems.push(item.trim());
          }
       }
-    } else {
-      console.log(`[DEBUG INVENTÁRIO] Nenhum Rótulo de Inventário encontrado (buscou Sabedoria Passiva e Inventário)!`);
     }
     const equipamentoStr = equipamentoItems.join(', ');
 
@@ -364,10 +342,8 @@ export async function loadCharacterSheet(url) {
     console.error("Não foi possível extrair o ID da URL:", url);
     return null;
   }
-  if (DEBUG) console.log('Tentando carregar via CSV:', spreadsheetId);
   let data = await loadSheetViaCSV(spreadsheetId);
   if (!data || Object.keys(data).length === 0) {
-    if (DEBUG) console.log('CSV não trouxe nada, tentando API');
     data = await loadSheetViaAPI(spreadsheetId);
   }
   return data;
@@ -378,7 +354,6 @@ export async function loadPlayerList() {
   const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=0`;
 
   try {
-    console.log("📡 Buscando Planilha Mestre...");
     const response = await fetch(csvUrl);
     const csvText = await response.text();
 
@@ -387,7 +362,6 @@ export async function loadPlayerList() {
 
     // Log dos cabeçalhos reais que o Google enviou
     const headers = lines[0].split(',').map(h => h.trim());
-    console.log("📊 Cabeçalhos detectados na planilha:", headers);
 
     const data = lines.slice(1).map((line, lineIdx) => {
       const values = line.split(',');
@@ -398,7 +372,6 @@ export async function loadPlayerList() {
       return rowObject;
     });
 
-    console.log("✅ Lista de Jogadores processada:", data);
     return data;
   } catch (error) {
     console.error('❌ Erro ao carregar planilha mestre:', error);
@@ -428,11 +401,6 @@ export async function updateSheetViaScript(scriptUrl, spreadsheetId, data) {
       spreadsheetId: spreadsheetId,
       data: data
     };
-    
-    // DEBUG: Checar se as magias de nível alto estão saindo daqui
-    console.log("📤 PACOTE SENDO ENVIADO PARA O SCRIPT:");
-    console.log("-> Magias:", payload.data.magias);
-    console.log("-> Outros (Descrições):", payload.data.outros ? Object.keys(payload.data.outros).filter(k => k.startsWith('spell_desc_')) : []);
 
     const response = await fetch(scriptUrl, {
       method: 'POST',
@@ -440,7 +408,6 @@ export async function updateSheetViaScript(scriptUrl, spreadsheetId, data) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    console.log('✅ Sincronização enviada para a planilha:', spreadsheetId);
     return true;
   } catch (error) {
     console.error('❌ Erro ao atualizar via script:', error);

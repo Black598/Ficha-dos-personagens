@@ -16,7 +16,8 @@ export function SheetView({
     updateSheetField,
     recentRolls,
     isRollingModalOpen,
-    setRollingModalOpen
+    setRollingModalOpen,
+    turnState
 }) {
 
     const [isEditingInventory, setIsEditingInventory] = useState(false);
@@ -137,7 +138,52 @@ export function SheetView({
     };
 
     //Renderiza a ficha
-    return el('div', { className: "min-h-screen bg-slate-950 text-slate-100 pb-32 animate-fade-in relative" },
+    // Parse das Condições
+    const rawConds = characterSheetData.info?.['Condicoes'] || '[]';
+    let activeConditions = [];
+    try { activeConditions = JSON.parse(rawConds); } catch(e) { activeConditions = []; }
+
+    const isMyTurn = turnState?.activeChar === characterName;
+
+    return el('div', { 
+        className: `min-h-screen bg-slate-950 text-slate-100 pb-32 animate-fade-in relative transition-all duration-500 ${isMyTurn ? 'ring-8 ring-amber-500/30' : ''}` 
+    }, [
+        // --- NÉVOA DE FUNDO ---
+        activeConditions.length > 0 && el('div', { 
+            key: 'mist',
+            className: "fixed inset-0 pointer-events-none z-0 opacity-40 transition-all duration-1000",
+            style: {
+                background: `radial-gradient(circle at center, transparent 30%, ${activeConditions[0].color}77 100%)`,
+                boxShadow: `inset 0 0 150px 50px ${activeConditions[0].color}55`
+            }
+        }),
+
+        // --- BANNER DE TURNO ---
+        isMyTurn && el('div', {
+            key: 'turn-banner',
+            className: "fixed top-24 left-1/2 -translate-x-1/2 z-[60] bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-600 text-slate-900 px-8 py-2 rounded-full font-black uppercase tracking-[0.3em] shadow-[0_0_30px_rgba(251,191,36,0.6)] animate-bounce text-xs border-2 border-amber-200"
+        }, "🔥 É a sua vez!"),
+
+        // --- ÍCONES DE STATUS (Minecraft Style) ---
+        el('div', { 
+            key: 'status-icons',
+            className: "fixed top-24 right-6 z-50 flex flex-col gap-3"
+        }, activeConditions.map((cond, idx) => 
+            el('div', {
+                key: idx,
+                className: "group relative w-12 h-12 bg-slate-900/90 border-2 border-yellow-500 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(234,179,8,0.3)] backdrop-blur-md cursor-help transition-transform hover:scale-110",
+                title: `${cond.name}: ${cond.turns} turnos restantes`
+            }, [
+                el('span', { key: 'icon', className: "text-2xl drop-shadow-md" }, cond.icon),
+                el('span', { key: 'turns', className: "absolute -bottom-1 -right-1 bg-yellow-500 text-slate-950 text-[9px] font-black px-1 rounded border border-slate-900 shadow-md" }, cond.turns),
+                // Tooltip Custom
+                el('div', { className: "absolute right-14 top-0 bg-slate-900 border border-amber-500 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none" }, 
+                    el('p', { className: "text-[10px] font-black uppercase text-amber-500" }, cond.name),
+                    el('p', { className: "text-[9px] text-slate-300" }, `Duração: ${cond.turns} rodada(s)`)
+                )
+            ])
+        )),
+
         // --- HEADER FICHADO ---
         el('header', { className: "bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 p-4 md:p-6 sticky top-0 z-40" },
             el('div', { className: "max-w-7xl mx-auto flex justify-between items-center" },
@@ -848,5 +894,5 @@ export function SheetView({
                 )
             )
         )
-    )
+    ]);
 }

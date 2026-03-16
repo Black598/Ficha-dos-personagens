@@ -23,8 +23,8 @@ export function LoginView({
         el('header', { className: "bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 p-4 md:p-6" },
             el('div', { className: "max-w-7xl mx-auto flex justify-between items-center" },
                 el('div', null,
-                    el('h1', { className: "text-2xl md:text-4xl font-black text-white mb-2 tracking-tighter uppercase italic" }, "Árvore de Talento"),
-                    el('p', { className: "text-slate-500 text-xs md:text-[10px] uppercase font-bold tracking-[0.3em]" }, "O Despertar de novas habilidades")
+                    el('h1', { className: "text-2xl md:text-4xl font-black text-white mb-2 tracking-tighter uppercase italic" }, "Selecione seu Herói"),
+                    el('p', { className: "text-slate-500 text-xs md:text-[10px] uppercase font-bold tracking-[0.3em]" }, "Dungeon Delvers")
                 ),
                 el('button', {
                     onClick: () => onSelectCharacter('mestre'),

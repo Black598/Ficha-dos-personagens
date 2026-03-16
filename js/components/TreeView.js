@@ -17,9 +17,6 @@ export function TreeView({
         characterData?.selectedtree ||
         characterData?.sheetData?.selectedTree
 
-    console.log("🔍 [DEBUG] Buscando ID da árvore em:", characterData)
-    console.log("🌳 [RESULTADO] ID encontrado:", selectedTreeKey)
-
     const selectTree = (treeKey) => {
         if (selectedTreeKey) return
         const updated = {
