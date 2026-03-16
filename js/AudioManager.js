@@ -11,7 +11,9 @@ const SFX = {
     heal: () => playTone(880, 0.5, 'sine', 0.2, true),
     shield: () => playTone(440, 0.6, 'sine', 0.15, true),
     rest: () => playRestSound(),
-    bag: () => playChestSound(), // Novo som de baú estilo Minecraft
+    bag: () => playChestSound(),
+    coins: () => playCoinsSound(),
+    page: () => playNoise(0.05, 0.4), // Som de papel virando
     levelUp: () => playFanfare()
 };
 
@@ -91,6 +93,23 @@ function playChestSound() {
     playTone(200, 0.1, 'square', 0.05);
     setTimeout(() => playTone(300, 0.15, 'square', 0.03, true), 50);
     setTimeout(() => playNoise(0.2, 0.1), 30); // Ranger sutil
+}
+
+function playCoinsSound() {
+    initCtx();
+    // Simula tintilar de moedas com tons altos e curtos
+    const now = audioCtx.currentTime;
+    [1200, 1500, 1000].forEach((f, i) => {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.frequency.setValueAtTime(f, now + i * 0.05);
+        g.gain.setValueAtTime(0.05, now + i * 0.05);
+        g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.05 + 0.1);
+        osc.connect(g);
+        g.connect(audioCtx.destination);
+        osc.start(now + i * 0.05);
+        osc.stop(now + i * 0.05 + 0.1);
+    });
 }
 
 export const AudioManager = {

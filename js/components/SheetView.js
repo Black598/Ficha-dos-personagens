@@ -18,15 +18,28 @@ export function SheetView({
     recentRolls,
     isRollingModalOpen,
     setRollingModalOpen,
-    turnState
+    turnState,
+    triggerExternalRoll
 }) {
 
     const [isEditingInventory, setIsEditingInventory] = useState(false);
-    const [effectClass, setEffectClass] = useState(''); // Classe temporária (shake, sparkle)
+    const [effectClass, setEffectClass] = useState(''); // Classe global (shake, sparkle, rest)
+    const [bagEffect, setBagEffect] = useState(''); // Efeito local da mochila
 
     const triggerEffect = (type) => {
+        if (type === 'bag') {
+            setBagEffect('animate-bag');
+            AudioManager.play('bag');
+            setTimeout(() => setBagEffect(''), 500);
+            return;
+        }
+        
         setEffectClass(`animate-${type}`);
-        AudioManager.play(type === 'shake' ? 'damage' : 'heal');
+        if (type === 'shake') AudioManager.play('damage');
+        else if (type === 'sparkle') AudioManager.play('heal');
+        else if (type === 'shield') AudioManager.play('shield');
+        else if (type === 'rest') AudioManager.play('rest');
+        
         setTimeout(() => setEffectClass(''), 1000);
     };
     
@@ -66,6 +79,30 @@ export function SheetView({
         setLastTempHP(currentTempHP);
     }, [currentTempHP]);
     
+    // Estado do Caderno de Aventuras
+    const [showJournal, setShowJournal] = useState(false);
+    const [journalPage, setJournalPage] = useState(1);
+    const [pageAnimation, setPageAnimation] = useState('');
+    const [quickRollOpen, setQuickRollOpen] = useState(false);
+    const [localModifier, setLocalModifier] = useState(0);
+    const [localRollMode, setLocalRollMode] = useState('normal');
+
+    const openJournal = () => {
+        AudioManager.play('page');
+        setShowJournal(true);
+    };
+
+    const changePage = (next) => {
+        if (next === journalPage) return;
+        const anim = next > journalPage ? 'animate-flip-forward' : 'animate-flip-backward';
+        setPageAnimation(anim);
+        AudioManager.play('page');
+        setTimeout(() => {
+            setJournalPage(next);
+            setPageAnimation('');
+        }, 500);
+    };
+
     // Rastreador de círculos de magia ativos
     const [activeCircles, setActiveCircles] = React.useState(() => {
         const circles = [];
@@ -184,7 +221,7 @@ export function SheetView({
     const isMyTurn = turnState?.activeChar === characterName;
 
     return el('div', { 
-        className: `min-h-screen bg-slate-950 text-slate-100 pb-32 animate-fade-in relative transition-all duration-500 ${isMyTurn ? 'ring-8 ring-amber-500/30' : ''} ${effectClass}` 
+        className: `min-h-screen bg-slate-950 text-slate-100 pb-32 animate-fade-in relative transition-all duration-500 ${isMyTurn ? 'ring-8 ring-amber-500/30' : ''} ${effectClass.replace('animate-bag', '')}` 
     }, [
         // --- NÉVOA DE FUNDO ---
         activeConditions.length > 0 && el('div', { 
@@ -443,14 +480,78 @@ export function SheetView({
                         el('div', { className: "col-span-3 text-right" }, "Tipo")
                     ),
                     // Linhas de Ataque
-                    characterSheetData.ataques?.map((atk, idx) =>
-                        el('div', { key: idx, className: "grid grid-cols-12 items-center bg-slate-950/40 border border-slate-800 p-4 rounded-2xl group hover:border-amber-500/40 transition-all" },
-                            el('div', { className: "col-span-4 text-slate-200 font-bold text-sm truncate uppercase tracking-tight" }, atk.nome),
-                            el('div', { className: "col-span-2 text-center" }, el('span', { className: "bg-slate-900 px-3 py-1 rounded-lg text-amber-500 font-black text-xs border border-slate-800 shadow-inner" }, fmtNum(atk.bonus))),
-                            el('div', { className: "col-span-3 text-center" }, el('p', { className: "text-blue-400 font-black text-sm drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]" }, atk.dano)),
-                            el('div', { className: "col-span-3 text-right" }, el('span', { className: "text-[10px] text-slate-500 font-black uppercase italic tracking-tighter bg-slate-900/50 px-2 py-1 rounded-md border border-slate-800" }, atk.tipo))
-                        )
-                    )
+                    (characterSheetData.ataques || []).map((atk, idx) =>
+                        el('div', { key: idx, className: "grid grid-cols-12 items-center bg-slate-950/40 border border-slate-800 p-4 rounded-2xl group hover:border-amber-500/40 transition-all relative" }, [
+                            // Botão Deletar Ataque
+                            el('button', {
+                                className: "absolute -top-2 -right-2 w-5 h-5 bg-red-900 border border-red-500 text-white rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity z-10",
+                                onClick: () => {
+                                    const novosAtaques = [...characterSheetData.ataques];
+                                    novosAtaques.splice(idx, 1);
+                                    updateSheetField('ataques', null, novosAtaques);
+                                }
+                            }, "×"),
+                            
+                            // Nome
+                            el('div', { className: "col-span-4 pr-2" }, 
+                                el('input', {
+                                    className: "bg-transparent text-slate-200 font-bold text-sm truncate uppercase tracking-tight outline-none w-full focus:text-amber-500",
+                                    defaultValue: atk.nome,
+                                    onBlur: (e) => {
+                                        const novosAtaques = [...characterSheetData.ataques];
+                                        novosAtaques[idx].nome = e.target.value;
+                                        updateSheetField('ataques', null, novosAtaques);
+                                    }
+                                })
+                            ),
+                            // Bônus
+                            el('div', { className: "col-span-2 text-center" }, 
+                                el('input', {
+                                    className: "bg-slate-900 px-3 py-1 rounded-lg text-amber-500 font-black text-xs border border-slate-800 shadow-inner w-12 text-center outline-none focus:border-amber-500",
+                                    defaultValue: atk.bonus,
+                                    onBlur: (e) => {
+                                        const novosAtaques = [...characterSheetData.ataques];
+                                        novosAtaques[idx].bonus = e.target.value;
+                                        updateSheetField('ataques', null, novosAtaques);
+                                    }
+                                })
+                            ),
+                            // Dano
+                            el('div', { className: "col-span-3 text-center px-1" }, 
+                                el('input', {
+                                    className: "bg-transparent text-blue-400 font-black text-sm drop-shadow-[0_0_8px_rgba(59,130,246,0.3)] text-center outline-none w-full focus:text-white",
+                                    defaultValue: atk.dano,
+                                    onBlur: (e) => {
+                                        const novosAtaques = [...characterSheetData.ataques];
+                                        novosAtaques[idx].dano = e.target.value;
+                                        updateSheetField('ataques', null, novosAtaques);
+                                    }
+                                })
+                            ),
+                            // Tipo
+                            el('div', { className: "col-span-3 text-right" }, 
+                                el('input', {
+                                    className: "text-[10px] text-slate-500 font-black uppercase italic tracking-tighter bg-slate-900/50 px-2 py-1 rounded-md border border-slate-800 text-right outline-none w-full focus:text-slate-200",
+                                    defaultValue: atk.tipo,
+                                    onBlur: (e) => {
+                                        const novosAtaques = [...characterSheetData.ataques];
+                                        novosAtaques[idx].tipo = e.target.value;
+                                        updateSheetField('ataques', null, novosAtaques);
+                                    }
+                                })
+                            )
+                        ])
+                    ),
+                    // BOTÃO ADICIONAR ATAQUE
+                    el('button', {
+                        className: "w-full py-3 bg-slate-800/50 hover:bg-slate-700/50 border border-dashed border-slate-700 rounded-xl text-slate-500 hover:text-amber-500 text-[10px] font-black uppercase tracking-widest transition-all",
+                        onClick: () => {
+                            const novosAtaques = [...(characterSheetData.ataques || [])];
+                            novosAtaques.push({ nome: "NOVO ATAQUE", bonus: "+0", dano: "1d6", tipo: "DANO" });
+                            updateSheetField('ataques', null, novosAtaques);
+                            AudioManager.play('click');
+                        }
+                    }, "+ Adicionar Ataque ou Magia")
                 )
             ),
             // --- BLOCO 5: PERÍCIAS E TALENTOS (GRID 2) ---
@@ -610,14 +711,19 @@ export function SheetView({
                                     type: 'text',
                                     className: "bg-transparent text-3xl font-black text-white text-right w-24 outline-none focus:text-amber-500 transition-colors",
                                     defaultValue: characterSheetData.outros?.[sigla] || '0',
-                                    onBlur: (e) => updateSheetField('outros', sigla, e.target.value)
+                                    onBlur: (e) => {
+                                        if (characterSheetData.outros?.[sigla] !== e.target.value) {
+                                            AudioManager.play('coins');
+                                            updateSheetField('outros', sigla, e.target.value);
+                                        }
+                                    }
                                 })
                             ])
                         )
                     ),
 
                     // --- BLOCO DA MOCHILA (MODO VISUALIZAÇÃO COM BOLHAS + MODO EDIÇÃO) ---
-                    el('div', { className: "lg:col-span-8 bg-slate-900 border-2 border-slate-800 p-8 rounded-[3rem] shadow-xl flex flex-col" }, [
+                    el('div', { className: `lg:col-span-8 bg-slate-900 border-2 border-slate-800 p-8 rounded-[3rem] shadow-xl flex flex-col transition-transform ${bagEffect}` }, [
                         el('div', { className: "flex justify-between items-center mb-6" }, [
                             el('h4', { className: "text-slate-400 font-black uppercase text-xs tracking-widest flex items-center gap-2 italic" }, "🎒 Mochila de Itens"),
                             el('span', { className: "text-[10px] text-slate-600 font-bold uppercase" },
@@ -815,39 +921,139 @@ export function SheetView({
         el('div', { className: "fixed bottom-0 left-0 w-full p-6 z-[60] pointer-events-none" },
             el('div', { className: "max-w-7xl mx-auto flex items-end justify-center gap-4 pointer-events-auto" }, [
                 // Barra de Botões Fixos
-                el('div', { className: "bg-slate-900/80 backdrop-blur-xl border border-slate-700 p-4 rounded-full shadow-2xl flex items-center gap-3" }, [
-                    // Botão Dado (Abre o Canvas 3D global)
-                    el('button', {
-                        onClick: () => setRollingModalOpen(true),
-                        className: `w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 border-4 ${isRollingModalOpen ? 'bg-red-600 border-red-400 rotate-45' : 'bg-amber-600 border-amber-400 hover:scale-110'}`
-                    }, isRollingModalOpen ? el('span', { className: "text-3xl font-bold text-white" }, "+") : "🎲"),
+                // Barra de Botões Fixos
+                el('div', { key: 'footer-controls', className: "flex flex-col items-center gap-3" }, [
+                    // MENU QUICK ROLL (FLUTUANTE SOBRE O DADO)
+                    quickRollOpen && el('div', { key: 'qr-menu', className: "bg-slate-900/95 backdrop-blur-2xl border-2 border-purple-500/40 p-5 rounded-[2.5rem] shadow-2xl animate-slide-up mb-2 flex flex-col gap-4 min-w-[300px]" }, [
+                        // Modos e Modificador
+                        el('div', { key: 'top-opts', className: "flex items-center justify-between border-b border-slate-800 pb-3" }, [
+                            el('div', { key: 'modes', className: "flex gap-2" }, [
+                                el('button', {
+                                    onClick: () => setLocalRollMode('normal'),
+                                    className: `px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${localRollMode === 'normal' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-500 hover:text-slate-300'}`
+                                }, "Normal"),
+                                el('button', {
+                                    onClick: () => setLocalRollMode('vantagem'),
+                                    className: `px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${localRollMode === 'vantagem' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-500 hover:text-amber-500'}`
+                                }, "Vant."),
+                                el('button', {
+                                    onClick: () => setLocalRollMode('desvantagem'),
+                                    className: `px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${localRollMode === 'desvantagem' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-500 hover:text-red-500'}`
+                                }, "Desv."),
+                            ]),
+                            el('div', { key: 'mod', className: "flex items-center bg-slate-950 rounded-xl border border-slate-800 p-1" }, [
+                                el('button', { onClick: () => setLocalModifier(m => m - 1), className: "px-2 text-white font-bold" }, "-"),
+                                el('span', { className: "w-8 text-center text-xs font-black text-amber-500" }, localModifier >= 0 ? `+${localModifier}` : localModifier),
+                                el('button', { onClick: () => setLocalModifier(m => m + 1), className: "px-2 text-white font-bold" }, "+")
+                            ])
+                        ]),
+                        // Grid de Dados
+                        el('div', { key: 'dice-grid', className: "grid grid-cols-4 gap-2" }, 
+                            [4, 6, 8, 10, 12, 20, 100].map(sides => 
+                                el('button', {
+                                    key: sides,
+                                    onClick: () => {
+                                        triggerExternalRoll(sides, false, localModifier, localRollMode);
+                                        setQuickRollOpen(false);
+                                    },
+                                    className: "h-12 bg-slate-800 hover:bg-amber-600 text-white font-black text-xs rounded-xl border border-slate-700 hover:border-amber-400 transition-all flex flex-col items-center justify-center group"
+                                }, [
+                                    el('span', { className: "text-[8px] text-slate-500 group-hover:text-amber-200" }, "D"),
+                                    sides
+                                ])
+                            )
+                        )
+                    ]),
+                    
+                    // Barra Principal
+                    el('div', { key: 'main-bar', className: "bg-slate-900/80 backdrop-blur-xl border border-slate-700 p-4 rounded-full shadow-2xl flex items-center gap-3" }, [
+                        // Botão Dado (Abre o Canvas 3D global)
+                        el('button', {
+                            onClick: () => setQuickRollOpen(!quickRollOpen),
+                            className: `w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 border-4 ${quickRollOpen ? 'bg-red-600 border-red-400 rotate-45' : 'bg-amber-600 border-amber-400 hover:scale-110'}`
+                        }, quickRollOpen ? el('span', { className: "text-3xl font-bold text-white" }, "+") : "🎲"),
 
-                    // Botão Descanso
-                    el('button', {
-                        onClick: () => {
-                            triggerEffect('rest');
-                            handleDescansoLongo();
-                        },
-                        className: "w-14 h-14 bg-slate-800 hover:bg-purple-900 text-purple-400 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl"
-                    }, "🌙"),
+                        // Botão Caderno
+                        el('button', {
+                            onClick: openJournal,
+                            className: "w-14 h-14 bg-slate-800 hover:bg-orange-900 text-orange-400 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl"
+                        }, "📖"),
 
-                    // Botão Editar
-                    el('button', {
-                        onClick: () => setEditableSheetData(characterSheetData),
-                        className: "w-14 h-14 bg-slate-800 hover:bg-amber-600 text-amber-500 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl"
-                    }, "✏️"),
+                        // Botão Descanso
+                        el('button', {
+                            onClick: () => {
+                                triggerEffect('rest');
+                                handleDescansoLongo();
+                            },
+                            className: "w-14 h-14 bg-slate-800 hover:bg-purple-900 text-purple-400 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl"
+                        }, "🌙"),
 
-                    // Botão Level Up (Condicional)
-                    podeSubirNivel && el('button', {
-                        onClick: () => setShowLevelUpModal(true),
-                        className: "h-14 bg-amber-500 hover:bg-amber-400 text-black px-6 rounded-full font-black text-xs uppercase transition-all shadow-xl animate-bounce"
-                    }, "🚀 Level Up!")
+                        // Botão Editar (Apenas se o Mestre permitir)
+                        characterSheetData.allowEditing && el('button', {
+                            onClick: () => setEditableSheetData(characterSheetData),
+                            className: "w-14 h-14 bg-slate-800 hover:bg-amber-600 text-amber-500 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl"
+                        }, "✏️"),
+
+                        // Botão Level Up (Condicional)
+                        podeSubirNivel && el('button', {
+                            onClick: () => setShowLevelUpModal(true),
+                            className: "h-14 bg-amber-500 hover:bg-amber-400 text-black px-6 rounded-full font-black text-xs uppercase transition-all shadow-xl animate-bounce"
+                        }, "🚀 Level Up!")
+                    ])
                 ]),
                 // --- GERENCIADOR DE BALÕES (Fica invisível, apenas cuidando dos dados) ---
                 el(DiceRoller, {
                     recentRolls,
                     characterName
                 })
+            ])
+        ),
+
+        // --- MODAL: CADERNO DE AVENTURAS ---
+        showJournal && el('div', { className: "fixed inset-0 journal-modal animate-fade-in" },
+            el('div', { className: "notebook-container" }, [
+                // Header do Caderno
+                el('div', { className: "notebook-header" }, [
+                    el('button', {
+                        onClick: () => setShowJournal(false),
+                        className: "text-[#fab1a0] hover:text-white transition-colors text-xl"
+                    }, "✕"),
+                    el('h2', { className: "text-lg font-bold" }, 
+                        journalPage === 1 ? "📜 Minha História" : `📖 Diário de Aventuras - Página ${journalPage}`
+                    ),
+                    el('div', { className: "flex gap-4" }, [
+                        el('button', { 
+                            disabled: journalPage === 1,
+                            onClick: () => changePage(journalPage - 1),
+                            className: `px-3 py-1 bg-black/20 rounded-lg ${journalPage === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/40'}`
+                        }, "← Anterior"),
+                        el('button', { 
+                            disabled: journalPage === 10,
+                            onClick: () => changePage(journalPage + 1),
+                            className: `px-3 py-1 bg-black/20 rounded-lg ${journalPage === 10 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/40'}`
+                        }, "Próxima →")
+                    ])
+                ]),
+
+                // Conteúdo da Página - AGORA COM A ANIMAÇÃO ISOLADA AQUI
+                el('div', { className: `paper-page ${pageAnimation}` }, 
+                    journalPage === 1 ?
+                        // PÁGINA 1: Background
+                        el('textarea', {
+                            className: "w-full h-full bg-transparent border-none outline-none resize-none scroll-hide",
+                            defaultValue: characterSheetData.outros?.['Background'] || "O herói ainda não registrou sua origem...",
+                            placeholder: "Escreva sua história aqui...",
+                            onBlur: (e) => updateSheetField('outros', 'Background', e.target.value)
+                        }) :
+                        // PÁGINAS 2-10: Anotações
+                        el('textarea', {
+                            key: `journal-page-${journalPage}`,
+                            className: "w-full h-full bg-transparent border-none outline-none resize-none scroll-hide",
+                            defaultValue: characterSheetData.outros?.[`journal_page_${journalPage}`] || "",
+                            placeholder: `Anotações da página ${journalPage}...`,
+                            onBlur: (e) => updateSheetField('outros', `journal_page_${journalPage}`, e.target.value)
+                        })
+                )
             ])
         ),
         

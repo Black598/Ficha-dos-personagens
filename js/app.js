@@ -6,15 +6,19 @@ import { TreeView } from './components/TreeView.js'
 import { MasterView } from './components/MasterView.js'
 import { LoginView } from './components/LoginView.js'
 import { DiceRoller } from './components/DiceRoller.js'
+import { LoadingScreen } from './components/LoadingScreen.js'
+import { RawDataEditor } from './components/RawDataEditor.js'
+import { TalentTooltip } from './components/TalentTooltip.js'
 
 // 2. INICIALIZAÇÃO FIREBASE
 const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app()
 const auth = firebase.auth()
 const db = firebase.firestore()
 
-const { useState, useEffect } = React
+const { useState, useEffect, useRef } = React
 
 function App() {
+  const el = React.createElement;
   // --- ESTADOS ---
   const scriptWebhook = "https://script.google.com/macros/s/AKfycbyEW3GW4hV_BstFdzeuP-rMt4w67mgXza6XjYPezy1rGEnzB9u_yllzmmNHJLGVMuSTqA/exec";
   const [user, setUser] = useState(null);
@@ -32,7 +36,11 @@ function App() {
   const [editableSheetData, setEditableSheetData] = useState(null);
   const [isRollingModalOpen, setRollingModalOpen] = useState(false);
   const [turnState, setTurnState] = useState({ activeChar: '', round: 1 });
+  const [souls, setSouls] = useState([]); // Grimório de Almas
   const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+  const [externalRoll, setExternalRoll] = useState(null); // Gatilho para rolagens 3D sem modal
+
+  const lastHPs = useRef({}); // Rastreador de HP para mortes automáticas
 
   // --- 1. EFEITO DE AUTENTICAÇÃO ---
   useEffect(() => {
@@ -55,6 +63,17 @@ function App() {
         if (doc.exists) setTurnState(doc.data());
       });
     return () => unsubTurns();
+  }, [user]);
+
+  // --- 1.2 ESCUTA GRIMÓRIO DE ALMAS ---
+  useEffect(() => {
+    if (!user) return;
+    const unsubSouls = db.collection('artifacts').doc(appId)
+      .collection('public').doc('data').collection('global').doc('souls')
+      .onSnapshot((doc) => {
+        if (doc.exists) setSouls(doc.data().list || []);
+      });
+    return () => unsubSouls();
   }, [user]);
 
   // --- 2. CARREGAMENTO DE DADOS (PLANILHA + FIREBASE) ---
@@ -126,11 +145,54 @@ function App() {
       .orderBy('timestamp', 'desc').limit(50)
       .onSnapshot(snap => {
         const rolls = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setRollHistory(rolls);
-        setRecentRolls(rolls.slice(0, 5));
+        // Filtro para jogadores normais: não vêem rolagens marcadas como secretas
+        const isMaster = characterName.toLowerCase() === 'mestre';
+        const filteredRolls = isMaster ? rolls : rolls.filter(r => !r.secret);
+        
+        setRollHistory(filteredRolls);
+        setRecentRolls(filteredRolls.slice(0, 5));
       });
     return () => unsubRolls();
-  }, [user])
+  }, [user, characterName])
+
+  // --- 1.4 MONITOR DE MORTES AUTOMÁTICO ---
+  useEffect(() => {
+    if (allCharacters.length === 0) return;
+
+    allCharacters.forEach(char => {
+      // Ignora o Mestre
+      if (char.name.toLowerCase() === 'mestre') return;
+
+      const charId = char.name.toLowerCase();
+      const maxPV = parseInt(char.sheetData?.recursos?.['PV Máximo']) || 10;
+      const perdido = parseInt(char.sheetData?.recursos?.['PV Perdido']) || 0;
+      const temp = parseInt(char.sheetData?.recursos?.['PV Temporário']) || 0;
+      const atualPV = (maxPV - perdido) + temp;
+      
+      const prevHP = lastHPs.current[charId];
+      
+      // Se o HP atual for 0 e antes era maior que 0
+      if (atualPV <= 0 && (prevHP !== undefined && prevHP > 0)) {
+        handleAutoSoulDeath(char);
+      }
+      
+      lastHPs.current[charId] = atualPV;
+    });
+  }, [allCharacters, souls]);
+
+  const handleAutoSoulDeath = async (char) => {
+    const charName = char.name;
+    const charClass = char.sheetData?.info?.['Classe'] || 'Aventureiro';
+    
+    const exists = souls.find(s => s.name.toLowerCase() === charName.toLowerCase());
+    let newList;
+    if (exists) {
+        newList = souls.map(s => s.name.toLowerCase() === charName.toLowerCase() ? { ...s, deaths: s.deaths + 1 } : s);
+    } else {
+        newList = [...souls, { id: Date.now(), name: charName, className: charClass, deaths: 1 }];
+    }
+    await updateSouls(newList);
+  };
 
   // --- FUNÇÕES DE AÇÃO ---
 
@@ -183,14 +245,15 @@ function App() {
     }
   }
   // --- 3. ROLAR DADOS ---
-  // A função de rolar dados agora salva a rolagem no Firebase, que por sua vez é ouvida em tempo real para atualizar o feed de rolagens
-  const rollDice = async (sides, forcedResult = null, extraLabel = '') => {
+  const rollDice = async (sides, forcedResult = null, extraLabel = '', isSecret = false) => {
     const result = forcedResult !== null ? forcedResult : Math.floor(Math.random() * sides) + 1;
     await db.collection('artifacts').doc(appId).collection('public').doc('data')
       .collection('rolls').add({
         playerName: characterName || "Anônimo",
-        sides: sides, result: result,
+        sides: sides, 
+        result: result,
         label: extraLabel,
+        secret: isSecret, // Nova flag de segredo
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
   }
@@ -478,7 +541,7 @@ function App() {
   // Se estivermos na visão de login, renderizamos a LoginView
   // A ordem de prioridade é: MasterView > SheetView > TreeView > LoginView
 
-  if (loading) return React.createElement('div', { className: "min-h-screen bg-slate-950 flex items-center justify-center text-amber-500 font-mono" }, "CARREGANDO REINO...");
+  if (loading) return React.createElement(LoadingScreen);
 
   // --- 8.4 INICIATIVA ---
   const updateInitiative = async (newOrder) => {
@@ -490,6 +553,31 @@ function App() {
           initiativeOrder: newOrder 
         }, { merge: true });
     } catch (e) { console.error("Erro ao salvar iniciativa:", e); }
+  };
+
+  // --- 8.5 GRIMÓRIO DE ALMAS ---
+  const updateSouls = async (newList) => {
+    try {
+      await db.collection('artifacts').doc(appId)
+        .collection('public').doc('data').collection('global').doc('souls')
+        .set({ list: newList }, { merge: true });
+    } catch (e) { console.error("Erro ao salvar almas:", e); }
+  };
+
+  // --- 8.6 PERMISSÃO DE EDIÇÃO ---
+  const updateEditPermission = async (targetCharName, allow) => {
+    try {
+      const charId = targetCharName.toLowerCase();
+      const charRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('characters').doc(charId);
+      await charRef.set({
+        sheetData: { allowEditing: allow }
+      }, { merge: true });
+    } catch (e) { console.error("Erro ao atualizar permissão:", e); }
+  };
+
+  // --- 8.7 DISPARAR ROLAGEM EXTERNA (MESA) ---
+  const triggerExternalRoll = (sides, secret = false, modifier = 0, mode = 'normal') => {
+    setExternalRoll({ sides, secret, modifier, mode, timestamp: Date.now() });
   };
 
   // --- 8.3 INTEGRAÇÃO GEMINI ---
@@ -542,24 +630,43 @@ function App() {
 
   // Se estivermos na visão do mestre, renderizamos a MasterView
   if (view === 'master') {
-    return React.createElement(MasterView, {
-      allCharacters, rollHistory, onBack: () => setView('login'),
-      updateCharacterXP,
-      updateCharacterConditions,
-      advanceTurn,
-      turnState,
-      geminiApiKey,
-      setGeminiApiKey: (key) => { setGeminiApiKey(key); localStorage.setItem('gemini_api_key', key); },
-      askGemini,
-      updateInitiative,
-      onViewSheet: (char) => { setCharacterSheetData(char.sheetData); setCharacterName(char.name); setView('sheet'); }
-    })
+    return React.createElement(React.Fragment, null, [
+      el(MasterView, {
+        key: 'master-view-node',
+        allCharacters, rollHistory, onBack: () => setView('login'),
+        updateCharacterXP,
+        updateCharacterConditions,
+        advanceTurn,
+        turnState,
+        geminiApiKey,
+        setGeminiApiKey: (key) => { setGeminiApiKey(key); localStorage.setItem('gemini_api_key', key); },
+        askGemini,
+        updateInitiative,
+        souls,
+        updateSouls,
+        updateEditPermission,
+        onViewSheet: (char) => { setCharacterSheetData(char.sheetData); setCharacterName(char.name); setView('sheet'); },
+        rollDice,
+        triggerExternalRoll
+      }),
+      el(DiceRoller, {
+        key: 'dice-roller-master',
+        rollDice,
+        recentRolls,
+        characterName,
+        view,
+        isRollingModalOpen,
+        setRollingModalOpen,
+        tabletopMode: true,
+        externalRoll
+      })
+    ]);
   }
   // Se estivermos na visão da ficha e tivermos os dados da ficha, renderizamos a SheetView
   if (view === 'sheet' && characterSheetData) {
     return React.createElement(React.Fragment, null, [
       // 1. A Ficha de Personagem
-      React.createElement(SheetView, {
+      el(SheetView, {
         key: 'sheet-view',
         characterName,
         characterSheetData,
@@ -586,20 +693,30 @@ function App() {
 
           alert("🌙Foi uma noite tranquila. Descanso realizado!");
         },
-        setEditableSheetData,
         isRollingModalOpen,
-        setRollingModalOpen
+        setRollingModalOpen,
+        setEditableSheetData,
+        triggerExternalRoll
       }),
 
-      // 2. Rolagem de Dados
-      React.createElement(DiceRoller, {
+      // 2. Editor de Dados Brutos (Lápis) - EXTRAÍDO
+      editableSheetData && el(RawDataEditor, {
+        data: editableSheetData,
+        onSave: onUpdateSheet,
+        onClose: () => setEditableSheetData(null)
+      }),
+
+      // 3. O Rolo de Dados (Tabletop Player)
+      el(DiceRoller, {
         key: 'dice-roller-sheet',
         rollDice,
         recentRolls,
         characterName,
         view,
         isRollingModalOpen,
-        setRollingModalOpen
+        setRollingModalOpen,
+        tabletopMode: true,
+        externalRoll
       })
 
     ]);
@@ -609,7 +726,7 @@ function App() {
   if (view === 'character') {
     return React.createElement(React.Fragment, null,
       // 1. Árvore de Talentos
-      React.createElement(TreeView, {
+      el(TreeView, {
         TALENT_TREES, characterData, characterName, characterSheetData,
         onBack: () => setView('login'), onToggleSheet: () => setView('sheet'),
         iconMap, upgradeTalent, saveCharacter,
@@ -631,44 +748,14 @@ function App() {
       }),
 
       // 2. O Rolo de Dados
-      React.createElement(DiceRoller, { rollDice, recentRolls, characterName, view }),
+      el(DiceRoller, { rollDice, recentRolls, characterName, view }),
 
-      // 3. O TOOLTIP COM POSICIONAMENTO INTELIGENTE
-      tooltip.show && React.createElement('div', {
-        className: "fixed z-[9999] pointer-events-none bg-slate-900 border-2 border-amber-500/50 p-5 rounded-3xl shadow-2xl w-72 animate-fade-in",
-        style: {
-          left: Math.min(tooltip.x + 20, window.innerWidth - 300),
-          // Se 'above' for true, subtraímos a altura do balão para ele subir. 
-          // Caso contrário, usamos a posição normal abaixo do mouse.
-          top: tooltip.above
-            ? tooltip.y - 240
-            : Math.min(tooltip.y + 20, window.innerHeight - 200),
-        }
-      }, [
-        React.createElement('div', { className: "flex items-center gap-2 mb-2", key: 't-header' }, [
-          React.createElement('span', { key: 't-star' }, "⭐"),
-          React.createElement('p', { className: "text-amber-500 font-black uppercase text-xs tracking-tighter", key: 't-title' },
-            `${tooltip.content?.talentName} - NV ${tooltip.content?.lv}`
-          )
-        ]),
-        React.createElement('p', { className: "text-[11px] text-slate-300 italic mb-4 leading-relaxed", key: 't-desc' },
-          `"${tooltip.content?.desc}"`
-        ),
-        React.createElement('div', { className: "space-y-2 border-t border-slate-800 pt-3", key: 't-footer' }, [
-          React.createElement('div', { className: "bg-red-950/30 p-2 rounded-xl border border-red-900/30", key: 't-req-box' }, [
-            React.createElement('p', { className: "text-[9px] font-black text-red-500 uppercase mb-1", key: 't-req-lab' }, "Requisito:"),
-            React.createElement('p', { className: "text-red-200 text-[10px] font-bold", key: 't-req-val' }, tooltip.content?.req)
-          ]),
-          React.createElement('div', { className: "bg-green-950/30 p-2 rounded-xl border border-green-900/30", key: 't-eff-box' }, [
-            React.createElement('p', { className: "text-[9px] font-black text-green-500 uppercase mb-1", key: 't-eff-lab' }, "Efeito:"),
-            React.createElement('p', { className: "text-green-200 text-[10px] font-black", key: 't-eff-val' }, tooltip.content?.effect)
-          ])
-        ])
-      ])
+      // 3. O TOOLTIP COM POSICIONAMENTO INTELIGENTE - EXTRAÍDO
+      el(TalentTooltip, { tooltip })
     );
   }
 
-  return React.createElement(LoginView, {
+  return el(LoginView, {
     allCharacters, onSelectCharacter: selectCharacter,
     creatingCharacter, setCreatingCharacter,
     newCharacterName, setNewCharacterName,
