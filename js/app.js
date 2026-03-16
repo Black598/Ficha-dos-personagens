@@ -18,7 +18,7 @@ const { useState, useEffect } = React
 
 function App() {
   // --- ESTADOS ---
-  const scriptWebhook = "https://script.google.com/macros/s/AKfycbypT8eJMlWk_kMhCSdMD5BqV756fPgmDj7_yLYh9Rx-wZpzAK-fZoTvZXBnfnKDGY8eDA/exec";
+  const scriptWebhook = "https://script.google.com/macros/s/AKfycbyEW3GW4hV_BstFdzeuP-rMt4w67mgXza6XjYPezy1rGEnzB9u_yllzmmNHJLGVMuSTqA/exec";
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('login');
@@ -253,8 +253,35 @@ function App() {
         setCharacterData(charFromFirebase);
         setCharacterSheetData(charFromFirebase.sheetData);
         setView('sheet');
+
+        // VERIFICAÇÃO BACKGROUND (Silenciosa)
+        const sheetUrl = charFromFirebase?.url || charFromFirebase?.URL;
+        if (sheetUrl) {
+           loadCharacterSheet(sheetUrl).then(dataFromSheet => {
+             if (dataFromSheet) {
+                const fbDataStr = JSON.stringify(charFromFirebase.sheetData);
+                const shDataStr = JSON.stringify(dataFromSheet);
+                if (fbDataStr !== shDataStr) {
+                    console.log("⚠️ Planilha e Firebase divergiram! Atualizando app.js e Firebase com dados novos da Planilha...");
+                    const mergedData = { ...charFromFirebase, sheetData: dataFromSheet };
+                    setCharacterData(mergedData);
+                    setCharacterSheetData(dataFromSheet);
+                    
+                    // Salva no banco de dados (ignorando o appscript webhook pq a fonte JÁ foi a planilha)
+                    db.collection('artifacts').doc(appId)
+                       .collection('public').doc('data')
+                       .collection('characters').doc(charName.toLowerCase())
+                       .set(mergedData, { merge: true });
+                } else {
+                    console.log("✅ Os dados da Planilha são os mesmos do Firebase.");
+                }
+             }
+           }).catch(console.error);
+        }
         return;
       }
+
+    
 
       // 2. Se não tem no Firebase, busca na Planilha (Primeira vez do herói)
       const sheetUrl = charFromFirebase?.url || charFromFirebase?.URL;
@@ -346,14 +373,14 @@ function App() {
     // 4. Sincroniza com a Planilha Google
     const sheetId = extractSpreadsheetId(characterData.url || characterData.URL);
 
-    if (sheetId && typeof scriptUrl !== 'undefined') {
+    if (sheetId && typeof scriptWebhook !== 'undefined') {
       console.log("📤 Enviando atualização para a planilha...");
 
       // Enviamos a ação de UPDATE para o Apps Script processar
       // Passamos o objeto completo para que a planilha reflita o estado atual
-      updateSheetViaScript(scriptUrl, sheetId, updatedSheetData);
+      updateSheetViaScript(scriptWebhook, sheetId, updatedSheetData);
     } else {
-      console.warn("⚠️ Sincronização pendente: scriptUrl ou sheetId não encontrados.");
+      console.warn("⚠️ Sincronização pendente: scriptWebhook ou sheetId não encontrados.");
     }
   };
 

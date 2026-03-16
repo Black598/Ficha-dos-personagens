@@ -48,39 +48,115 @@ export function parseCSV(csvText) {
     return list;
   };
 
-  // --- CONFIGURAÇÃO DE MAGIAS E DESCRIÇÕES ---
-  // Lista de niveis de magia
-  const listaNiveis = ["Infusões", "Círculo 0 (Truques)", "Círculo 1", "Círculo 2", "Círculo 3", "Círculo 4", "Círculo 5", "Círculo 6", "Círculo 7", "Círculo 8", "Círculo 9"];
-// Mapeamento de linhas para cada nível de magia (baseado na estrutura da planilha)
-  const mapaLinhasOffset = {
-    "Infusões": 0, "Círculo 0 (Truques)": 0, "Círculo 1": 0, "Círculo 2": 0,
-    "Círculo 3": 16, "Círculo 4": 16, "Círculo 5": 16, "Círculo 6": 16,
-    "Círculo 7": 32, "Círculo 8": 32, "Círculo 9": 32
-  };
-// Mapeamento de colunas para descrições de cada nível de magia
-  const mapaColunasDesc = {
-    "Infusões": 3, "Círculo 0 (Truques)": 5, "Círculo 1": 7, "Círculo 2": 9,
-    "Círculo 3": 3, "Círculo 4": 5, "Círculo 5": 7, "Círculo 6": 9,
-    "Círculo 7": 3, "Círculo 8": 5, "Círculo 9": 7
-  };
-// Estrutura para armazenar magias e descrições
-  listaNiveis.forEach(nivel => {
-    const offset = mapaLinhasOffset[nivel];
-    const col = mapaColunasDesc[nivel];
-    const nomesNivel = [];
+  // --- CONFIGURAÇÃO DE MAGIAS E DESCRIÇÕES (BUSCA DINÂMICA INTELIGENTE) ---
+  const listaNiveisInfo = [
+    { nivel: "Infusões", anchor: "Infusão", header: "Infusão" },
+    { nivel: "Círculo 0 (Truques)", anchor: "NV0", header: "Truque" },
+    { nivel: "Círculo 1", anchor: "NV1", header: "Magia" },
+    { nivel: "Círculo 2", anchor: "NV2", header: "Magia" },
+    { nivel: "Círculo 3", anchor: "NV3", header: "Magia" },
+    { nivel: "Círculo 4", anchor: "NV4", header: "Magia" },
+    { nivel: "Círculo 5", anchor: "NV5", header: "Magia" },
+    { nivel: "Círculo 6", anchor: "NV6", header: "Magia" },
+    { nivel: "Círculo 7", anchor: "NV7", header: "Magia" },
+    { nivel: "Círculo 8", anchor: "NV8", header: "Magia" },
+    { nivel: "Círculo 9", anchor: "NV9", header: "Magia" }
+  ];
 
-    for (let i = 0; i < 4; i++) {
-      const rowIndex = 114 + offset + i;
-      const nome = rows[rowIndex]?.[0] || ""; 
-      const desc = rows[rowIndex]?.[col] || "";
+  const descricoesMagias = {};
+  const magiasData = {};
 
-      if (nome || desc) {
-        nomesNivel[i] = nome;
-        descricoesMagias[`spell_desc_${nivel}_${i}`] = desc;
-      }
-    }
-    magiasData[nivel] = nomesNivel;
+  console.log("=== INICIANDO MAPEAMENTO DE MAGIAS ===");
+  listaNiveisInfo.forEach(({ nivel, anchor, header }) => {
+     let anchorR = -1;
+     let anchorC = -1;
+     const nomesNivel = [];
+
+     // 1. Procurar Onde o "NVX" está na planilha
+     for (let r = 0; r < rows.length; r++) {
+       const idx = rows[r].findIndex(c => c && typeof c === 'string' && c.trim().toLowerCase() === anchor.toLowerCase());
+       if (idx !== -1) {
+         anchorR = r;
+         anchorC = idx;
+         break;
+       }
+     }
+
+     if (anchorR !== -1) {
+        console.log(`[🔍 MAGIAS] Ancora '${anchor}' achada na Linha ${anchorR + 1}, Coluna ${anchorC}. Procurando sub-titulos ('${header}')...`);
+        
+        // 2. Procurar na "vizinhança de baixo" pela real coluna da palavra 'Magia', 'Truque' ou 'Infusão'
+        let headerR = -1;
+        let nameCol = anchorC; // fallback
+        
+        for (let offsetR = 1; offsetR <= 5; offsetR++) {
+           const rowTest = rows[anchorR + offsetR];
+           if (!rowTest) continue;
+           
+           for (let offsetC = -4; offsetC <= 6; offsetC++) {
+               const testCol = anchorC + offsetC;
+               if (testCol >= 0 && rowTest[testCol] && typeof rowTest[testCol] === 'string') {
+                   const cellText = rowTest[testCol].trim().toLowerCase();
+                   if (cellText === header.toLowerCase()) {
+                       headerR = anchorR + offsetR;
+                       nameCol = testCol;
+                       break;
+                   }
+               }
+           }
+           if (headerR !== -1) break;
+        }
+
+        if (headerR !== -1) {
+            console.log(`[🎯 MAGIAS] '${nivel}' => O subtítulo '${header}' está na Linha ${headerR + 1}, Coluna ${nameCol}. Lendo slots:`);
+            
+            // 3. Varrer as mágicas nos espaços corretos debaixo do Sub-titulo!
+            let count = 0;
+            // Limita a ler no maximo 10 linhas seguidas apos o sub-titulo para nao invadir a proxima tabela
+            for (let r = headerR + 1; r <= headerR + 10; r++) {
+                const rowSpell = rows[r];
+                if (!rowSpell) break;
+                
+                const spellName = rowSpell[nameCol]?.trim() || "";
+                
+                // Quebrar a roda de busca se ele achar um próximo NVX logo em baixo (ex: espaço vazio entre NVs)
+                if (spellName && ["nv0", "nv1", "nv1", "nv2", "nv3", "nv4", "nv5", "nv6", "nv7", "nv8", "nv9", "infusão", "nível"].includes(spellName.toLowerCase())) {
+                   console.log(`[🛑 MAGIAS] '${nivel}' encontrou a barreira: '${spellName}' na linha ${r+1}. Encerrando leitura.`);
+                   break;
+                }
+
+                if (spellName === "-" || spellName === "") {
+                   nomesNivel.push("");
+                   descricoesMagias[`spell_desc_${nivel}_${count}`] = "";
+                   console.log(`   - Slot ${count + 1}: Vazio (Linha ${r + 1})`);
+                } 
+                else if (spellName.toLowerCase() !== "magia" && spellName.toLowerCase() !== "truque" && spellName.toLowerCase() !== "infusão") {
+                   // Achar a descrição (varrendo +8 colunas pra direita do nome)
+                   let desc = "";
+                   for (let cOffset = 1; cOffset <= 8; cOffset++) {
+                       if (rowSpell[nameCol + cOffset] && rowSpell[nameCol + cOffset].trim() && rowSpell[nameCol + cOffset].trim() !== "-") {
+                           desc = rowSpell[nameCol + cOffset].trim();
+                           break;
+                       }
+                   }
+                   console.log(`   - Slot ${count + 1}: '${spellName}' | Desc: '${desc.substring(0, 15)}...' (Linha ${r + 1})`);
+                   nomesNivel.push(spellName);
+                   descricoesMagias[`spell_desc_${nivel}_${count}`] = desc;
+                }
+                count++;
+            }
+        } else {
+            console.log(`[⚠️ MAGIAS] Ancora '${anchor}' da Linha ${anchorR + 1} não tem sub-títulos visíveis por perto! Lendo cegas...`);
+        }
+     } else {
+         console.log(`[❌ MAGIAS] O nível '${nivel}' não possui a âncora principal '${anchor}' na planilha inteira.`);
+     }
+     
+     // Garantir que devolva vazio no react pra nao dar crash
+     while (nomesNivel.length < 4) nomesNivel.push("");
+     magiasData[nivel] = nomesNivel;
   });
+  console.log("=== FIM DO MAPEAMENTO DE MAGIAS ===");
 
   // Captura de Talentos (Coluna B, linha 115+)
   const descricoesExtras = {};
@@ -90,20 +166,159 @@ export function parseCSV(csvText) {
     descricoesExtras[`desc_talento_${i}`] = colunasLimpas[1] || "";
   }
 
+    // Busca Dinâmica de Perícias
+    // Como a planilha tem posições customizadas, procuramos o nome da perícia em toda a grade
+    // Encontrando ela (ex: "Acrobacia" na col J), pegamos o MOD na col (J-1) e PRO na col (J-2)
+    const nomesPericias = [
+      'Acrobacia', 'Arcanismo', 'Atletismo', 'Atuação', 'Enganação', 'Furtividade',
+      'História', 'Intimidação', 'Intuição', 'Investigação', 'Lidar com Animais',
+      'Medicina', 'Natureza', 'Percepção', 'Persuasão', 'Prestidigitação', 'Religião', 'Sobrevivência'
+    ];
+    const periciasDinamicas = {};
+    
+    nomesPericias.forEach(nomePericia => {
+      // Inicia com valores padrão caso não encontre
+      periciasDinamicas[nomePericia] = { val: '+0', prof: false };
+      
+      for (let r = 0; r < rows.length; r++) {
+        const row = rows[r];
+        if (!row) continue;
+        
+        // Procura a coluna que textualmente bate com o nome da perícia ("Acrobacia")
+        const cIndex = row.findIndex(cell => cell && typeof cell === 'string' && cell.trim().toLowerCase() === nomePericia.toLowerCase());
+        
+        if (cIndex !== -1 && cIndex >= 2) {
+          // Achou a perícia! O MOD tá do lado esquerdo (-1) e a PRO (proficiência) duas casas pra esquerda (-2)
+          const modStr = row[cIndex - 1]?.trim() || '+0';
+          const proStr = row[cIndex - 2]?.trim()?.toLowerCase() || '';
+
+          // DEBUGS:
+          if (nomePericia === 'História' || nomePericia === 'Prestidigitação' || nomePericia === 'Acrobacia') {
+              console.log(`[DEBUG PERICIA] Achou ${nomePericia} na linha ${r}, coluna ${cIndex}. RAW PRO: '${row[cIndex-2]}', PRO Tratado: '${proStr}', MOD Tratado: '${modStr}'`);
+          }
+          
+          periciasDinamicas[nomePericia] = {
+            val: modStr,
+            prof: proStr === 'true' || proStr === 'o' || proStr === 'x'
+          };
+          break; // Já achou essa perícia, vai pra próxima
+        }
+      }
+    });
+    // --- BUSCA DINÂMICA DE INFORMAÇÕES (Evitando quebra por linhas novas) ---
+    // Encontra informações acima do seu rótulo
+    const findInfoAboveLabel = (labelStr) => {
+      for (let r = 1; r < rows.length; r++) {
+        const cIndex = rows[r].findIndex(c => c && typeof c === 'string' && c.trim() === labelStr);
+        if (cIndex !== -1) {
+           for(let offset = 1; r - offset >= 0 && offset <= 4; offset++) {
+              const val = rows[r - offset]?.[cIndex]?.trim();
+              if (val) return val;
+           }
+        }
+      }
+      return undefined;
+    };
+
+    // Acha Atributos
+    const getAtributo = (label, isScore) => {
+      for (let r = 0; r < rows.length; r++) {
+         if (rows[r][0] && typeof rows[r][0] === 'string' && rows[r][0].trim() === label) {
+             return isScore ? rows[r+4]?.[0] : rows[r+1]?.[0];
+         }
+      }
+      return undefined;
+    };
+
+    // Acha moedas "PO", "PP", "PC"
+    const findMoney = (coinLabel) => {
+      for (let r = 0; r < rows.length; r++) {
+        if (rows[r][0] && typeof rows[r][0] === 'string' && rows[r][0].trim() === coinLabel) {
+           return rows[r][1]?.replace(/[^0-9]/g, '') || '0';
+        }
+      }
+      return '0';
+    };
+
+    // Acha Talentos (procura CARACTERÍSTICAS E TALENTOS e pega o texto da linha seguinte)
+    let talentosStr = "";
+    for (let r = 0; r < rows.length; r++) {
+        const cIndex = rows[r].findIndex(c => c && typeof c === 'string' && c.includes('CARACTERÍSTICAS E TALENTOS'));
+        if (cIndex !== -1 && rows[r+1]) {
+            let offset = 1;
+            while(rows[r+offset] && (!rows[r+offset][cIndex] || rows[r+offset][cIndex].trim()==="")) {
+               offset++;
+               if (offset > 10) break; // Limite de sanidade
+            }
+            talentosStr = rows[r+offset]?.[cIndex] || rows[25]?.[13] || "";
+            break;
+        }
+    }
+    const talentosArray = talentosStr.split('/').filter(t => t.trim() !== "");
+
+    // Acha Equipamento (procurando INVENTÁRIO ou SABEDORIA PASSIVA)
+    let inventarioIndexStart = -1;
+    let inventarioIndexEnd = rows.length;
+
+    for (let r = 0; r < rows.length; r++) {
+      if (rows[r].some(cell => cell && typeof cell === 'string' && 
+         (cell.includes('SABEDORIA PASSIVA') || 
+          cell.toLowerCase().includes('percepção passiva') || 
+          cell.toLowerCase() === 'inventário'))) {
+        inventarioIndexStart = r + 1;
+      }
+      if (inventarioIndexStart !== -1 && r > inventarioIndexStart) {
+         if (rows[r].some(cell => cell && typeof cell === 'string' && (cell.includes('ROLAGEM') || cell.includes('Moedas') || cell.includes('Background')))) {
+           inventarioIndexEnd = r;
+           break;
+         }
+      }
+    }
+
+    const equipamentoItems = [];
+    if (inventarioIndexStart !== -1) {
+      console.log(`[DEBUG INVENTÁRIO] Iniciando leitura da linha real ${inventarioIndexStart + 1} até a linha real ${inventarioIndexEnd} (antes de ROLAGEM/Moedas)`);
+      for (let r = inventarioIndexStart; r < inventarioIndexEnd; r++) {
+         const item = rows[r][0];
+         // Aceita itens não vazios e ignora o próprio cabeçalho se ele se repetir
+         if (item && typeof item === 'string' && item.trim() !== '' && item.trim() !== '-' && item.trim().toLowerCase() !== 'inventário') {
+           console.log(`[DEBUG INVENTÁRIO] Item encontrado na linha da Planilha ${r + 1}: '${item.trim()}'`);
+           equipamentoItems.push(item.trim());
+         }
+      }
+    } else {
+      console.log(`[DEBUG INVENTÁRIO] Nenhum Rótulo de Inventário encontrado (buscou Sabedoria Passiva e Inventário)!`);
+    }
+    const equipamentoStr = equipamentoItems.join(', ');
+
   return {
     isBase: rows[1]?.[0]?.toLowerCase() === 'base',
     info: {
-      'Nome do Personagem': rows[1]?.[0] || '---',
-      'Classe': rows[0]?.[4] || '---',
-      'Antecedente': rows[0]?.[8] || '---',
-      'Jogador': rows[0]?.[13] || '---',
-      'Raça': rows[2]?.[4] || '---',
-      'XP': rows[2]?.[13] || '0',
-      'Nivel': rows[0]?.[16] || '0',
-      'Alinhamento': rows[2]?.[8] || '---'
+      'Nome do Personagem': findInfoAboveLabel('NOME DO PERSONAGEM') || rows[1]?.[0] || '---',
+      'Classe': findInfoAboveLabel('CLASSE') || rows[0]?.[4] || '---',
+      'Antecedente': findInfoAboveLabel('ANTECEDENTE') || rows[0]?.[8] || '---',
+      'Jogador': findInfoAboveLabel('NOME DO JOGADOR') || rows[0]?.[13] || '---',
+      'Raça': findInfoAboveLabel('RAÇA') || rows[2]?.[4] || '---',
+      'XP': findInfoAboveLabel('PONTOS DE EXPERIÊNCIA') || rows[2]?.[13] || '0',
+      'Nivel': findInfoAboveLabel('NIVEL') || rows[0]?.[16] || '0',
+      'Alinhamento': findInfoAboveLabel('ALINHAMENTO') || rows[2]?.[8] || '---'
     },
-    atributos: { 'FOR': rows[8]?.[0] || '10', 'DES': rows[13]?.[0] || '10', 'CON': rows[18]?.[0] || '10', 'INT': rows[23]?.[0] || '10', 'SAB': rows[28]?.[0] || '10', 'CAR': rows[33]?.[0] || '10' },
-    modificadores: { 'FOR': rows[5]?.[0] || '0', 'DES': rows[10]?.[0] || '0', 'CON': rows[15]?.[0] || '0', 'INT': rows[20]?.[0] || '0', 'SAB': rows[25]?.[0] || '0', 'CAR': rows[30]?.[0] || '0' },
+    atributos: { 
+        'FOR': getAtributo('FORÇA', true) || rows[8]?.[0] || '10', 
+        'DES': getAtributo('DESTREZA', true) || rows[13]?.[0] || '10', 
+        'CON': getAtributo('CONSTITUIÇÃO', true) || rows[18]?.[0] || '10', 
+        'INT': getAtributo('INTELIGÊNCIA', true) || rows[23]?.[0] || '10', 
+        'SAB': getAtributo('SABEDORIA', true) || rows[28]?.[0] || '10', 
+        'CAR': getAtributo('CARISMA', true) || rows[33]?.[0] || '10' 
+    },
+    modificadores: { 
+        'FOR': getAtributo('FORÇA', false) || rows[5]?.[0] || '0', 
+        'DES': getAtributo('DESTREZA', false) || rows[10]?.[0] || '0', 
+        'CON': getAtributo('CONSTITUIÇÃO', false) || rows[15]?.[0] || '0', 
+        'INT': getAtributo('INTELIGÊNCIA', false) || rows[20]?.[0] || '0', 
+        'SAB': getAtributo('SABEDORIA', false) || rows[25]?.[0] || '0', 
+        'CAR': getAtributo('CARISMA', false) || rows[30]?.[0] || '0' 
+    },
     recursos: {
       'CA': (rows[6]?.[6] || '10').replace(/[^0-9]/g, ''),
       'Iniciativa': (rows[6]?.[8] || '0').replace(/[^0-9\-]/g, ''),
@@ -120,12 +335,13 @@ export function parseCSV(csvText) {
       'Bônus de Ataque': rows[0]?.[30] || '0',
     },
     outros: {
-      'Talentos': rows[25]?.[13]?.split('/') || [],
+      'Talentos': talentosArray.length > 0 ? talentosArray : (rows[25]?.[13]?.split('/') || []),
       ...descricoesExtras,
       ...descricoesMagias,
-      'Equipamento': rows[37]?.[0] || "",
-      'PO': rows[50]?.[1] || '0', 'PP': rows[51]?.[1] || '0', 'PC': rows[52]?.[1] || '0',
+      'Equipamento': equipamentoStr || rows[37]?.[0] || "",
+      'PO': findMoney('PO'), 'PP': findMoney('PP'), 'PC': findMoney('PC'),
     },
+    pericias: periciasDinamicas,
     personalidade: { 'Traços': rows[5]?.[13] || '', 'Ideais': rows[10]?.[13] || '', 'Vínculos': rows[15]?.[13] || '', 'Defeitos': rows[20]?.[13] || '' },
     ataques: [
       { nome: rows[26]?.[6] || '', bonus: rows[26]?.[8] || '', dano: rows[26]?.[10] || '', tipo: rows[26]?.[11] || '' },
@@ -207,15 +423,22 @@ export async function updateSheetViaScript(scriptUrl, spreadsheetId, data) {
   }
 
   try {
+    const payload = {
+      action: 'UPDATE',
+      spreadsheetId: spreadsheetId,
+      data: data
+    };
+    
+    // DEBUG: Checar se as magias de nível alto estão saindo daqui
+    console.log("📤 PACOTE SENDO ENVIADO PARA O SCRIPT:");
+    console.log("-> Magias:", payload.data.magias);
+    console.log("-> Outros (Descrições):", payload.data.outros ? Object.keys(payload.data.outros).filter(k => k.startsWith('spell_desc_')) : []);
+
     const response = await fetch(scriptUrl, {
       method: 'POST',
       mode: 'no-cors', // Necessário para Scripts do Google
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'UPDATE',
-        spreadsheetId: spreadsheetId,
-        data: data
-      })
+      body: JSON.stringify(payload)
     });
     console.log('✅ Sincronização enviada para a planilha:', spreadsheetId);
     return true;

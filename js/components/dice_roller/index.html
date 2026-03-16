@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caverna do Dragão - Rolador de Dados RPG</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-effects">
+        <div class="glow blob-1"></div>
+        <div class="glow blob-2"></div>
+        <div class="particles" id="particles"></div>
+    </div>
+
+    <main class="container">
+        <header>
+            <h1>Rolador de Dados Místico</h1>
+            <p>Escolha seu destino</p>
+        </header>
+
+        <section class="display-section">
+            <div class="dice-display" id="diceDisplay">
+                <div id="canvas-container"></div>
+                <!-- 3D Canvas will be injected here -->
+            </div>
+            <div class="dice-label" id="diceLabel">Role um dado</div>
+            <div class="history" id="history">
+                <!-- Historic rolls will appear here -->
+            </div>
+        </section>
+
+        <section class="controls">
+            <div class="dice-buttons">
+                <button class="dice-btn" data-dice="2">D2</button>
+                <button class="dice-btn" data-dice="4">D4</button>
+                <button class="dice-btn" data-dice="6">D6</button>
+                <button class="dice-btn" data-dice="8">D8</button>
+                <button class="dice-btn" data-dice="10">D10</button>
+                <button class="dice-btn" data-dice="12">D12</button>
+                <button class="dice-btn" data-dice="20">D20</button>
+                <button class="dice-btn" data-dice="100">D100</button>
+            </div>
+            <div class="roll-modes" id="rollModes">
+                <label class="mode-label">
+                    <input type="radio" name="rollMode" value="normal" checked>
+                    <span>Normal</span>
+                </label>
+                <label class="mode-label">
+                    <input type="radio" name="rollMode" value="vantagem">
+                    <span>Vantagem</span>
+                </label>
+                <label class="mode-label">
+                    <input type="radio" name="rollMode" value="desvantagem">
+                    <span>Desvantagem</span>
+                </label>
+            </div>
+            
+            <div class="modifiers">
+                <label for="modifier">Modificador:</label>
+                <div class="mod-input-wrapper">
+                    <button id="subMod">-</button>
+                    <input type="number" id="modifier" value="0" step="1">
+                    <button id="addMod">+</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

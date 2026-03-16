@@ -20,6 +20,50 @@ export function SheetView({
     const [isEditingInventory, setIsEditingInventory] = useState(false);
     // Menu flutuante de dados interno
     const [isDiceMenuOpen, setIsDiceMenuOpen] = React.useState(false);
+    
+    // Nível Up
+    const [showLevelUpModal, setShowLevelUpModal] = useState(false);
+    const [levelUpData, setLevelUpData] = useState({
+        pointsToSpend: 2,
+        attributes: { FOR: 0, DES: 0, CON: 0, INT: 0, SAB: 0, CAR: 0 },
+        hitDie: '8', // Padrão
+        hpChoice: 'roll', // 'roll' ou 'fixed'
+        hpRolledValue: 0
+    });
+    
+    // Rastreador de círculos de magia ativos
+    const [activeCircles, setActiveCircles] = React.useState(() => {
+        const circles = [];
+        Object.keys(characterSheetData?.magias || {}).forEach(k => {
+            if (k !== 'temMagia' && Array.isArray(characterSheetData.magias[k])) {
+                if (characterSheetData.magias[k].some(m => m && m.trim() !== "")) {
+                    circles.push(k);
+                }
+            }
+        });
+        return circles;
+    });
+
+    React.useEffect(() => {
+        const circlesToAdd = [];
+        Object.keys(characterSheetData?.magias || {}).forEach(k => {
+            if (k !== 'temMagia' && Array.isArray(characterSheetData.magias[k])) {
+                if (characterSheetData.magias[k].some(m => m && m.trim() !== "")) {
+                    circlesToAdd.push(k);
+                }
+            }
+        });
+        
+        let needsUpdate = false;
+        circlesToAdd.forEach(c => {
+            if (!activeCircles.includes(c)) needsUpdate = true;
+        });
+        
+        if (needsUpdate) {
+            setActiveCircles(prev => Array.from(new Set([...prev, ...circlesToAdd])));
+        }
+    }, [characterSheetData?.magias]);
+
     const el = React.createElement;
     // Helper para formatar bônus
     const fmtNum = (n) => {
@@ -34,50 +78,62 @@ export function SheetView({
     const xpNecessario = nivelAtual * 1000;
     const podeSubirNivel = xpAtual >= xpNecessario;
 
-    // --- FUNÇÃO DE ATUALIZAÇÃO DE FICHA (Local + Planilha) ---
-    // Atualiza um campo específico da ficha e sincroniza com a planilha
-    el('div', { className: "p-4 bg-slate-900 rounded-3xl border border-slate-800" }, [
-        el('h3', { className: "text-amber-500 font-black mb-2" }, "CARACTERÍSTICAS"),
-        el('textarea', {
-            className: "w-full bg-slate-950 text-slate-300 p-3 rounded-xl border-none outline-none min-h-[100px] text-sm",
-            defaultValue: characterSheetData.info?.['Características'] || "",
-            onBlur: (e) => updateSheetField('info', 'Características', e.target.value),
-            placeholder: "Descreva seu personagem..."
-        })
-    ]),
-        el('div', { className: "p-4 bg-slate-900 rounded-3xl border border-slate-800 mt-4" }, [
-            el('h3', { className: "text-amber-500 font-black mb-2" }, "TALENTOS ADICIONAIS"),
-            el('textarea', {
-                className: "w-full bg-slate-950 text-slate-300 p-3 rounded-xl border-none outline-none min-h-[100px] text-sm",
-                defaultValue: characterSheetData.info?.['Talentos Adicionais'] || "",
-                onBlur: (e) => updateSheetField('info', 'Talentos Adicionais', e.target.value),
-                placeholder: "Talentos de raça ou classe..."
-            })
-        ])
-    // 1. Atualiza a UI localmente sem recarregar a ficha
-    const handleSyncUpdate = async (newData) => {
+    const handleAttributeChange = (attr, delta) => {
+        setLevelUpData(prev => {
+            const currentPointsSpent = Object.values(prev.attributes).reduce((a, b) => a + b, 0);
+            const newValue = prev.attributes[attr] + delta;
+            
+            if (newValue < 0) return prev;
+            if (delta > 0 && currentPointsSpent >= 2) return prev; // Acabou os pontos
 
-        // 2. Calcula o novo PV Atual baseado no máximo e perdido para mostrar na tela
-        const max = parseInt(newData.recursos['PV Máximo']) || 0;
-        const perdido = parseInt(newData.recursos['PV Perdido']) || 0;
-        newData.recursos['PV Atual'] = max - perdido;
+            return {
+                ...prev,
+                pointsToSpend: 2 - (currentPointsSpent + delta),
+                attributes: { ...prev.attributes, [attr]: newValue }
+            };
+        });
+    };
 
-        // 3. Dispara salvamento no Firebase 
-        // Aqui você pode chamar uma prop onUpdate(newData)
-
-        // 4. Dispara Webhook da Planilha (Sincronização de Fundo)
-        const scriptWebhook = "SUA_URL_AQUI";
-        const char = allCharacters.find(c => c.name.toLowerCase() === characterName.toLowerCase());
-        const idPlanilha = extractSpreadsheetId(char?.url || char?.URL || "");
-
-        // Chamamos a função global definida no App
-        setEditableSheetData(null); // Fecha modo edição se estiver aberto
-        // Aqui no seu App.js, você deve atualizar o estado para refletir a mudança
-        // Exemplo: setCharacterSheetData(newData);
-
-        if (idPlanilha) {
-            updateSheetViaScript(scriptWebhook, idPlanilha, newData);
+    const handleLevelUpConfirm = () => {
+        const newNivel = nivelAtual + 1;
+        let hpIncrease = 0;
+        const constMod = Math.floor((parseInt(characterSheetData.atributos?.['CON']) || 10) - 10) / 2;
+        
+        if (levelUpData.hpChoice === 'fixed') {
+            hpIncrease = Math.floor(parseInt(levelUpData.hitDie) / 2) + 1 + Math.floor(constMod);
+        } else {
+            const rolled = levelUpData.hpRolledValue || Math.floor(Math.random() * parseInt(levelUpData.hitDie)) + 1;
+            hpIncrease = rolled + Math.floor(constMod);
         }
+        if (hpIncrease < 1) hpIncrease = 1;
+
+        const currentMaxHp = parseInt(characterSheetData.recursos?.['PV Máximo'] || '0');
+        const newMaxHp = currentMaxHp + hpIncrease;
+
+        const newAtributos = { ...characterSheetData.atributos };
+        Object.keys(levelUpData.attributes).forEach(attr => {
+            if (levelUpData.attributes[attr] > 0) {
+                newAtributos[attr] = (parseInt(newAtributos[attr]) || 10) + levelUpData.attributes[attr];
+            }
+        });
+
+        const newData = {
+            ...characterSheetData,
+            info: { ...characterSheetData.info, 'Nivel': newNivel.toString(), 'XP': '0' },
+            recursos: { ...characterSheetData.recursos, 'PV Máximo': newMaxHp.toString() },
+            atributos: newAtributos
+        };
+
+        onUpdateSheet(newData);
+        
+        setShowLevelUpModal(false);
+        setLevelUpData({
+            pointsToSpend: 2,
+            attributes: { FOR: 0, DES: 0, CON: 0, INT: 0, SAB: 0, CAR: 0 },
+            hitDie: '8',
+            hpChoice: 'roll',
+            hpRolledValue: 0
+        });
     };
 
     //Renderiza a ficha
@@ -319,63 +375,120 @@ export function SheetView({
                 el('div', { className: "lg:col-span-4 bg-slate-900 border border-slate-800 p-6 rounded-[2.5rem] shadow-xl flex flex-col h-[500px]" },
                     el('h4', { className: "text-amber-500 font-black mb-6 flex items-center gap-2 uppercase text-xs italic border-b border-amber-900/20 pb-3" }, "🎯 Perícias"),
                     el('div', { className: "flex-grow overflow-y-auto pr-2 custom-scrollbar space-y-1" },
-                        Object.entries(characterSheetData.pericias || {}).map(([key, value]) => (
-                            el('div', { key: key, className: "flex justify-between items-center text-[11px] border-b border-slate-800/30 py-2.5 hover:bg-white/5 px-2 rounded-lg group transition-colors" },
-                                el('span', { className: "text-slate-400 font-bold uppercase group-hover:text-slate-200" }, key),
+                        Object.entries(characterSheetData.pericias || {}).map(([key, data]) => {
+                            // Suporte a compatibilidade: se for string, converte pra novo formato assumindo sem proficiência
+                            const isNewFormat = typeof data === 'object' && data !== null;
+                            const value = isNewFormat ? data.val : data;
+                            const isProficient = isNewFormat ? data.prof : false;
+
+                            return el('div', { key: key, className: "flex justify-between items-center text-[11px] border-b border-slate-800/30 py-2.5 hover:bg-white/5 px-2 rounded-lg group transition-colors" },
+                                el('span', { className: "text-slate-400 font-bold uppercase group-hover:text-slate-200 flex items-center gap-2" }, 
+                                    isProficient ? el('span', { className: "w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" }) : el('span', { className: "w-2 h-2 rounded-full border border-slate-700 bg-slate-900/50" }),
+                                    key
+                                ),
                                 el('span', { className: "text-amber-400 font-black" }, value || '+0')
-                            )
-                        ))
+                            );
+                        })
                     )
                 ),
                 // --- Características e Talentos Editáveis ---
                 el('div', { className: "lg:col-span-8 bg-slate-900 border border-slate-800 p-6 rounded-[2.5rem] shadow-xl flex flex-col" },
-                    el('h4', { className: "text-purple-400 font-black mb-6 uppercase text-xs italic flex items-center gap-2 tracking-widest border-b border-purple-900/20 pb-3" }, "✨ Características e Talentos"),
+                    el('div', { className: "flex justify-between items-center mb-6 border-b border-purple-900/20 pb-3" }, [
+                        el('h4', { className: "text-purple-400 font-black uppercase text-xs italic flex items-center gap-2 tracking-widest" }, "✨ Características e Talentos"),
+                        el('button', {
+                            className: "bg-purple-900/30 hover:bg-purple-600 text-purple-400 hover:text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-purple-500/30 transition-all",
+                            onClick: () => {
+                                let talentosAtuais = characterSheetData.outros?.['Talentos'] || [];
+                                if (!Array.isArray(talentosAtuais)) {
+                                    talentosAtuais = typeof talentosAtuais === 'string' ? talentosAtuais.split('/').map(s=>s.trim()) : [];
+                                }
+                                const newTalents = [...talentosAtuais];
+                                newTalents.push(""); // Adiciona espaço vazio
+                                updateSheetField('outros', 'Talentos', newTalents.join(' / '));
+                            }
+                        }, "+ ADICIONAR")
+                    ]),
+                    
                     el('div', { className: "space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-grow h-[400px]" },
-                        // Criamos um array de 0 a 7 (8 posições) para garantir que sempre existam os campos
-                        [0, 1, 2, 3, 4, 5, 6, 7].map((idx) => {
-                            const talentTitle = characterSheetData.outros?.['Talentos']?.[idx] || "";
-                            const talentDesc = characterSheetData.outros?.[`desc_talento_${idx}`] || "";
+                        // Pega a lista atual ou um array de 4 itens como base mínima (por compatibilidade)
+                        (() => {
+                            let talentosAtuais = characterSheetData.outros?.['Talentos'] || [];
+                            if (!Array.isArray(talentosAtuais)) {
+                                talentosAtuais = typeof talentosAtuais === 'string' ? talentosAtuais.split('/').map(s=>s.trim()) : [];
+                            }
+                            
+                            // Remove espaços vazios acidentais no começo/meio se não for intencional? Melhor não.
+                            
+                            // Garante que tenha pelo menos 1 item na tela
+                            if (talentosAtuais.length === 0) talentosAtuais = [""];
 
-                            return el('div', {
-                                key: idx,
-                                className: "bg-slate-950/50 p-4 rounded-3xl border border-slate-800 group focus-within:border-purple-500/50 transition-all"
-                            }, [
-                                // CAMPO: TÍTULO DO TALENTO
-                                el('input', {
-                                    type: 'text',
-                                    className: "w-full bg-transparent text-xs text-purple-300 font-black uppercase mb-1 outline-none placeholder:text-purple-900/30",
-                                    placeholder: "Nome do Talento...",
+                            return talentosAtuais.map((talentTitle, idx) => {
+                                const talentDesc = characterSheetData.outros?.[`desc_talento_${idx}`] || "";
 
-                                    key: `title-input-${idx}-${talentTitle}`,
-                                    defaultValue: talentTitle,
-                                    onBlur: (e) => {
-                                        const newValue = e.target.value;
-                                        if (newValue === talentTitle) return;
+                                return el('div', {
+                                    key: idx,
+                                    className: "bg-slate-950/50 p-4 rounded-3xl border border-slate-800 group focus-within:border-purple-500/50 transition-all relative"
+                                }, [
+                                    // BOTAO DE EXCLUIR
+                                    el('button', {
+                                        className: "absolute top-3 right-4 text-[10px] text-slate-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 uppercase tracking-widest font-black",
+                                        onClick: () => {
+                                            if (confirm(`Excluir a característica "${talentTitle || 'vazia'}"?`)) {
+                                                const newTalents = [...talentosAtuais];
+                                                newTalents.splice(idx, 1); // Remove
+                                                
+                                                // Prepara as descrições em cascata para não bagunçar
+                                                // Ex: se apagou o 2, o desc 3 vira 2, o 4 vira 3...
+                                                const fullData = JSON.parse(JSON.stringify(characterSheetData));
+                                                if (!fullData.outros) fullData.outros = {};
+                                                
+                                                // Envia pra planilha como uma string separada por " / "
+                                                fullData.outros['Talentos'] = newTalents.join(' / ');
+                                                
+                                                for(let i = idx; i < 20; i++){
+                                                    const pxDesc = fullData.outros[`desc_talento_${i+1}`] || "";
+                                                    fullData.outros[`desc_talento_${i}`] = pxDesc;
+                                                }
 
-                                        const newTalents = [...(characterSheetData.outros?.['Talentos'] || [])];
+                                                // Atualiza na memória e na planilha
+                                                onUpdateSheet(fullData);
+                                            }
+                                        }
+                                    }, "⨯ EXCLUIR"),
 
-                                        while (newTalents.length <= idx) newTalents.push("");
+                                    // CAMPO: TÍTULO DO TALENTO
+                                    el('input', {
+                                        type: 'text',
+                                        className: "w-[90%] bg-transparent text-xs text-purple-300 font-black uppercase mb-1 outline-none placeholder:text-purple-900/30",
+                                        placeholder: "Nome da Característica...",
+                                        key: `title-input-${idx}-${talentTitle}`,
+                                        defaultValue: talentTitle,
+                                        onBlur: (e) => {
+                                            const newValue = e.target.value;
+                                            if (newValue === talentTitle) return;
 
-                                        newTalents[idx] = newValue;
-                                        updateSheetField('outros', 'Talentos', newTalents);
-                                    }
-                                }),
+                                            const newTalents = [...talentosAtuais];
+                                            newTalents[idx] = newValue;
+                                            updateSheetField('outros', 'Talentos', newTalents.join(' / '));
+                                        }
+                                    }),
 
-                                // CAMPO: DESCRIÇÃO DO TALENTO
-                                el('textarea', {
-                                    className: "w-full bg-transparent text-[11px] text-slate-400 italic leading-tight outline-none resize-none placeholder:text-slate-800",
-                                    placeholder: "Clique para descrever o efeito do talento...",
-                                    key: `desc-input-${idx}-${talentDesc}`,
-                                    rows: 2,
-                                    defaultValue: talentDesc,
-                                    onBlur: (e) => {
-                                        const newValue = e.target.value;
-                                        if (newValue === talentDesc) return;
-                                        updateSheetField('outros', `desc_talento_${idx}`, newValue);
-                                    }
-                                })
-                            ]);
-                        })
+                                    // CAMPO: DESCRIÇÃO DO TALENTO
+                                    el('textarea', {
+                                        className: "w-full bg-transparent text-[11px] text-slate-400 italic leading-tight outline-none resize-none placeholder:text-slate-800 mt-2",
+                                        placeholder: "Clique para descrever o efeito...",
+                                        key: `desc-input-${idx}-${talentDesc}`,
+                                        rows: 2,
+                                        defaultValue: talentDesc,
+                                        onBlur: (e) => {
+                                            const newValue = e.target.value;
+                                            if (newValue === talentDesc) return;
+                                            updateSheetField('outros', `desc_talento_${idx}`, newValue);
+                                        }
+                                    })
+                                ]);
+                            });
+                        })()
                     )
                 )
             ),
@@ -490,6 +603,10 @@ export function SheetView({
                         onChange: (e) => {
                             const nivel = e.target.value;
                             if (!nivel) return;
+                            
+                            // Mostra no UI
+                            setActiveCircles(prev => Array.from(new Set([...prev, nivel])));
+                            
                             const novaMagia = { ...characterSheetData.magias, temMagia: true };
                             if (!novaMagia[nivel]) novaMagia[nivel] = ["", "", "", ""];
                             updateSheetField('magias', nivel, novaMagia[nivel]);
@@ -505,6 +622,7 @@ export function SheetView({
                 el('div', { className: "grid grid-cols-1 xl:grid-cols-2 gap-10" },
                     Object.keys(characterSheetData.magias || {})
                         .filter(k => k !== 'temMagia' && Array.isArray(characterSheetData.magias[k]))
+                        .filter(k => activeCircles.includes(k)) // Oculta ciclos apagados
                         .sort()
                         .map((nivel) => {
                             const lista = characterSheetData.magias[nivel];
@@ -519,28 +637,50 @@ export function SheetView({
                                     className: "absolute top-6 right-6 text-slate-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100",
                                     onClick: () => {
                                         if (confirm(`Deseja apagar todo o ${nivel}?`)) {
-                                            const novasMagias = { ...characterSheetData.magias };
-                                            delete novasMagias[nivel];
-                                            // Verifica se sobrou algum círculo
-                                            const restouAlgum = Object.keys(novasMagias).some(k => k !== 'temMagia' && Array.isArray(novasMagias[k]));
-                                            novasMagias.temMagia = restouAlgum;
-                                            updateSheetField('magias', null, novasMagias); // Envia o objeto inteiro atualizado
+                                            // 1. Oculta no UI local
+                                            setActiveCircles(prev => prev.filter(c => c !== nivel));
+                                            
+                                            // 2. Prepara dados vazios para sobescrever células na planilha
+                                            const newData = JSON.parse(JSON.stringify(characterSheetData));
+                                            if (!newData.magias) newData.magias = {};
+                                            newData.magias[nivel] = ["", "", "", ""];
+                                            
+                                            if (!newData.outros) newData.outros = {};
+                                            [0, 1, 2, 3].forEach(idx => {
+                                                newData.outros[`spell_desc_${nivel}_${idx}`] = "";
+                                            });
+
+                                            newData.magias.temMagia = Object.keys(newData.magias).some(k => 
+                                                k !== 'temMagia' && Array.isArray(newData.magias[k]) && newData.magias[k].some(m => m && m.trim() !== "")
+                                            );
+                                            
+                                            // 3. Salva e envia à planilha (as strings vazias limparão as células lá)
+                                            onUpdateSheet(newData);
                                         }
                                     }
                                 }, "🗑️"),
 
                                 el('h4', { className: "text-blue-400 font-black uppercase text-xl italic mb-8 border-b border-blue-900/30 pb-5" }, nivel),
 
-                                el('div', { className: "space-y-5" },
-                                    [0, 1, 2, 3].map((idx) => {
-                                        const nomeMagia = lista[idx] || "";
+                                el('div', { className: "space-y-5 overflow-y-auto pr-2 custom-scrollbar max-h-[500px]" },
+                                    // Adicionamos dinamicamente novos campos, garantindo que "lista" cresça
+                                    // Mapeamos pelos índices até o tamanho atual da lista, mais 1 se quisermos o botão "Adicionar Magia"
+                                    lista.map((nomeMagiaOriginal, idx) => {
+                                        const nomeMagia = nomeMagiaOriginal || "";
                                         const descMagia = characterSheetData.outros?.[`spell_desc_${nivel}_${idx}`] || "";
+                                        
+                                        // Esconde as magias vazias da tela para não poluir
+                                        // Apenas deixamos o 1º slot vazio amostra pra poder adicionar uma magia nele
+                                        const isSlotEmpty = !nomeMagia.trim();
+                                        const firstEmptyIndex = lista.findIndex(m => !(m && m.trim() !== ""));
 
-                                        return el('div', { key: idx, className: "bg-slate-950/60 border border-slate-800 rounded-[2rem] p-6 focus-within:border-blue-500/50 relative" }, [
+                                        if (isSlotEmpty && idx !== firstEmptyIndex) return null;
+
+                                        return el('div', { key: idx, className: "bg-slate-950/60 border border-slate-800 rounded-[2rem] p-6 focus-within:border-blue-500/50 relative group/spell" }, [
 
                                             // Botão para Limpar apenas uma Magia
                                             nomeMagia && el('button', {
-                                                className: "absolute top-2 right-4 text-[10px] text-slate-700 hover:text-red-400",
+                                                className: "absolute top-2 right-4 text-[10px] text-slate-700 hover:text-red-400 opacity-0 group-hover/spell:opacity-100 transition-opacity",
                                                 onClick: () => {
                                                     const novaLista = [...lista];
                                                     novaLista[idx] = "";
@@ -568,7 +708,16 @@ export function SheetView({
                                             })
                                         ]);
                                     })
-                                )
+                                ),
+                                // Botão Adicionar Magia
+                                el('button', {
+                                    className: "w-full mt-4 bg-blue-900/20 hover:bg-blue-600 text-blue-500 hover:text-white text-[10px] font-black uppercase tracking-widest px-4 py-3 rounded-2xl border border-blue-500/30 transition-all shadow-md group",
+                                    onClick: () => {
+                                        const novaLista = [...lista];
+                                        novaLista.push(""); // Adiciona espaço vazio extra
+                                        updateSheetField('magias', nivel, novaLista);
+                                    }
+                                }, "+ ADICIONAR MAGIA")
                             ]);
                         })
                 )
@@ -613,7 +762,7 @@ export function SheetView({
 
                     // Botão Level Up (Condicional)
                     podeSubirNivel && el('button', {
-                        onClick: () => {/* sua lógica de level up */ },
+                        onClick: () => setShowLevelUpModal(true),
                         className: "h-14 bg-amber-500 hover:bg-amber-400 text-black px-6 rounded-full font-black text-xs uppercase transition-all shadow-xl animate-bounce"
                     }, "🚀 Level Up!")
                 ]),
@@ -624,5 +773,94 @@ export function SheetView({
                 })
             ])
         ),
+        
+        // --- MODAL DE LEVEL UP ---
+        showLevelUpModal && el('div', { className: "fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" },
+            el('div', { className: "bg-slate-900 border-2 border-amber-500 rounded-3xl max-w-lg w-full overflow-hidden shadow-[0_0_50px_rgba(245,158,11,0.2)]" },
+                // Header
+                el('div', { className: "bg-amber-500 p-6 text-center" },
+                    el('h2', { className: "text-3xl font-black text-slate-900 uppercase tracking-tighter" }, "🚀 Subiu de Nível!")
+                ),
+                // Body
+                el('div', { className: "p-8 space-y-8" },
+                    
+                    // 1. Atributos
+                    el('div', { className: "space-y-4" },
+                        el('div', { className: "flex justify-between items-end border-b border-slate-700 pb-2" },
+                            el('h3', { className: "text-amber-500 font-black uppercase tracking-widest text-sm" }, "💪 Atributos (+2)"),
+                            el('span', { className: "text-[10px] font-bold text-slate-400 uppercase tracking-widest" }, `Pontos restantes: ${levelUpData.pointsToSpend}`)
+                        ),
+                        el('div', { className: "grid grid-cols-3 gap-3" },
+                            Object.keys(levelUpData.attributes).map(attr => 
+                                el('div', { key: attr, className: "bg-slate-800 p-3 rounded-xl border border-slate-700 flex flex-col items-center gap-2" },
+                                    el('span', { className: "text-[11px] font-black tracking-widest text-slate-400 uppercase" }, attr),
+                                    el('div', { className: "flex items-center gap-3" },
+                                        el('button', {
+                                            onClick: () => handleAttributeChange(attr, -1),
+                                            disabled: levelUpData.attributes[attr] === 0,
+                                            className: "w-6 h-6 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center font-bold text-slate-300 disabled:opacity-30 transition-all font-sans"
+                                        }, "-"),
+                                        el('span', { className: `font-black text-lg ${levelUpData.attributes[attr] > 0 ? 'text-amber-400' : 'text-white'}` }, levelUpData.attributes[attr] > 0 ? `+${levelUpData.attributes[attr]}` : "0"),
+                                        el('button', {
+                                            onClick: () => handleAttributeChange(attr, 1),
+                                            disabled: levelUpData.pointsToSpend === 0,
+                                            className: "w-6 h-6 rounded-full bg-amber-500/20 hover:bg-amber-500 text-amber-500 hover:text-white flex items-center justify-center font-bold border border-amber-500/50 disabled:opacity-30 transition-all font-sans"
+                                        }, "+")
+                                    )
+                                )
+                            )
+                        )
+                    ),
+                    
+                    // 2. Dado de Vida
+                    el('div', { className: "space-y-4" },
+                        el('h3', { className: "text-amber-500 font-black uppercase text-sm tracking-widest border-b border-slate-700 pb-2" }, "❤️ Nova Vida Máxima"),
+                        el('div', { className: "flex items-start gap-4" },
+                            el('div', { className: "flex-1" },
+                                el('label', { className: "text-[9px] text-slate-500 font-black uppercase tracking-widest mb-2 block" }, "Dado da Classe"),
+                                el('select', {
+                                    value: levelUpData.hitDie,
+                                    onChange: e => setLevelUpData(prev => ({...prev, hitDie: e.target.value, hpChoice: 'roll', hpRolledValue: 0})),
+                                    className: "w-full bg-slate-950 border-2 border-slate-700 text-white p-3 rounded-xl font-black outline-none focus:border-amber-500 transition-all cursor-pointer"
+                                },
+                                    ['6', '8', '10', '12'].map(d => el('option', { key: d, value: d }, `1d${d}`))
+                                )
+                            ),
+                            el('div', { className: "flex-1 flex flex-col gap-2" },
+                                el('button', {
+                                    onClick: () => {
+                                        const roll = Math.floor(Math.random() * parseInt(levelUpData.hitDie)) + 1;
+                                        setLevelUpData(prev => ({...prev, hpChoice: 'roll', hpRolledValue: roll}));
+                                    },
+                                    className: `w-full p-2 rounded-xl border-2 font-black transition-all text-xs uppercase tracking-widest ${levelUpData.hpChoice === 'roll' && levelUpData.hpRolledValue > 0 ? 'bg-amber-500/20 border-amber-500 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.2)] scale-105' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'} `
+                                }, levelUpData.hpChoice === 'roll' && levelUpData.hpRolledValue > 0 ? `🎲 Caiu: ${levelUpData.hpRolledValue}` : "🎲 Rolar Média"),
+                                
+                                el('button', {
+                                    onClick: () => setLevelUpData(prev => ({...prev, hpChoice: 'fixed', hpRolledValue: 0})),
+                                    className: `w-full p-2 rounded-xl border-2 font-black transition-all text-xs uppercase tracking-widest ${levelUpData.hpChoice === 'fixed' ? 'bg-amber-500/20 border-amber-500 text-amber-400 scale-105 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'}`
+                                }, `📌 Fixo: ${(Math.floor(parseInt(levelUpData.hitDie)/2) + 1)}`)
+                            )
+                        ),
+                        // Aviso Modificador de Constituição
+                        el('p', { className: "text-[10px] text-slate-500 italic text-center mt-2 leading-relaxed" }, 
+                            `Ao confirmar, o aplicativo automaticamente somará ao valor acima seu modificador de Constituição (+${Math.floor((parseInt(characterSheetData.atributos?.['CON']) || 10) - 10) / 2}).`
+                        )
+                    )
+                ),
+                
+                // Footer
+                el('div', { className: "bg-slate-950 p-6 flex gap-4" },
+                    el('button', {
+                        onClick: () => setShowLevelUpModal(false),
+                        className: "flex-1 border border-slate-700 hover:bg-slate-800 text-slate-400 p-4 justify-center font-black uppercase text-xs tracking-widest rounded-xl transition-colors"
+                    }, "Cancelar"),
+                    el('button', {
+                        onClick: handleLevelUpConfirm,
+                        disabled: levelUpData.pointsToSpend > 0,
+                        className: "flex-1 bg-amber-500 hover:bg-amber-400 text-slate-900 p-4 justify-center font-black uppercase text-xs tracking-widest rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all disabled:opacity-30 disabled:grayscale"
+                    }, "🌟 Confirmar")
+                )
+            )
+        )
     )
 }
