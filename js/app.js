@@ -32,6 +32,7 @@ function App() {
   const [recentRolls, setRecentRolls] = useState([]);
   const [tooltip, setTooltip] = useState({ show: false, content: null, x: 0, y: 0 });
   const [editableSheetData, setEditableSheetData] = useState(null);
+  const [isRollingModalOpen, setRollingModalOpen] = useState(false);
 
   // --- 1. EFEITO DE AUTENTICAÇÃO ---
   useEffect(() => {
@@ -180,12 +181,13 @@ function App() {
   }
   // --- 3. ROLAR DADOS ---
   // A função de rolar dados agora salva a rolagem no Firebase, que por sua vez é ouvida em tempo real para atualizar o feed de rolagens
-  const rollDice = async (sides) => {
-    const result = Math.floor(Math.random() * sides) + 1;
+  const rollDice = async (sides, forcedResult = null, extraLabel = '') => {
+    const result = forcedResult !== null ? forcedResult : Math.floor(Math.random() * sides) + 1;
     await db.collection('artifacts').doc(appId).collection('public').doc('data')
       .collection('rolls').add({
         playerName: characterName || "Anônimo",
         sides: sides, result: result,
+        label: extraLabel,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
   }
@@ -432,7 +434,9 @@ function App() {
 
           alert("🌙Foi uma noite tranquila. Descanso realizado!");
         },
-        setEditableSheetData
+        setEditableSheetData,
+        isRollingModalOpen,
+        setRollingModalOpen
       }),
 
       // 2. Rolagem de Dados
@@ -441,7 +445,9 @@ function App() {
         rollDice,
         recentRolls,
         characterName,
-        view
+        view,
+        isRollingModalOpen,
+        setRollingModalOpen
       })
 
     ]);

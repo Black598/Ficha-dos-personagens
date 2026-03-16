@@ -14,12 +14,12 @@ export function SheetView({
     setEditableSheetData,
     onUpdateSheet,
     updateSheetField,
-    recentRolls
+    recentRolls,
+    isRollingModalOpen,
+    setRollingModalOpen
 }) {
 
     const [isEditingInventory, setIsEditingInventory] = useState(false);
-    // Menu flutuante de dados interno
-    const [isDiceMenuOpen, setIsDiceMenuOpen] = React.useState(false);
     
     // Nível Up
     const [showLevelUpModal, setShowLevelUpModal] = useState(false);
@@ -614,7 +614,7 @@ export function SheetView({
                         }
                     }, [
                         el('option', { value: "" }, "+ ADICIONAR CÍRCULO"),
-                        ["Infusões", "Círculo 0 (Truques)", "Círculo 1", "Círculo 2", "Círculo 3", "Círculo 4", "Círculo 5", "Círculo 6", "Círculo 7", "Círculo 8", "Círculo 9"].map(n => el('option', { key: n, value: n }, n))
+                        ["Infusões", "Círculo 0 (Truques)", "Círculo 1", "Círculo 2", "Círculo 3", "Círculo 4", "Círculo 5", "Círculo 6", "Círculo 7", "Círculo 8", "Círculo 9"].map((n, i) => el('option', { key: 'opt-' + n + '-' + i, value: n }, n))
                     ])
                 ]),
 
@@ -660,7 +660,7 @@ export function SheetView({
                                     }
                                 }, "🗑️"),
 
-                                el('h4', { className: "text-blue-400 font-black uppercase text-xl italic mb-8 border-b border-blue-900/30 pb-5" }, nivel),
+                                el('h4', { key: 'title-' + nivel, className: "text-blue-400 font-black uppercase text-xl italic mb-8 border-b border-blue-900/30 pb-5" }, nivel),
 
                                 el('div', { className: "space-y-5 overflow-y-auto pr-2 custom-scrollbar max-h-[500px]" },
                                     // Adicionamos dinamicamente novos campos, garantindo que "lista" cresça
@@ -726,27 +726,13 @@ export function SheetView({
         // --- MENU FIXO INFERIOR (CONTROLES) ---
         el('div', { className: "fixed bottom-0 left-0 w-full p-6 z-[60] pointer-events-none" },
             el('div', { className: "max-w-7xl mx-auto flex items-end justify-center gap-4 pointer-events-auto" }, [
-                // Janela flutuante de dados (Aparece em cima do botão)
-                isDiceMenuOpen && el('div', { className: "bg-slate-900 border-2 border-amber-500/50 p-4 rounded-3xl shadow-2xl flex flex-col gap-3 mb-2 animate-fade-in-up" }, [
-                    el('p', { className: "text-[9px] font-black text-amber-500 uppercase tracking-widest text-center" }, "Rolar Dados"),
-                    el('div', { className: "grid grid-cols-2 gap-2" },
-                        [20, 12, 10, 8, 6, 4].map(sides => el('button', {
-                            key: sides,
-                            onClick: () => { rollDice(sides); setIsDiceMenuOpen(false); },
-                            className: "bg-slate-800 hover:bg-amber-600 text-white font-black py-3 px-4 rounded-xl transition-all border border-slate-700 flex flex-col items-center"
-                        }, [
-                            el('span', { className: "text-[8px] text-slate-500" }, "D"),
-                            sides
-                        ]))
-                    )
-                ]),
                 // Barra de Botões Fixos
                 el('div', { className: "bg-slate-900/80 backdrop-blur-xl border border-slate-700 p-4 rounded-full shadow-2xl flex items-center gap-3" }, [
-                    // Botão Dado (Agora controla o menu de dados aqui mesmo)
+                    // Botão Dado (Abre o Canvas 3D global)
                     el('button', {
-                        onClick: () => setIsDiceMenuOpen(!isDiceMenuOpen),
-                        className: `w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 border-4 ${isDiceMenuOpen ? 'bg-red-600 border-red-400 rotate-45' : 'bg-amber-600 border-amber-400 hover:scale-110'}`
-                    }, isDiceMenuOpen ? el('span', { className: "text-3xl font-bold text-white" }, "+") : "🎲"),
+                        onClick: () => setRollingModalOpen(true),
+                        className: `w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 border-4 ${isRollingModalOpen ? 'bg-red-600 border-red-400 rotate-45' : 'bg-amber-600 border-amber-400 hover:scale-110'}`
+                    }, isRollingModalOpen ? el('span', { className: "text-3xl font-bold text-white" }, "+") : "🎲"),
 
                     // Botão Descanso
                     el('button', {
