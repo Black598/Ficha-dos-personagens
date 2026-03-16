@@ -1,0 +1,43 @@
+body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 16px; line-height: 1.5; }
+button { cursor: pointer; }
+.bg-slate-950 { background-color: #0f172a !important; }
+.text-slate-100 { color: #f8fafc !important; }
+.bg-slate-900 { background-color: #1e293b !important; }
+.text-white { color: #ffffff !important; }
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  body { font-size: 14px; }
+  .break-words { word-wrap: break-word; overflow-wrap: break-word; }
+  .overflow-wrap-anywhere { overflow-wrap: anywhere; }
+}
+/* Touch-friendly interactions */
+@media (hover: none) and (pointer: coarse) {
+  button { min-height: 44px; }
+  .touch-manipulation { touch-action: manipulation; }
+}
+/* Prevent zoom on input focus */
+input[type="text"], input[type="email"], input[type="password"], textarea {
+  font-size: 16px !important;
+}
+/* add more fallbacks as needed */
+
+<style>
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+</style>
+
+@keyframes bounce-in {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); opacity: 1; }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}

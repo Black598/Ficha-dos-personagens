@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Árvore de Talentos</title>
+
+  <!-- Tailwind via official CDN script (injects generated CSS) -->
+  <!-- this will download the full utility stylesheet at runtime -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- React + ReactDOM UMD -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- Babel para transpilar JSX no cliente -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Firebase v9 compat UMD builds -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+
+<body class="bg-slate-950 text-slate-100">
+  <div id="root">
+    <div
+      style="min-height: 100vh; background: #0f172a; display: flex; align-items: center; justify-content: center; color: #f59e0b; font-family: monospace;">
+      <div style="text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: 1rem;">⚔️</div>
+        <div>CARREGANDO LISTA DE PERSONAGENS..</div>
+        <div style="font-size: 0.8rem; margin-top: 1rem; color: #94a3b8;">Verifique sua conexão com a internet</div>
+      </div>
+    </div>
+  </div>
+
+<!-- Nosso código React principal -->
+  <script type="module" src="./js/app.js"></script>
+</body>
+
+</html>
