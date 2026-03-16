@@ -18,11 +18,13 @@ export function MasterView({
     updateSouls,
     updateEditPermission,
     rollDice,
-    triggerExternalRoll
+    triggerExternalRoll,
+    deleteCharacter
 }) {
     const el = React.createElement;
-    const [showCustomCond, setShowCustomCond] = useState(null); // ID do char abrindo form
+    const [showCustomCond, setShowCustomCond] = useState(null);
     const [showSettings, setShowSettings] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState(null); // nome do char aguardando confirmação
     const [oracleOpen, setOracleOpen] = useState(false);
     const [oracleMessages, setOracleMessages] = useState([]);
     const [oracleInput, setOracleInput] = useState('');
@@ -118,7 +120,7 @@ export function MasterView({
                                         char.sheetData?.info?.['Classe'] || 'Sem Classe'
                                     )
                                 ),
-                                el('div', { key: 'actions', className: "flex gap-2" }, [
+                                el('div', { key: 'actions', className: "flex gap-2 items-center" }, [
                                     el('button', {
                                         key: 'turn',
                                         onClick: () => advanceTurn(char.name),
@@ -134,7 +136,23 @@ export function MasterView({
                                         onClick: () => updateEditPermission(char.name, !(char.sheetData?.allowEditing)),
                                         className: `p-2 rounded-xl transition-all text-lg ${char.sheetData?.allowEditing ? 'bg-green-900/40 text-green-400 border border-green-500/30' : 'bg-slate-800 text-slate-500 border border-slate-700'}`,
                                         title: char.sheetData?.allowEditing ? "Edição Habilitada" : "Edição Bloqueada"
-                                    }, char.sheetData?.allowEditing ? "🔓" : "🔒")
+                                    }, char.sheetData?.allowEditing ? "🔓" : "🔒"),
+                                    el('button', {
+                                        key: 'delete',
+                                        onClick: () => {
+                                            if (confirmDelete === char.name) {
+                                                deleteCharacter(char.name);
+                                                setConfirmDelete(null);
+                                            } else {
+                                                setConfirmDelete(char.name);
+                                                setTimeout(() => setConfirmDelete(null), 3000);
+                                            }
+                                        },
+                                        className: confirmDelete === char.name
+                                            ? "px-2 py-1 bg-red-600 text-white rounded-xl border border-red-400 transition-all text-[9px] font-black uppercase animate-pulse"
+                                            : "p-2 bg-red-900/20 hover:bg-red-700 text-red-500 hover:text-white rounded-xl border border-red-900/30 hover:border-red-500 transition-all text-lg opacity-0 group-hover:opacity-100",
+                                        title: "Excluir Personagem"
+                                    }, confirmDelete === char.name ? "Confirmar?" : "🗑️")
                                 ])
                             ),
 
@@ -226,17 +244,18 @@ export function MasterView({
             ),
 
             // --- COLUNA DIREITA ---
-            el('div', { className: "space-y-6" }, [
-                el('h2', { className: "text-sm font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-2" }, "⚔️ Ordem de Combate"),
-                el('section', { className: "bg-slate-900 border-2 border-amber-500/30 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col" }, [
-                    el('div', { className: "bg-amber-900/10 p-5 border-b border-amber-500/20 flex justify-between items-center" }, [
-                        el('h3', { className: "text-xs font-black uppercase text-amber-500" }, "Iniciativa"),
-                        el('button', { onClick: () => updateInitiative([]), className: "text-[9px] text-red-500 uppercase font-black" }, "Limpar")
-                    ]),
-                    el('div', { className: "p-4 flex gap-2 bg-slate-950/20" }, [
-                        el('input', { id: 'ini-name', placeholder: 'Nome', className: "flex-grow bg-slate-900 border border-slate-800 rounded-xl p-2 text-[10px] outline-none" }),
-                        el('input', { id: 'ini-val', type: 'number', placeholder: 'Inic.', className: "w-16 bg-slate-900 border border-slate-800 rounded-xl p-2 text-[10px] outline-none" }),
+            el('div', { className: "space-y-6" },
+                el('h2', { key: 'h-comb', className: "text-sm font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-2" }, "⚔️ Ordem de Combate"),
+                el('section', { key: 'sec-comb', className: "bg-slate-900 border-2 border-amber-500/30 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col" },
+                    el('div', { key: 'h-ini', className: "bg-amber-900/10 p-5 border-b border-amber-500/20 flex justify-between items-center" },
+                        el('h3', { key: 'lbl', className: "text-xs font-black uppercase text-amber-500" }, "Iniciativa"),
+                        el('button', { key: 'btn-clear', onClick: () => updateInitiative([]), className: "text-[9px] text-red-500 uppercase font-black" }, "Limpar")
+                    ),
+                    el('div', { key: 'inp-box', className: "p-4 flex gap-2 bg-slate-950/20" },
+                        el('input', { key: 'i-name', id: 'ini-name', placeholder: 'Nome', className: "flex-grow bg-slate-900 border border-slate-800 rounded-xl p-2 text-[10px] outline-none" }),
+                        el('input', { key: 'i-val', id: 'ini-val', type: 'number', placeholder: 'Inic.', className: "w-16 bg-slate-900 border border-slate-800 rounded-xl p-2 text-[10px] outline-none" }),
                         el('button', {
+                            key: 'btn-add',
                             onClick: () => {
                                 const name = document.getElementById('ini-name').value;
                                 const val = parseInt(document.getElementById('ini-val').value) || 0;
@@ -250,46 +269,47 @@ export function MasterView({
                             },
                             className: "bg-amber-600 px-3 rounded-xl font-bold text-xs text-slate-900"
                         }, "+")
-                    ]),
-                    el('div', { className: "p-2 space-y-2 max-h-[300px] overflow-y-auto" },
+                    ),
+                    el('div', { key: 'ini-list', className: "p-2 space-y-2 max-h-[300px] overflow-y-auto" },
                         (turnState?.initiativeOrder || []).map((item, idx) => (
-                            el('div', { key: item.id, className: `flex items-center justify-between p-3 rounded-2xl border ${turnState?.activeChar === item.name ? 'bg-amber-500/20 border-amber-500 shadow-lg' : 'bg-slate-950/40 border-slate-800/50'}` }, [
-                                el('div', { className: "flex items-center gap-3" }, [
+                            el('div', { key: item.id, className: `flex items-center justify-between p-3 rounded-2xl border ${turnState?.activeChar === item.name ? 'bg-amber-500/20 border-amber-500 shadow-lg' : 'bg-slate-950/40 border-slate-800/50'}` },
+                                el('div', { className: "flex items-center gap-3" },
                                     el('span', { className: "w-6 h-6 rounded-lg bg-slate-800 flex items-center justify-center text-[10px] font-black text-amber-500" }, idx + 1),
                                     el('span', { className: "text-xs font-bold uppercase" }, item.name)
-                                ]),
-                                el('div', { className: "flex items-center gap-4" }, [
+                                ),
+                                el('div', { className: "flex items-center gap-4" },
                                     el('span', { className: "text-amber-500 font-black text-lg" }, item.value),
                                     el('button', { onClick: () => updateInitiative(turnState.initiativeOrder.filter(i=>i.id!==item.id)), className: "text-slate-600 hover:text-red-500" }, "×")
-                                ])
-                            ])
+                                )
+                            )
                         ))
                     )
-                ]),
+                ),
 
                 el('h2', { className: "text-sm font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-2 pt-4" }, "🎲 Histórico Live"),
-                el('section', { className: "bg-slate-900 border-2 border-purple-500/30 rounded-[2.5rem] overflow-hidden flex flex-col max-h-[400px]" }, [
+                el('section', { key: 'sec-hist', className: "bg-slate-900 border-2 border-purple-500/30 rounded-[2.5rem] overflow-hidden flex flex-col max-h-[400px]" },
                     rollHistory.length === 0 
                         ? el('p', { className: "text-center text-slate-600 text-[10px] py-10" }, "Sem rolagens...")
-                        : el('table', { className: "w-full text-left" }, [
+                        : el('table', { className: "w-full text-left" },
                             el('tbody', null,
                                 rollHistory.map((roll) => (
-                                    el('tr', { key: roll.id, className: "border-b border-slate-800/50 hover:bg-white/5 transition-colors" }, [
+                                    el('tr', { key: roll.id, className: "border-b border-slate-800/50 hover:bg-white/5 transition-colors" },
                                         el('td', { className: "py-3 pl-4 text-xs font-bold text-slate-400" }, roll.playerName),
                                         el('td', { className: "py-3 text-center text-[10px] text-slate-600 font-mono" }, `d${roll.sides}`),
                                         el('td', { className: `py-3 pr-4 text-right font-black text-lg ${roll.result === roll.sides ? 'text-amber-500' : 'text-white'}` }, roll.result)
-                                    ])
+                                    )
                                 ))
                             )
-                        ])
-                ])
-            ])
+                        )
+                )
+            ),
         ),
 
         // --- GRIMÓRIO ---
-        el('div', { key: 'grimoire-sec', className: "max-w-6xl mx-auto mt-12 mb-20" }, [
+        el('div', { key: 'grimoire-sec', className: "max-w-6xl mx-auto mt-12 mb-20" },
             el(SoulGrimoire, { souls, updateSouls })
-        ]),
+        ),
+
 
         // --- ORÁCULO ---
         el('div', { 
@@ -401,7 +421,7 @@ export function MasterView({
                         onClick: () => handleQuickRoll(sides),
                         className: "w-12 h-12 bg-slate-800 hover:bg-amber-600 text-white font-black text-xs rounded-2xl border border-slate-700 hover:border-amber-400 transition-all shadow-lg active:scale-95 flex flex-col items-center justify-center group"
                     }, [
-                        el('span', { className: "text-[8px] text-slate-500 group-hover:text-amber-200" }, "D"),
+                        el('span', { key: 'd-label', className: "text-[8px] text-slate-500 group-hover:text-amber-200" }, "D"),
                         sides
                     ])
                 )

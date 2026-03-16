@@ -1,9 +1,9 @@
-
 const { useState } = React;
 
 
 import { DiceRoller } from './DiceRoller.js';
 import { AudioManager } from '../AudioManager.js';
+import { CharacterSetupModal } from './CharacterSetupModal.js';
 
 export function SheetView({
     characterName,
@@ -19,12 +19,14 @@ export function SheetView({
     isRollingModalOpen,
     setRollingModalOpen,
     turnState,
-    triggerExternalRoll
+    triggerExternalRoll,
+    isNewCharacter
 }) {
 
     const [isEditingInventory, setIsEditingInventory] = useState(false);
     const [effectClass, setEffectClass] = useState(''); // Classe global (shake, sparkle, rest)
     const [bagEffect, setBagEffect] = useState(''); // Efeito local da mochila
+    const [showSetupModal, setShowSetupModal] = useState(!!isNewCharacter); // Abre auto para novos
 
     const triggerEffect = (type) => {
         if (type === 'bag') {
@@ -220,9 +222,41 @@ export function SheetView({
 
     const isMyTurn = turnState?.activeChar === characterName;
 
+    // Handler do modal de setup
+    const handleSetupSave = async (formData) => {
+        const newData = JSON.parse(JSON.stringify(characterSheetData));
+        if (!newData.info) newData.info = {};
+        if (!newData.recursos) newData.recursos = {};
+
+        newData.info['Nome do Personagem'] = formData['Nome do Personagem'];
+        newData.info['Classe'] = formData['Classe'];
+        newData.info['Raça'] = formData['Raça'];
+        newData.info['Antecedente'] = formData['Antecedente'];
+        newData.info['Alinhamento'] = formData['Alinhamento'];
+        newData.info['Jogador'] = formData['Jogador'];
+        newData.info['Nivel'] = formData['Nivel'] || '1';
+
+        const maxHp = parseInt(formData['PV Máximo']) || 1;
+        newData.recursos['PV Máximo'] = String(maxHp);
+        newData.recursos['PV Atual'] = String(maxHp);
+        newData.recursos['PV Perdido'] = '0';
+        newData.recursos['CA'] = formData['CA'] || '10';
+
+        await onUpdateSheet(newData);
+        setShowSetupModal(false);
+    };
+
     return el('div', { 
         className: `min-h-screen bg-slate-950 text-slate-100 pb-32 animate-fade-in relative transition-all duration-500 ${isMyTurn ? 'ring-8 ring-amber-500/30' : ''} ${effectClass.replace('animate-bag', '')}` 
     }, [
+        // --- SETUP MODAL (Novo Personagem) ---
+        showSetupModal && el(CharacterSetupModal, {
+            key: 'setup-modal',
+            initialName: characterName,
+            onSave: handleSetupSave,
+            onClose: () => setShowSetupModal(false)
+        }),
+
         // --- NÉVOA DE FUNDO ---
         activeConditions.length > 0 && el('div', { 
             key: 'mist',
@@ -481,9 +515,10 @@ export function SheetView({
                     ),
                     // Linhas de Ataque
                     (characterSheetData.ataques || []).map((atk, idx) =>
-                        el('div', { key: idx, className: "grid grid-cols-12 items-center bg-slate-950/40 border border-slate-800 p-4 rounded-2xl group hover:border-amber-500/40 transition-all relative" }, [
+                        el('div', { key: `atk-${idx}`, className: "grid grid-cols-12 items-center bg-slate-950/40 border border-slate-800 p-4 rounded-2xl group hover:border-amber-500/40 transition-all relative" },
                             // Botão Deletar Ataque
                             el('button', {
+                                key: "btn-del",
                                 className: "absolute -top-2 -right-2 w-5 h-5 bg-red-900 border border-red-500 text-white rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity z-10",
                                 onClick: () => {
                                     const novosAtaques = [...characterSheetData.ataques];
@@ -540,8 +575,9 @@ export function SheetView({
                                     }
                                 })
                             )
-                        ])
+                        )
                     ),
+
                     // BOTÃO ADICIONAR ATAQUE
                     el('button', {
                         className: "w-full py-3 bg-slate-800/50 hover:bg-slate-700/50 border border-dashed border-slate-700 rounded-xl text-slate-500 hover:text-amber-500 text-[10px] font-black uppercase tracking-widest transition-all",

@@ -1,15 +1,14 @@
 // js/components/LoginView.js
+import { CharacterCreationModal } from './CharacterCreationModal.js';
 
 export function LoginView({
     allCharacters = [],
     onSelectCharacter,
+    onCreateCharacter,
     creatingCharacter,
-    setCreatingCharacter,
-    newCharacterName,
-    setNewCharacterName,
+    isCreating,
     TALENT_TREES,
-    iconMap,
-    onCreateCharacter
+    iconMap
 }) {
     const el = React.createElement;
 
@@ -43,7 +42,7 @@ export function LoginView({
             el('div', { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6" },
                 // Botão Criar Novo
                 el('button', {
-                    onClick: () => setCreatingCharacter(true),
+                    onClick: () => onCreateCharacter(null), // Sinaliza que quer abrir o modal
                     className: "bg-gradient-to-br from-amber-900/40 to-slate-900 border-2 border-dashed border-amber-500/60 rounded-[2rem] p-6 hover:border-amber-500 transition-all h-full min-h-[220px] flex flex-col items-center justify-center gap-4 group shadow-lg"
                 },
                     el('div', { className: "text-4xl group-hover:scale-110 transition-transform" }, "✨"),
@@ -87,37 +86,10 @@ export function LoginView({
         ),
 
         // --- MODAL DE CRIAÇÃO ---
-        creatingCharacter && el('div', { className: "fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" },
-            el('div', { className: "bg-slate-900 border-2 border-amber-500 rounded-3xl p-6 md:p-10 w-full max-w-md shadow-2xl relative overflow-hidden" },
-                el('h2', { className: "text-xl md:text-2xl font-black text-white mb-2 uppercase italic text-center" }, "Criar Novo Herói"),
-                el('p', { className: "text-slate-500 text-center text-xs mb-6 uppercase font-bold tracking-widest" }, "Digite o nome do personagem"),
-
-                el('form', {
-                    onSubmit: (e) => { e.preventDefault(); onCreateCharacter(); },
-                    className: "space-y-4"
-                },
-                    el('input', {
-                        type: "text",
-                        placeholder: "Ex: Aragorn, Gandalf...",
-                        value: newCharacterName,
-                        onChange: e => setNewCharacterName(e.target.value),
-                        autoFocus: true,
-                        className: "w-full bg-slate-800 border-2 border-slate-700 rounded-2xl p-4 text-white outline-none focus:border-amber-500 transition-all font-bold"
-                    }),
-                    el('div', { className: "flex gap-3 pt-4" },
-                        el('button', {
-                            type: "button",
-                            onClick: () => { setCreatingCharacter(false); setNewCharacterName(''); },
-                            className: "flex-1 bg-slate-800 text-slate-300 font-black p-3 rounded-2xl border border-slate-700"
-                        }, "Cancelar"),
-                        el('button', {
-                            type: "submit",
-                            disabled: !newCharacterName.trim(),
-                            className: "flex-1 bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 text-white font-black p-3 rounded-2xl shadow-lg"
-                        }, "Criar Herói")
-                    )
-                )
-            )
-        )
+        creatingCharacter && el(CharacterCreationModal, {
+            onClose: () => onCreateCharacter(false), // Função para fechar (passando null/false para o estado no app.js)
+            onCreate: (name) => onCreateCharacter(name), // Função para realmente criar
+            isCreating: isCreating
+        })
     );
 }

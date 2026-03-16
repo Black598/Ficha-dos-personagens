@@ -1,6 +1,6 @@
 // 1. IMPORTAÇÕES
 import { TALENT_TREES, firebaseConfig, appId, iconMap } from './data.js';
-import { loadCharacterSheet, loadPlayerList, getCharacterByName, updateSheetViaScript, extractSpreadsheetId } from './utils.js'
+import { loadCharacterSheet, loadPlayerList, getCharacterByName, updateSheetViaScript, extractSpreadsheetId, createCharacterInDrive } from './utils.js'
 import { SheetView } from './components/SheetView.js'
 import { TreeView } from './components/TreeView.js'
 import { MasterView } from './components/MasterView.js'
@@ -29,7 +29,8 @@ function App() {
   const [characterData, setCharacterData] = useState(null);
   const [characterSheetData, setCharacterSheetData] = useState(null);
   const [creatingCharacter, setCreatingCharacter] = useState(false);
-  const [newCharacterName, setNewCharacterName] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [isNewCharacter, setIsNewCharacter] = useState(false); // Abre setup ao criar
   const [rollHistory, setRollHistory] = useState([]);
   const [recentRolls, setRecentRolls] = useState([]);
   const [tooltip, setTooltip] = useState({ show: false, content: null, x: 0, y: 0 });
@@ -98,17 +99,17 @@ function App() {
 
           // MESCLAGEM REAL:
           // Criamos a lista final garantindo que os dados do Firebase existam
-          const mergedList = googlePlayers.map(p => {
-            const id = (p.Personagem || p.name || "").toLowerCase().trim();
-            const fData = firebaseData[id] || {};
-
-            // Retornamos um objeto que tem TUDO da planilha + TUDO do Firebase
-            return {
-              ...p,       // Jogador, Personagem, url (da planilha)
-              ...fData,   // selectedTree, unlocked, name (do Firebase)
-              name: p.Personagem || p.name // Garante um nome padrão
-            };
-          });
+          const mergedList = googlePlayers
+            .map(p => {
+              const id = (p.Personagem || p.name || "").toLowerCase().trim();
+              const fData = firebaseData[id] || {};
+              return {
+                ...p,
+                ...fData,
+                name: p.Personagem || p.name
+              };
+            })
+            .filter(p => !p.deleted); // Oculta personagens marcados como excluídos
 
           setAllCharacters(mergedList);
           setLoading(false);
@@ -375,20 +376,50 @@ function App() {
 
   // --- 7. CRIAR NOVO HERÓI ---
   // A criação de heróis agora salva o herói no Firebase, que por sua vez é ouvida em tempo real para atualizar o feed de heróis
-  const createNewCharacter = async () => {
-    if (!newCharacterName.trim()) return;
+  const createNewCharacter = async (name) => {
+    if (name === null) {
+      setCreatingCharacter(true);
+      return;
+    }
+    if (name === false) {
+      setCreatingCharacter(false);
+      return;
+    }
+
+    setIsCreating(true);
     try {
+      // 1. Cria no Google Drive
+      const driveResult = await createCharacterInDrive(scriptWebhook, name, user.displayName || 'Jogador');
+      
+      if (!driveResult || driveResult.status !== 'success') {
+         throw new Error("Falha na criação do arquivo no Drive.");
+      }
+
+      // 2. Prepara o objeto para o Firebase
       const newHero = {
-        name: newCharacterName.trim(),
+        name: name,
         selectedTree: null,
         unlocked: {},
-        sheetData: null
+        sheetData: null,
+        url: driveResult.url // Link oficial gerado pelo Drive
       };
-      await saveCharacter(newHero.name, newHero);
+
+      // 3. Salva no Firebase
+      await saveCharacter(name, newHero);
+      
       setCreatingCharacter(false);
-      setNewCharacterName('');
-      alert('✨ Herói criado!');
-    } catch (e) { alert('Erro ao salvar herói.'); }
+      setIsCreating(false);
+      alert('✨ Herói criado e sincronizado com o Drive!');
+      
+      // 4. Seleciona o personagem automaticamente (com flag de novo)
+      setIsNewCharacter(true);
+      selectCharacter(name);
+      
+    } catch (e) { 
+      console.error(e);
+      alert('Erro ao criar herói: ' + e.message); 
+      setIsCreating(false);
+    }
   }
   // --- 8. ATUALIZAR XP DO PERSONAGEM ---
   // A função de atualizar XP agora salva o XP no Firebase, que por sua vez é ouvida em tempo real para atualizar a ficha do personagem
@@ -628,6 +659,22 @@ function App() {
     throw new Error(`O Oráculo está silenciando... (Nenhum modelo compatível encontrado. Último erro: ${lastError})`);
   };
 
+  // --- DELETE PERSONAGEM ---
+  const deleteCharacter = async (name) => {
+    try {
+      // Marca como excluído no Firebase (não remove o doc, apenas oculta)
+      await db.collection('artifacts').doc(appId)
+        .collection('public').doc('data')
+        .collection('characters').doc(name.toLowerCase())
+        .set({ deleted: true }, { merge: true });
+      console.log(`Personagem "${name}" marcado como excluído.`);
+    } catch (e) {
+      console.error('Erro ao excluir personagem:', e);
+      alert('Erro ao excluir: ' + e.message);
+    }
+  };
+
+
   // Se estivermos na visão do mestre, renderizamos a MasterView
   if (view === 'master') {
     return React.createElement(React.Fragment, null, [
@@ -647,7 +694,8 @@ function App() {
         updateEditPermission,
         onViewSheet: (char) => { setCharacterSheetData(char.sheetData); setCharacterName(char.name); setView('sheet'); },
         rollDice,
-        triggerExternalRoll
+        triggerExternalRoll,
+        deleteCharacter
       }),
       el(DiceRoller, {
         key: 'dice-roller-master',
@@ -670,7 +718,8 @@ function App() {
         key: 'sheet-view',
         characterName,
         characterSheetData,
-        onBack: () => setView('login'),
+        onBack: () => { setIsNewCharacter(false); setView('login'); },
+
         onToggleTree: () => setView('character'),
         rollDice,
         iconMap,
@@ -696,8 +745,10 @@ function App() {
         isRollingModalOpen,
         setRollingModalOpen,
         setEditableSheetData,
-        triggerExternalRoll
+        triggerExternalRoll,
+        isNewCharacter
       }),
+
 
       // 2. Editor de Dados Brutos (Lápis) - EXTRAÍDO
       editableSheetData && el(RawDataEditor, {
@@ -756,12 +807,16 @@ function App() {
   }
 
   return el(LoginView, {
-    allCharacters, onSelectCharacter: selectCharacter,
-    creatingCharacter, setCreatingCharacter,
-    newCharacterName, setNewCharacterName,
+    allCharacters, 
+    onSelectCharacter: selectCharacter,
     onCreateCharacter: createNewCharacter,
-    TALENT_TREES, iconMap
+    creatingCharacter: creatingCharacter,
+    isCreating: isCreating,
+    TALENT_TREES, 
+    iconMap
   })
+
+
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

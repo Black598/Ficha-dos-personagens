@@ -400,10 +400,10 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
                                 el('input', { type: 'radio', name: 'rollMode', value: 'desvantagem', checked: localRollMode === 'desvantagem', onChange: () => setLocalRollMode('desvantagem'), className: "accent-purple-500" }),
                                 el('span', null, "Desvantagem")
                             ]),
-                            (characterName || "").toLowerCase() === 'mestre' && el('label', { key: 'secret', className: "flex items-center gap-2 cursor-pointer text-red-500 hover:text-red-400 ml-4 border-l border-slate-700 pl-4" }, [
+                            (characterName || "").toLowerCase() === 'mestre' && el('label', { key: 'secret', className: "flex items-center gap-2 cursor-pointer text-red-500 hover:text-red-400 ml-4 border-l border-slate-700 pl-4" },
                                 el('input', { type: 'checkbox', checked: localSecret, onChange: (e) => setLocalSecret(e.target.checked), className: "accent-red-500" }),
                                 el('span', null, "Oculto 👁️")
-                            ])
+                            )
                         ]),
                         el('div', { key: 'mod-box', className: "modifiers flex items-center gap-3 bg-slate-950/50 p-2 px-4 rounded-2xl border border-slate-800" }, [
                             el('label', { key: 'lbl', className: "text-slate-400 text-sm font-bold uppercase tracking-wider" }, "Mod:"),
@@ -430,16 +430,16 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
         // 3. BALLOONS
         el('div', { key: 'balloons', className: "fixed bottom-24 right-6 z-50 flex flex-col-reverse gap-3 pointer-events-none" },
             visibleRolls.map((roll) =>
-                el('div', { key: roll.id, className: "bg-slate-900/95 border-2 border-amber-500 p-5 rounded-2xl shadow-2xl animate-bounce-in min-w-[140px]" }, [
-                    el('div', { key: 'h', className: "flex justify-between mb-1 border-b border-slate-800 pb-2" }, [
-                        el('span', { key: 'p', className: "text-[10px] font-black text-amber-500 uppercase flex flex-col" }, [
-                            el('span', null, roll.playerName === characterName ? "Você" : roll.playerName),
-                            roll.label ? el('span', { className: "bg-amber-500/10 text-amber-300 px-1 rounded-md" }, roll.label) : null
-                        ]),
+                el('div', { key: roll.id || Math.random(), className: "bg-slate-900/95 border-2 border-amber-500 p-5 rounded-2xl shadow-2xl animate-bounce-in min-w-[140px]" },
+                    el('div', { key: 'h', className: "flex justify-between mb-1 border-b border-slate-800 pb-2" },
+                        el('span', { key: 'p', className: "text-[10px] font-black text-amber-500 uppercase flex flex-col" },
+                            el('span', { key: 'player' }, roll.playerName === characterName ? "Você" : roll.playerName),
+                            roll.label ? el('span', { key: 'label', className: "bg-amber-500/10 text-amber-300 px-1 rounded-md" }, roll.label) : null
+                        ),
                         el('span', { key: 's', className: "text-[10px] text-slate-500 font-mono bg-slate-800 px-2 py-1 rounded-md" }, `D${roll.sides}`)
-                    ]),
+                    ),
                     el('p', { key: 'r', className: "text-4xl mt-2 font-black text-center text-white" }, roll.result)
-                ])
+                )
             )
         )
     ]);

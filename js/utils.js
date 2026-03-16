@@ -414,3 +414,30 @@ export async function updateSheetViaScript(scriptUrl, spreadsheetId, data) {
     return false;
   }
 }
+
+export async function createCharacterInDrive(scriptUrl, charName, playerName) {
+  if (!scriptUrl) {
+    console.error("Criação abortada: Webhook ausente.");
+    return null;
+  }
+
+  try {
+    // Usamos GET para evitar erros de CORS ao ler a resposta do Google Script
+    const url = new URL(scriptUrl);
+    url.searchParams.append('action', 'CREATE');
+    url.searchParams.append('charName', charName);
+    url.searchParams.append('player', playerName);
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      redirect: 'follow'
+    });
+
+    const result = await response.json();
+    return result; 
+  } catch (error) {
+    console.error('❌ Erro ao criar no Drive:', error);
+    return null;
+  }
+}
+
