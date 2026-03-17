@@ -390,19 +390,19 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
                         el('div', { key: 'modes', className: "flex gap-4 bg-slate-950/50 p-2 px-4 rounded-2xl border border-slate-800" }, [
                             el('label', { key: 'norm', className: "flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white" }, [
                                 el('input', { type: 'radio', name: 'rollMode', value: 'normal', checked: localRollMode === 'normal', onChange: () => setLocalRollMode('normal'), className: "accent-purple-500" }),
-                                el('span', null, "Normal")
+                                el('span', { key: 'txt' }, "Normal")
                             ]),
                             el('label', { key: 'vant', className: "flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white" }, [
                                 el('input', { type: 'radio', name: 'rollMode', value: 'vantagem', checked: localRollMode === 'vantagem', onChange: () => setLocalRollMode('vantagem'), className: "accent-purple-500" }),
-                                el('span', null, "Vantagem")
+                                el('span', { key: 'txt' }, "Vantagem")
                             ]),
                             el('label', { key: 'desv', className: "flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white" }, [
                                 el('input', { type: 'radio', name: 'rollMode', value: 'desvantagem', checked: localRollMode === 'desvantagem', onChange: () => setLocalRollMode('desvantagem'), className: "accent-purple-500" }),
-                                el('span', null, "Desvantagem")
+                                el('span', { key: 'txt' }, "Desvantagem")
                             ]),
                             (characterName || "").toLowerCase() === 'mestre' && el('label', { key: 'secret', className: "flex items-center gap-2 cursor-pointer text-red-500 hover:text-red-400 ml-4 border-l border-slate-700 pl-4" },
                                 el('input', { type: 'checkbox', checked: localSecret, onChange: (e) => setLocalSecret(e.target.checked), className: "accent-red-500" }),
-                                el('span', null, "Oculto 👁️")
+                                el('span', { key: 'txt' }, "Oculto 👁️")
                             )
                         ]),
                         el('div', { key: 'mod-box', className: "modifiers flex items-center gap-3 bg-slate-950/50 p-2 px-4 rounded-2xl border border-slate-800" }, [

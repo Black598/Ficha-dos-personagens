@@ -9,6 +9,7 @@ import { DiceRoller } from './components/DiceRoller.js'
 import { LoadingScreen } from './components/LoadingScreen.js'
 import { RawDataEditor } from './components/RawDataEditor.js'
 import { TalentTooltip } from './components/TalentTooltip.js'
+import { AudioManager } from './AudioManager.js'
 
 // 2. INICIALIZAÇÃO FIREBASE
 const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app()
@@ -41,7 +42,17 @@ function App() {
   const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
   const [externalRoll, setExternalRoll] = useState(null); // Gatilho para rolagens 3D sem modal
 
-  const lastHPs = useRef({}); // Rastreador de HP para mortes automáticas
+  const lastHPs = useRef({}); // Rastreador de HP para mortes automáticas (Ref evita re-renders)
+  
+  // --- NOVOS ESTADOS GLOBAIS (SALA DO MESTRE) ---
+  const [sessionState, setSessionState] = useState({
+    announcement: '',
+    handout: '',
+    environment: 'none',
+    monsters: [],
+    masterNotes: ''
+  });
+  const [lastTriggerSound, setLastTriggerSound] = useState(null);
 
   // --- 1. EFEITO DE AUTENTICAÇÃO ---
   useEffect(() => {
@@ -76,6 +87,28 @@ function App() {
       });
     return () => unsubSouls();
   }, [user]);
+  
+  // --- 1.3 ESCUTA ESTADO DA SESSÃO ---
+  useEffect(() => {
+    if (!user) return;
+    const unsubSession = db.collection('artifacts').doc(appId)
+      .collection('public').doc('data').collection('global').doc('session')
+      .onSnapshot((doc) => {
+        if (doc.exists) {
+            const data = doc.data();
+            setSessionState(prev => ({ ...prev, ...data }));
+            
+            // Gatilho de Som (Shared Soundboard)
+            if (data.triggerSound && data.triggerSound.timestamp !== lastTriggerSound?.timestamp) {
+                setLastTriggerSound(data.triggerSound);
+                if (data.triggerSound.type) {
+                    AudioManager.play(data.triggerSound.type);
+                }
+            }
+        }
+      });
+    return () => unsubSession();
+  }, [user, lastTriggerSound]);
 
   // --- 2. CARREGAMENTO DE DADOS (PLANILHA + FIREBASE) ---
   useEffect(() => {
@@ -325,20 +358,49 @@ function App() {
         // VERIFICAÇÃO BACKGROUND (Silenciosa)
         const sheetUrl = charFromFirebase?.url || charFromFirebase?.URL;
         if (sheetUrl) {
-           loadCharacterSheet(sheetUrl).then(dataFromSheet => {
+           loadCharacterSheet(sheetUrl).then(async dataFromSheet => {
              if (dataFromSheet) {
-                const fbDataStr = JSON.stringify(charFromFirebase.sheetData);
+                // 1. Pega a versão MAIS FRESCA do Firebase para evitar sobrescrever edições recentes (Race Condition)
+                const charRef = db.collection('artifacts').doc(appId).collection('public')
+                                  .doc('data').collection('characters').doc(charName.toLowerCase());
+                const freshSnap = await charRef.get();
+                const freshData = freshSnap.exists ? freshSnap.data() : charFromFirebase;
+                
+                const fbDataStr = JSON.stringify(freshData.sheetData);
                 const shDataStr = JSON.stringify(dataFromSheet);
+
                 if (fbDataStr !== shDataStr) {
-                    const mergedData = { ...charFromFirebase, sheetData: dataFromSheet };
-                    setCharacterData(mergedData);
-                    setCharacterSheetData(dataFromSheet);
+                    // 2. Mescla Granular: Planilha manda em Atributos/HP, Firebase manda em Ataques/Magias/Descrições
+                    const mergedSheetData = {
+                        ...dataFromSheet, // Base vem da planilha (Atributos, HP, etc.)
+                        
+                        // Preserva campos que a planilha não tem ou tem de forma limitada
+                        ataques: freshData.sheetData?.ataques || dataFromSheet.ataques || [],
+                        magias: {
+                            ...(dataFromSheet.magias || {}),
+                            ...(freshData.sheetData?.magias || {}) // Firebase tem prioridade nas magias (app-first)
+                        },
+                        statsMagia: {
+                            ...(dataFromSheet.statsMagia || {}),
+                            ...(freshData.sheetData?.statsMagia || {})
+                        },
+                        outros: {
+                            ...(dataFromSheet.outros || {}),
+                            ...Object.fromEntries(
+                                Object.entries(freshData.sheetData?.outros || {})
+                                    .filter(([k]) => k.startsWith('spell_desc_') || k.startsWith('desc_talento_') || k === 'Talentos')
+                            )
+                        }
+                    };
+
+                    const mergedData = { ...freshData, sheetData: mergedSheetData };
                     
-                    // Salva no banco de dados (ignorando o appscript webhook pq a fonte JÁ foi a planilha)
-                    db.collection('artifacts').doc(appId)
-                       .collection('public').doc('data')
-                       .collection('characters').doc(charName.toLowerCase())
-                       .set(mergedData, { merge: true });
+                    // 3. Atualiza Local e Firebase
+                    setCharacterData(mergedData);
+                    setCharacterSheetData(mergedSheetData);
+                    
+                    await charRef.set(mergedData, { merge: true });
+                    console.log(`✅ Sincronização em segundo plano concluída para ${charName}.`);
                 }
              }
            }).catch(console.error);
@@ -595,6 +657,15 @@ function App() {
     } catch (e) { console.error("Erro ao salvar almas:", e); }
   };
 
+  // --- 8.6 ESTADO DA SESSÃO ---
+  const updateSessionState = async (updates) => {
+    try {
+      await db.collection('artifacts').doc(appId)
+        .collection('public').doc('data').collection('global').doc('session')
+        .set(updates, { merge: true });
+    } catch (e) { console.error("Erro ao atualizar sessão:", e); }
+  };
+
   // --- 8.6 PERMISSÃO DE EDIÇÃO ---
   const updateEditPermission = async (targetCharName, allow) => {
     try {
@@ -695,7 +766,9 @@ function App() {
         onViewSheet: (char) => { setCharacterSheetData(char.sheetData); setCharacterName(char.name); setView('sheet'); },
         rollDice,
         triggerExternalRoll,
-        deleteCharacter
+        deleteCharacter,
+        sessionState,
+        updateSessionState
       }),
       el(DiceRoller, {
         key: 'dice-roller-master',
@@ -746,12 +819,15 @@ function App() {
         setRollingModalOpen,
         setEditableSheetData,
         triggerExternalRoll,
-        isNewCharacter
+        recentRolls,
+        isNewCharacter,
+        sessionState
       }),
 
 
       // 2. Editor de Dados Brutos (Lápis) - EXTRAÍDO
       editableSheetData && el(RawDataEditor, {
+        key: 'raw-data-editor',
         data: editableSheetData,
         onSave: onUpdateSheet,
         onClose: () => setEditableSheetData(null)

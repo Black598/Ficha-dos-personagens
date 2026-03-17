@@ -1,27 +1,30 @@
-const { useState } = React;
+const { useState, useEffect } = React;
 
 
 import { DiceRoller } from './DiceRoller.js';
 import { AudioManager } from '../AudioManager.js';
 import { CharacterSetupModal } from './CharacterSetupModal.js';
+import { TalentTooltip } from './TalentTooltip.js';
+import { safeParseJSON } from '../utils.js';
 
 export function SheetView({
     characterName,
     characterSheetData,
     onBack,
     onToggleTree,
+    onUpdateSheet: updateSheetData,
     rollDice,
+    iconMap,
+    updateSheetField,
+    turnState,
+    isNewCharacter,
+    sessionState,
     handleDescansoLongo,
     setEditableSheetData,
-    onUpdateSheet,
-    updateSheetField,
-    recentRolls,
-    isRollingModalOpen,
-    setRollingModalOpen,
-    turnState,
     triggerExternalRoll,
-    isNewCharacter
+    recentRolls
 }) {
+    const charData = characterSheetData; // Alias para compatibilidade com código legado
 
     const [isEditingInventory, setIsEditingInventory] = useState(false);
     const [effectClass, setEffectClass] = useState(''); // Classe global (shake, sparkle, rest)
@@ -35,16 +38,16 @@ export function SheetView({
             setTimeout(() => setBagEffect(''), 500);
             return;
         }
-        
+
         setEffectClass(`animate-${type}`);
         if (type === 'shake') AudioManager.play('damage');
         else if (type === 'sparkle') AudioManager.play('heal');
         else if (type === 'shield') AudioManager.play('shield');
         else if (type === 'rest') AudioManager.play('rest');
-        
+
         setTimeout(() => setEffectClass(''), 1000);
     };
-    
+
     // Nível Up
     const [showLevelUpModal, setShowLevelUpModal] = useState(false);
     const [levelUpData, setLevelUpData] = useState({
@@ -56,11 +59,11 @@ export function SheetView({
     });
 
     // Monitor de HP para feedback (Reativo ao estado)
-    const currentHP = parseInt(characterSheetData?.recursos?.['PV Atual']) || 0;
+    const currentHP = parseInt(charData?.recursos?.['PV Atual']) || 0;
     const [lastHP, setLastHP] = React.useState(currentHP);
-    
+
     // Monitor de PV Temporário
-    const currentTempHP = parseInt(characterSheetData?.recursos?.['PV Temporário']) || 0;
+    const currentTempHP = parseInt(charData?.recursos?.['PV Temporário']) || 0;
     const [lastTempHP, setLastTempHP] = React.useState(currentTempHP);
 
     React.useEffect(() => {
@@ -80,7 +83,7 @@ export function SheetView({
         }
         setLastTempHP(currentTempHP);
     }, [currentTempHP]);
-    
+
     // Estado do Caderno de Aventuras
     const [showJournal, setShowJournal] = useState(false);
     const [journalPage, setJournalPage] = useState(1);
@@ -108,9 +111,9 @@ export function SheetView({
     // Rastreador de círculos de magia ativos
     const [activeCircles, setActiveCircles] = React.useState(() => {
         const circles = [];
-        Object.keys(characterSheetData?.magias || {}).forEach(k => {
-            if (k !== 'temMagia' && Array.isArray(characterSheetData.magias[k])) {
-                if (characterSheetData.magias[k].some(m => m && m.trim() !== "")) {
+        Object.keys(charData?.magias || {}).forEach(k => {
+            if (k !== 'temMagia' && Array.isArray(charData.magias[k])) {
+                if (charData.magias[k].some(m => m && m.trim() !== "")) {
                     circles.push(k);
                 }
             }
@@ -124,23 +127,33 @@ export function SheetView({
 
     React.useEffect(() => {
         const circlesToAdd = [];
-        Object.keys(characterSheetData?.magias || {}).forEach(k => {
-            if (k !== 'temMagia' && Array.isArray(characterSheetData.magias[k])) {
-                if (characterSheetData.magias[k].some(m => m && m.trim() !== "")) {
+        Object.keys(charData?.magias || {}).forEach(k => {
+            if (k !== 'temMagia' && Array.isArray(charData.magias[k])) {
+                if (charData.magias[k].some(m => m && m.trim() !== "")) {
                     circlesToAdd.push(k);
                 }
             }
         });
-        
+
         let needsUpdate = false;
         circlesToAdd.forEach(c => {
             if (!activeCircles.includes(c)) needsUpdate = true;
         });
-        
+
         if (needsUpdate) {
             setActiveCircles(prev => Array.from(new Set([...prev, ...circlesToAdd])));
         }
-    }, [characterSheetData?.magias]);
+    }, [charData?.magias]);
+
+    // Efeito para tocar sons disparados pelo mestre
+    useEffect(() => {
+        if (sessionState?.triggerSound && sessionState.triggerSound.timestamp > (Date.now() - 5000)) {
+            // Toca se o som for recente (últimos 5 segundos) para evitar loops ao carregar
+            AudioManager.play(sessionState.triggerSound.type);
+        }
+    }, [sessionState?.triggerSound?.timestamp]);
+
+    if (!charData) return el('div', { className: "p-10 text-center text-slate-500" }, "Carregando ficha...");
 
     const el = React.createElement;
     // Helper para formatar bônus
@@ -151,8 +164,8 @@ export function SheetView({
     };
 
     // Lógica de Level Up
-    const xpAtual = parseInt(characterSheetData.info?.['XP']) || 0;
-    const nivelAtual = parseInt(characterSheetData.info?.['Nivel']) || 1;
+    const xpAtual = parseInt(charData.info?.['XP']) || 0;
+    const nivelAtual = parseInt(charData.info?.['Nivel']) || 1;
     const xpNecessario = nivelAtual * 1000;
     const podeSubirNivel = xpAtual >= xpNecessario;
 
@@ -160,7 +173,7 @@ export function SheetView({
         setLevelUpData(prev => {
             const currentPointsSpent = Object.values(prev.attributes).reduce((a, b) => a + b, 0);
             const newValue = prev.attributes[attr] + delta;
-            
+
             if (newValue < 0) return prev;
             if (delta > 0 && currentPointsSpent >= 2) return prev; // Acabou os pontos
 
@@ -175,8 +188,8 @@ export function SheetView({
     const handleLevelUpConfirm = () => {
         const newNivel = nivelAtual + 1;
         let hpIncrease = 0;
-        const constMod = Math.floor((parseInt(characterSheetData.atributos?.['CON']) || 10) - 10) / 2;
-        
+        const constMod = Math.floor((parseInt(charData.atributos?.['CON']) || 10) - 10) / 2;
+
         if (levelUpData.hpChoice === 'fixed') {
             hpIncrease = Math.floor(parseInt(levelUpData.hitDie) / 2) + 1 + Math.floor(constMod);
         } else {
@@ -185,10 +198,10 @@ export function SheetView({
         }
         if (hpIncrease < 1) hpIncrease = 1;
 
-        const currentMaxHp = parseInt(characterSheetData.recursos?.['PV Máximo'] || '0');
+        const currentMaxHp = parseInt(charData.recursos?.['PV Máximo'] || '0');
         const newMaxHp = currentMaxHp + hpIncrease;
 
-        const newAtributos = { ...characterSheetData.atributos };
+        const newAtributos = { ...charData.atributos };
         Object.keys(levelUpData.attributes).forEach(attr => {
             if (levelUpData.attributes[attr] > 0) {
                 newAtributos[attr] = (parseInt(newAtributos[attr]) || 10) + levelUpData.attributes[attr];
@@ -196,14 +209,14 @@ export function SheetView({
         });
 
         const newData = {
-            ...characterSheetData,
-            info: { ...characterSheetData.info, 'Nivel': newNivel.toString(), 'XP': '0' },
-            recursos: { ...characterSheetData.recursos, 'PV Máximo': newMaxHp.toString() },
+            ...charData,
+            info: { ...charData.info, 'Nivel': newNivel.toString(), 'XP': '0' },
+            recursos: { ...charData.recursos, 'PV Máximo': newMaxHp.toString() },
             atributos: newAtributos
         };
 
-        onUpdateSheet(newData);
-        
+        updateSheetData(newData);
+
         setShowLevelUpModal(false);
         setLevelUpData({
             pointsToSpend: 2,
@@ -214,17 +227,16 @@ export function SheetView({
         });
     };
 
-    //Renderiza a ficha
+    // Renderiza a ficha
     // Parse das Condições
     const rawConds = characterSheetData.info?.['Condicoes'] || '[]';
-    let activeConditions = [];
-    try { activeConditions = JSON.parse(rawConds); } catch(e) { activeConditions = []; }
+    const activeConditions = safeParseJSON(rawConds);
 
     const isMyTurn = turnState?.activeChar === characterName;
 
     // Handler do modal de setup
     const handleSetupSave = async (formData) => {
-        const newData = JSON.parse(JSON.stringify(characterSheetData));
+        const newData = JSON.parse(JSON.stringify(charData));
         if (!newData.info) newData.info = {};
         if (!newData.recursos) newData.recursos = {};
 
@@ -242,14 +254,13 @@ export function SheetView({
         newData.recursos['PV Perdido'] = '0';
         newData.recursos['CA'] = formData['CA'] || '10';
 
-        await onUpdateSheet(newData);
+        await updateSheetData(newData);
         setShowSetupModal(false);
     };
 
-    return el('div', { 
-        className: `min-h-screen bg-slate-950 text-slate-100 pb-32 animate-fade-in relative transition-all duration-500 ${isMyTurn ? 'ring-8 ring-amber-500/30' : ''} ${effectClass.replace('animate-bag', '')}` 
+    return el('div', {
+        className: `min-h-screen bg-slate-950 text-slate-100 pb-32 animate-fade-in relative transition-all duration-500 ${isMyTurn ? 'ring-8 ring-amber-500/30' : ''} ${effectClass.replace('animate-bag', '')}`
     }, [
-        // --- SETUP MODAL (Novo Personagem) ---
         showSetupModal && el(CharacterSetupModal, {
             key: 'setup-modal',
             initialName: characterName,
@@ -258,14 +269,75 @@ export function SheetView({
         }),
 
         // --- NÉVOA DE FUNDO ---
-        activeConditions.length > 0 && el('div', { 
+        activeConditions.length > 0 && el('div', {
             key: 'mist',
-            className: "fixed inset-0 pointer-events-none z-0 opacity-40 transition-all duration-1000",
+            className: "fixed inset-0 pointer-events-none z-0 opacity-60 transition-all duration-1000 animate-pulse-soft",
             style: {
-                background: `radial-gradient(circle at center, transparent 30%, ${activeConditions[0].color}77 100%)`,
-                boxShadow: `inset 0 0 150px 50px ${activeConditions[0].color}55`
+                background: activeConditions
+                    .filter(c => c.color)
+                    .map((c, i) => {
+                        const pos = [
+                            'at center',
+                            'at 20% 20%',
+                            'at 80% 80%',
+                            'at 80% 20%',
+                            'at 20% 80%'
+                        ][i % 5];
+                        return `radial-gradient(circle ${pos}, transparent 20%, ${c.color}66 100%)`;
+                    }).join(', ') || `radial-gradient(circle at center, transparent 30%, #a855f777 100%)`,
+                boxShadow: activeConditions
+                    .filter(c => c.color)
+                    .map(c => `inset 0 0 200px 80px ${c.color}55`)
+                    .join(', ')
             }
         }),
+ 
+        // --- CAMADA DE AMBIENTE (CLIMA) ---
+        sessionState?.environment && sessionState.environment !== 'none' && el('div', {
+            key: 'env-overlay',
+            className: "fixed inset-0 pointer-events-none z-[1]"
+        }, [
+            // Overlay de Cor Básica
+            el('div', {
+                key: 'env-tint',
+                className: `absolute inset-0 transition-all duration-[2000ms] ${
+                    sessionState.environment === 'rain' ? 'bg-blue-500/10' :
+                    sessionState.environment === 'fog' ? 'bg-slate-300/10' :
+                    sessionState.environment === 'storm' ? 'bg-indigo-900/20' :
+                    sessionState.environment === 'night' ? 'bg-slate-950/40' :
+                    sessionState.environment === 'cave' ? 'bg-black/40' : ''
+                }`
+            }),
+
+            // Efeito de Raios (Storm)
+            sessionState.environment === 'storm' && el('div', {
+                key: 'lightning-effect',
+                className: "absolute inset-0 animate-lightning"
+            }),
+
+            // Efeito de Estrelas (Night)
+            sessionState.environment === 'night' && el('div', {
+                key: 'stars-container',
+                className: "absolute inset-0"
+            }, Array.from({ length: 40 }).map((_, i) => el('div', {
+                key: `star-${i}`,
+                className: "absolute bg-white rounded-full animate-twinkle",
+                style: {
+                    top: `${Math.random() * 100}%`,
+                    left: `${Math.random() * 100}%`,
+                    width: `${Math.random() * 3}px`,
+                    height: (Math.random() * 3) + 'px',
+                    '--twinkle-duration': `${2 + Math.random() * 4}s`,
+                    opacity: 0.1 + Math.random() * 0.5
+                }
+            }))),
+
+            // Efeito de Névoa Extra (Fog)
+            sessionState.environment === 'fog' && el('div', {
+                key: 'fog-extra',
+                className: "absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-white/5 animate-pulse-soft"
+            })
+        ]),
 
         // --- BANNER DE TURNO ---
         isMyTurn && el('div', {
@@ -274,27 +346,35 @@ export function SheetView({
         }, "🔥 É a sua vez!"),
 
         // --- ÍCONES DE STATUS (Minecraft Style) ---
-        el('div', { 
+        el('div', {
             key: 'status-icons',
-            className: "fixed top-24 right-6 z-50 flex flex-col gap-3"
-        }, activeConditions.map((cond, idx) => 
+            className: "fixed top-24 right-8 z-50 flex flex-col gap-4"
+        }, (activeConditions || []).map((cond) =>
             el('div', {
-                key: idx,
-                className: "group relative w-12 h-12 bg-slate-900/90 border-2 border-yellow-500 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(234,179,8,0.3)] backdrop-blur-md cursor-help transition-transform hover:scale-110",
+                key: cond.name,
+                className: "group relative w-14 h-14 bg-slate-900/95 border-[3px] border-amber-600 rounded-lg flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.2),inset_0_0_10px_rgba(0,0,0,0.5)] backdrop-blur-md cursor-help transition-all hover:scale-110 active:scale-95",
+                style: { borderColor: '#d97706', boxShadow: `0 0 0 2px #451a03, 0 0 20px ${cond.color || '#f59e0b'}44` },
                 title: `${cond.name}: ${cond.turns} turnos restantes`
             }, [
-                el('span', { key: 'icon', className: "text-2xl drop-shadow-md" }, cond.icon),
-                el('span', { key: 'turns', className: "absolute -bottom-1 -right-1 bg-yellow-500 text-slate-950 text-[9px] font-black px-1 rounded border border-slate-900 shadow-md" }, cond.turns),
-                // Tooltip Custom
-                el('div', { className: "absolute right-14 top-0 bg-slate-900 border border-amber-500 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none" }, 
-                    el('p', { className: "text-[10px] font-black uppercase text-amber-500" }, cond.name),
-                    el('p', { className: "text-[9px] text-slate-300" }, `Duração: ${cond.turns} rodada(s)`)
-                )
+                el('span', { key: 'icon', className: "text-3xl drop-shadow-[0_2px_5px_rgba(0,0,0,0.8)]" }, cond.icon),
+                el('span', { key: 'turns', className: "absolute -bottom-2 -right-2 bg-amber-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded border-2 border-slate-950 shadow-lg" }, cond.turns),
+                
+                // Tooltip Custom "Minecraft UI" style
+                el('div', { 
+                    key: 'tooltip', 
+                    className: "absolute right-16 top-0 bg-slate-900/95 border-2 border-amber-600 p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 whitespace-nowrap pointer-events-none shadow-2xl z-[100]" 
+                }, [
+                    el('p', { key: 'name', className: "text-xs font-black uppercase text-amber-500 mb-1" }, cond.name),
+                    el('p', { key: 'duration', className: "text-[9px] text-slate-400 font-bold" }, [
+                        el('span', { className: "text-amber-600 mr-1" }, "⏳"),
+                        `${cond.turns} rodada(s) restantes`
+                    ])
+                ])
             ])
         )),
 
         // --- HEADER FICHADO ---
-        el('header', { className: "bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 p-4 md:p-6 sticky top-0 z-40" },
+        el('header', { key: 'sheet-header', className: "bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 p-4 md:p-6 sticky top-0 z-40" },
             el('div', { className: "max-w-7xl mx-auto flex justify-between items-center" },
                 el('div', { className: "flex items-center gap-4" },
                     el('div', { className: "bg-slate-800 p-2 rounded-xl border border-slate-700 shadow-inner" }, "📄"),
@@ -318,7 +398,7 @@ export function SheetView({
             )
         ),
         // --- CONTEÚDO PRINCIPAL ---
-        el('main', { className: "max-w-7xl mx-auto p-4 md:p-6 space-y-10" },
+        el('main', { key: 'sheet-main', className: "max-w-7xl mx-auto p-4 md:p-6 space-y-10" },
             // --- BLOCO 1: INFORMAÇÕES INICIAIS ---
             el('div', { className: "bg-slate-900 border-2 border-slate-800 p-6 rounded-[2.5rem] shadow-xl" },
                 el('div', { className: "grid grid-cols-1 md:grid-cols-4 gap-6" },
@@ -613,10 +693,11 @@ export function SheetView({
                     )
                 ),
                 // --- Características e Talentos Editáveis ---
-                el('div', { className: "lg:col-span-8 bg-slate-900 border border-slate-800 p-6 rounded-[2.5rem] shadow-xl flex flex-col" },
-                    el('div', { className: "flex justify-between items-center mb-6 border-b border-purple-900/20 pb-3" }, [
-                        el('h4', { className: "text-purple-400 font-black uppercase text-xs italic flex items-center gap-2 tracking-widest" }, "✨ Características e Talentos"),
+                el('div', { key: 'talents-section', className: "lg:col-span-8 bg-slate-900 border border-slate-800 p-6 rounded-[2.5rem] shadow-xl flex flex-col" }, [
+                    el('div', { key: 'talents-header', className: "flex justify-between items-center mb-6 border-b border-purple-900/20 pb-3" }, [
+                        el('h4', { key: 'talents-title', className: "text-purple-400 font-black uppercase text-xs italic flex items-center gap-2 tracking-widest" }, "✨ Características e Talentos"),
                         el('button', {
+                            key: 'add-talent-btn',
                             className: "bg-purple-900/30 hover:bg-purple-600 text-purple-400 hover:text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-purple-500/30 transition-all",
                             onClick: () => {
                                 let talentosAtuais = characterSheetData.outros?.['Talentos'] || [];
@@ -630,15 +711,13 @@ export function SheetView({
                         }, "+ ADICIONAR")
                     ]),
                     
-                    el('div', { className: "space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-grow h-[400px]" },
+                    el('div', { key: 'talents-list', className: "space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-grow h-[400px]" },
                         // Pega a lista atual ou um array de 4 itens como base mínima (por compatibilidade)
                         (() => {
                             let talentosAtuais = characterSheetData.outros?.['Talentos'] || [];
                             if (!Array.isArray(talentosAtuais)) {
                                 talentosAtuais = typeof talentosAtuais === 'string' ? talentosAtuais.split('/').map(s=>s.trim()) : [];
                             }
-                            
-                            // Remove espaços vazios acidentais no começo/meio se não for intencional? Melhor não.
                             
                             // Garante que tenha pelo menos 1 item na tela
                             if (talentosAtuais.length === 0) talentosAtuais = [""];
@@ -647,47 +726,34 @@ export function SheetView({
                                 const talentDesc = characterSheetData.outros?.[`desc_talento_${idx}`] || "";
 
                                 return el('div', {
-                                    key: idx,
+                                    key: `talent-${idx}-${talentTitle}`,
                                     className: "bg-slate-950/50 p-4 rounded-3xl border border-slate-800 group focus-within:border-purple-500/50 transition-all relative"
                                 }, [
                                     // BOTAO DE EXCLUIR
                                     el('button', {
+                                        key: `delete-${idx}`,
                                         className: "absolute top-3 right-4 text-[10px] text-slate-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 uppercase tracking-widest font-black",
                                         onClick: () => {
                                             if (confirm(`Excluir a característica "${talentTitle || 'vazia'}"?`)) {
                                                 const newTalents = [...talentosAtuais];
-                                                newTalents.splice(idx, 1); // Remove
-                                                
-                                                // Prepara as descrições em cascata para não bagunçar
-                                                // Ex: se apagou o 2, o desc 3 vira 2, o 4 vira 3...
+                                                newTalents.splice(idx, 1); 
                                                 const fullData = JSON.parse(JSON.stringify(characterSheetData));
                                                 if (!fullData.outros) fullData.outros = {};
-                                                
-                                                // Envia pra planilha como uma string separada por " / "
                                                 fullData.outros['Talentos'] = newTalents.join(' / ');
-                                                
-                                                for(let i = idx; i < 20; i++){
-                                                    const pxDesc = fullData.outros[`desc_talento_${i+1}`] || "";
-                                                    fullData.outros[`desc_talento_${i}`] = pxDesc;
-                                                }
-
-                                                // Atualiza na memória e na planilha
                                                 onUpdateSheet(fullData);
                                             }
                                         }
-                                    }, "⨯ EXCLUIR"),
+                                    }, "×"),
 
-                                    // CAMPO: TÍTULO DO TALENTO
+                                    // CAMPO: NOME DO TALENTO
                                     el('input', {
-                                        type: 'text',
-                                        className: "w-[90%] bg-transparent text-xs text-purple-300 font-black uppercase mb-1 outline-none placeholder:text-purple-900/30",
-                                        placeholder: "Nome da Característica...",
-                                        key: `title-input-${idx}-${talentTitle}`,
+                                        className: "bg-transparent text-slate-100 font-bold text-sm uppercase outline-none focus:text-purple-400 block w-full pr-10",
+                                        placeholder: "Nova Característica...",
+                                        key: `input-${idx}-${talentTitle}`,
                                         defaultValue: talentTitle,
                                         onBlur: (e) => {
                                             const newValue = e.target.value;
                                             if (newValue === talentTitle) return;
-
                                             const newTalents = [...talentosAtuais];
                                             newTalents[idx] = newValue;
                                             updateSheetField('outros', 'Talentos', newTalents.join(' / '));
@@ -711,7 +777,7 @@ export function SheetView({
                             });
                         })()
                     )
-                )
+                ])
             ),
             // --- BLOCO 6: TRAÇOS DE PERSONALIDADE (GRID 4) ---
             el('div', { className: "grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6" },
@@ -725,9 +791,9 @@ export function SheetView({
 
             // --- BLOCO 7: BOLSA DE TESOUROS E INVENTÁRIO ---
             el('div', { key: 'block-7', className: "mt-12 space-y-8 border-t border-slate-800 pt-12" }, [
-                el('h3', { className: "text-3xl font-black text-amber-500 uppercase tracking-tighter italic flex items-center gap-4" }, "🔨 Bolsa de Tesouros e Itens"),
+                el('h3', { key: 'treasury-title', className: "text-3xl font-black text-amber-500 uppercase tracking-tighter italic flex items-center gap-4" }, "🔨 Bolsa de Tesouros e Itens"),
 
-                el('div', { className: "grid grid-cols-1 lg:grid-cols-12 gap-8" }, [
+                el('div', { key: 'treasury-grid', className: "grid grid-cols-1 lg:grid-cols-12 gap-8" }, [
 
                     // 1. MOEDAS (Editáveis)
                     el('div', { className: "lg:col-span-4 grid grid-cols-1 gap-4" },
@@ -759,10 +825,10 @@ export function SheetView({
                     ),
 
                     // --- BLOCO DA MOCHILA (MODO VISUALIZAÇÃO COM BOLHAS + MODO EDIÇÃO) ---
-                    el('div', { className: `lg:col-span-8 bg-slate-900 border-2 border-slate-800 p-8 rounded-[3rem] shadow-xl flex flex-col transition-transform ${bagEffect}` }, [
-                        el('div', { className: "flex justify-between items-center mb-6" }, [
-                            el('h4', { className: "text-slate-400 font-black uppercase text-xs tracking-widest flex items-center gap-2 italic" }, "🎒 Mochila de Itens"),
-                            el('span', { className: "text-[10px] text-slate-600 font-bold uppercase" },
+                    el('div', { key: 'bag-section', className: `lg:col-span-8 bg-slate-900 border-2 border-slate-800 p-8 rounded-[3rem] shadow-xl flex flex-col transition-transform ${bagEffect}` }, [
+                        el('div', { key: 'bag-header', className: "flex justify-between items-center mb-6" }, [
+                            el('h4', { key: 'bag-title', className: "text-slate-400 font-black uppercase text-xs tracking-widest flex items-center gap-2 italic" }, "🎒 Mochila de Itens"),
+                            el('span', { key: 'bag-hint', className: "text-[10px] text-slate-600 font-bold uppercase" },
                                 isEditingInventory ? "Editando..." : "Clique para editar"
                             )
                         ]),
@@ -799,7 +865,7 @@ export function SheetView({
 
                                         // ESTILIZAÇÃO DAS BOLHAS PARA ALTO CONTRASTE (ESTILO DADOS/MOEDAS)
                                         return el('span', {
-                                            key: idx,
+                                            key: `item-${idx}-${cleanItem}`,
                                             className: "bg-amber-600/10 text-amber-400 px-4 py-1.5 rounded-full text-[10px] font-black border border-amber-600/20 shadow-sm transition-all hover:scale-105 hover:bg-amber-600/20 uppercase tracking-tight"
                                         }, cleanItem);
                                     }).filter(Boolean), // Remove os itens nulos do array para renderização limpa
@@ -816,8 +882,8 @@ export function SheetView({
             el('div', { key: 'grimoire-section', className: "mt-12 space-y-8 border-t border-slate-800 pt-12" }, [
 
                 // CABEÇALHO: Stats de Magia (Sempre Renderiza)
-                el('div', { className: "flex flex-col md:flex-row items-center justify-between gap-6" }, [
-                    el('h3', { className: "text-3xl font-black text-blue-500 uppercase tracking-tighter italic flex items-center gap-4" }, "🧙🏾‍♂️ Grimório Arcano"),
+                el('div', { key: 'grimoire-header', className: "flex flex-col md:flex-row items-center justify-between gap-6" }, [
+                    el('h3', { key: 'grimoire-title', className: "text-3xl font-black text-blue-500 uppercase tracking-tighter italic flex items-center gap-4" }, "🧙🏾‍♂️ Grimório Arcano"),
 
                     el('div', { className: "flex gap-4" },
                         Object.entries(characterSheetData.statsMagia || {}).map(([key, value]) => (
@@ -1046,24 +1112,27 @@ export function SheetView({
         ),
 
         // --- MODAL: CADERNO DE AVENTURAS ---
-        showJournal && el('div', { className: "fixed inset-0 journal-modal animate-fade-in" },
-            el('div', { className: "notebook-container" }, [
+        showJournal && el('div', { key: 'journal-overlay', className: "fixed inset-0 journal-modal animate-fade-in" },
+            el('div', { key: 'journal-paper', className: "notebook-container" }, [
                 // Header do Caderno
-                el('div', { className: "notebook-header" }, [
+                el('div', { key: 'journal-header-wrap', className: "notebook-header" }, [
                     el('button', {
+                        key: 'journal-close',
                         onClick: () => setShowJournal(false),
                         className: "text-[#fab1a0] hover:text-white transition-colors text-xl"
                     }, "✕"),
-                    el('h2', { className: "text-lg font-bold" }, 
+                    el('h2', { key: 'journal-title', className: "text-lg font-bold" }, 
                         journalPage === 1 ? "📜 Minha História" : `📖 Diário de Aventuras - Página ${journalPage}`
                     ),
-                    el('div', { className: "flex gap-4" }, [
+                    el('div', { key: 'journal-pagination', className: "flex gap-4" }, [
                         el('button', { 
+                            key: 'prev-page',
                             disabled: journalPage === 1,
                             onClick: () => changePage(journalPage - 1),
                             className: `px-3 py-1 bg-black/20 rounded-lg ${journalPage === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/40'}`
                         }, "← Anterior"),
                         el('button', { 
+                            key: 'next-page',
                             disabled: journalPage === 10,
                             onClick: () => changePage(journalPage + 1),
                             className: `px-3 py-1 bg-black/20 rounded-lg ${journalPage === 10 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/40'}`
@@ -1094,7 +1163,7 @@ export function SheetView({
         ),
         
         // --- MODAL DE LEVEL UP ---
-        showLevelUpModal && el('div', { className: "fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" },
+        showLevelUpModal && el('div', { key: 'level-up-modal', className: "fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" },
             el('div', { className: "bg-slate-900 border-2 border-amber-500 rounded-3xl max-w-lg w-full overflow-hidden shadow-[0_0_50px_rgba(245,158,11,0.2)]" },
                 // Header
                 el('div', { className: "bg-amber-500 p-6 text-center" },
@@ -1112,20 +1181,22 @@ export function SheetView({
                         el('div', { className: "grid grid-cols-3 gap-3" },
                             Object.keys(levelUpData.attributes).map(attr => 
                                 el('div', { key: attr, className: "bg-slate-800 p-3 rounded-xl border border-slate-700 flex flex-col items-center gap-2" },
-                                    el('span', { className: "text-[11px] font-black tracking-widest text-slate-400 uppercase" }, attr),
-                                    el('div', { className: "flex items-center gap-3" },
+                                    el('span', { key: 'attr-name', className: "text-[11px] font-black tracking-widest text-slate-400 uppercase" }, attr),
+                                    el('div', { key: 'attr-controls', className: "flex items-center gap-3" }, [
                                         el('button', {
+                                            key: 'attr-dec',
                                             onClick: () => handleAttributeChange(attr, -1),
                                             disabled: levelUpData.attributes[attr] === 0,
                                             className: "w-6 h-6 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center font-bold text-slate-300 disabled:opacity-30 transition-all font-sans"
                                         }, "-"),
-                                        el('span', { className: `font-black text-lg ${levelUpData.attributes[attr] > 0 ? 'text-amber-400' : 'text-white'}` }, levelUpData.attributes[attr] > 0 ? `+${levelUpData.attributes[attr]}` : "0"),
+                                        el('span', { key: 'attr-val', className: `font-black text-lg ${levelUpData.attributes[attr] > 0 ? 'text-amber-400' : 'text-white'}` }, levelUpData.attributes[attr] > 0 ? `+${levelUpData.attributes[attr]}` : "0"),
                                         el('button', {
+                                            key: 'attr-inc',
                                             onClick: () => handleAttributeChange(attr, 1),
                                             disabled: levelUpData.pointsToSpend === 0,
                                             className: "w-6 h-6 rounded-full bg-amber-500/20 hover:bg-amber-500 text-amber-500 hover:text-white flex items-center justify-center font-bold border border-amber-500/50 disabled:opacity-30 transition-all font-sans"
                                         }, "+")
-                                    )
+                                    ])
                                 )
                             )
                         )

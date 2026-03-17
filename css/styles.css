@@ -205,6 +205,20 @@ input[type="text"], input[type="email"], input[type="password"], textarea {
     left: 0;
     z-index: 10;
 }
+
+/* --- AMBIENTE E CLIMA --- */
+@keyframes lightning {
+  0%, 95%, 98%, 100% { background-color: transparent; }
+  96% { background-color: rgba(255, 255, 255, 0.4); }
+  97% { background-color: rgba(251, 191, 36, 0.5); }
+}
+.animate-lightning { animation: lightning 8s infinite; }
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.3); }
+}
+.animate-twinkle { animation: twinkle var(--twinkle-duration, 3s) infinite ease-in-out; }
 .critical-success-text {
     color: #ffb703;
     text-shadow: 0 0 30px rgba(255, 183, 3, 0.6);

@@ -1,5 +1,20 @@
-
 const DEBUG = true;
+
+// Helper para parse seguro de JSON (evita quebra por double-stringification ou dados corrompidos)
+export const safeParseJSON = (str, fallback = []) => {
+  if (!str) return fallback;
+  try {
+    let parsed = typeof str === 'string' ? JSON.parse(str) : str;
+    // Se ainda for string, tenta parsear recursivamente (corrige double-stringify)
+    while (typeof parsed === 'string') {
+      parsed = JSON.parse(parsed);
+    }
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch (e) {
+    console.warn("Erro ao parsear JSON:", e);
+    return fallback;
+  }
+};
 
 // --- FUNÇÕES DE BUSCA E FILTRO ---
 export function getCharacterByName(players, name) {
