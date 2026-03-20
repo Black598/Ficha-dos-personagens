@@ -8,6 +8,8 @@ export function LibraryView({ mode, libraryData, updateSessionState, onBack }) {
     const [newItem, setNewItem] = useState({ name: '', title: '', description: '', image: '' });
     const [searchQuery, setSearchQuery] = useState('');
 
+    const [zoomImage, setZoomImage] = useState(null);
+
     const categories = [
         { id: 'characters', label: 'Personagens', icon: '👥' },
         { id: 'books', label: 'Livros', icon: '📜' },
@@ -178,17 +180,23 @@ export function LibraryView({ mode, libraryData, updateSessionState, onBack }) {
                         onClick: () => mode === 'master' && startEditing(item),
                         className: `group bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-xl transition-all hover:border-amber-500/30 hover:-translate-y-2 cursor-pointer flex flex-col ${mode === 'master' ? 'active:scale-95' : ''}`
                     }, [
-                        // IMAGE AREA
-                        el('div', { className: "relative h-56 bg-slate-950 overflow-hidden" }, [
+                        el('div', { 
+                            onClick: (e) => { e.stopPropagation(); if (item.image) setZoomImage(item.image); },
+                            className: "relative h-56 bg-slate-950 overflow-hidden cursor-zoom-in group/img" 
+                        }, [
                             item.image ? 
                                 el('img', { 
                                     src: item.image, 
-                                    className: "w-full h-full object-cover transition-transform duration-700 group-hover:scale-110",
+                                    className: "w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-110",
                                     alt: item.name || item.title
                                 }) :
                                 el('div', { className: "w-full h-full flex items-center justify-center opacity-20" }, 
                                     el('span', { className: "text-5xl" }, categories.find(c => c.id === activeTab).icon)
                                 ),
+                            // Indicador de Zoom
+                            item.image && el('div', { className: "absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity" }, [
+                                el('span', { className: "text-3xl" }, "🔍")
+                            ]),
                             // DELETE BUTTON (MASTER)
                             mode === 'master' && el('button', {
                                 onClick: (e) => handleDeleteItem(e, item.id),
@@ -207,6 +215,25 @@ export function LibraryView({ mode, libraryData, updateSessionState, onBack }) {
                         ])
                     ]))
                 )
-        )
+        ),
+
+        // --- OVERLAY DE ZOOM ---
+        zoomImage && el('div', { 
+            key: 'zoom-overlay',
+            onClick: () => setZoomImage(null),
+            className: "fixed inset-0 z-[1000] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-12 animate-fade-in cursor-zoom-out" 
+        }, [
+            el('div', { className: "relative max-w-5xl max-h-full flex items-center justify-center animate-zoom-in" }, [
+                el('img', { 
+                    src: zoomImage, 
+                    className: "max-w-full max-h-[85vh] rounded-3xl shadow-2xl border-4 border-white/5 object-contain",
+                    onClick: (e) => e.stopPropagation()
+                }),
+                el('button', {
+                    onClick: () => setZoomImage(null),
+                    className: "absolute -top-6 -right-6 w-14 h-14 bg-white text-slate-900 rounded-2xl flex items-center justify-center text-4xl font-light hover:bg-red-500 hover:text-white transition-all shadow-2xl active:scale-90"
+                }, "×")
+            ])
+        ])
     ]);
 }
