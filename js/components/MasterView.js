@@ -29,7 +29,8 @@ export function MasterView({
     deleteCharacter,
     sessionState,
     updateSessionState,
-    setIsLibraryOpen
+    setIsLibraryOpen,
+    setIsBargainOpen
 }) {
     const [showSettings, setShowSettings] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(null); 
@@ -96,6 +97,11 @@ export function MasterView({
                     onClick: () => setIsLibraryOpen(true),
                     className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-amber-600 transition-all text-white"
                 }, "📚 Biblioteca"),
+                el('button', {
+                    key: 'btn-bargain',
+                    onClick: () => setIsBargainOpen(true),
+                    className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-red-600 transition-all text-white"
+                }, "👺 Barganha"),
                 el('button', {
                     key: 'btn-clear-turns',
                     onClick: () => advanceTurn(null),

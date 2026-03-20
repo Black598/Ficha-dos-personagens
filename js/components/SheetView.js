@@ -23,7 +23,8 @@ export function SheetView({
     setEditableSheetData,
     triggerExternalRoll,
     recentRolls,
-    setIsLibraryOpen
+    setIsLibraryOpen,
+    setIsBargainOpen
 }) {
     const charData = characterSheetData; // Alias para compatibilidade com código legado
 
@@ -395,6 +396,11 @@ export function SheetView({
                         onClick: () => setIsLibraryOpen(true),
                         className: "bg-amber-600/10 hover:bg-amber-600 text-amber-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-amber-600/30 px-4 py-2 rounded-xl transition-all"
                     }, "📚 Biblioteca"),
+                    el('button', {
+                        key: 'btn-bargain',
+                        onClick: () => setIsBargainOpen(true),
+                        className: "bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-red-600/30 px-4 py-2 rounded-xl transition-all"
+                    }, "👺 Barganhas"),
                     el('button', {
                         key: 'btn-exit',
                         onClick: onBack,

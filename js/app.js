@@ -11,6 +11,8 @@ import { RawDataEditor } from './components/RawDataEditor.js'
 import { TalentTooltip } from './components/TalentTooltip.js'
 import { AudioManager } from './AudioManager.js'
 import { LibraryView } from './components/LibraryView.js'
+import { BARGAIN_EFFECTS } from './data/bargainEffects.js'
+import { DevilsBargain } from './components/DevilsBargain.js'
 
 // 2. INICIALIZAÇÃO FIREBASE
 const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app()
@@ -57,10 +59,37 @@ function App() {
       characters: [],
       books: [],
       bestiary: []
+    },
+    devilsBargain: {
+      categories: BARGAIN_EFFECTS,
+      activeBargains: []
     }
   });
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [isBargainOpen, setIsBargainOpen] = useState(false);
   const [lastTriggerSound, setLastTriggerSound] = useState(null);
+
+  // --- ESCUTA DE DIAS PARA BARGANHAS ---
+  const lastDayRef = useRef(sessionState.day);
+  useEffect(() => {
+    if (sessionState.day > lastDayRef.current) {
+        console.log("Dia avançou! Ticking down bargains (Days)...");
+        const active = sessionState.devilsBargain?.activeBargains || [];
+        if (active.length > 0) {
+            const updated = active.map(b => b.unit === 'Dias' || b.unit === 'days' ? { ...b, duration: b.duration - 1 } : b)
+                                 .filter(b => b.duration > 0);
+            if (JSON.stringify(active) !== JSON.stringify(updated)) {
+                updateSessionState({
+                    devilsBargain: {
+                        ...sessionState.devilsBargain,
+                        activeBargains: updated
+                    }
+                });
+            }
+        }
+    }
+    lastDayRef.current = sessionState.day;
+  }, [sessionState.day]);
 
   // --- 1. EFEITO DE AUTENTICAÇÃO ---
   useEffect(() => {
@@ -588,6 +617,25 @@ function App() {
           }
         }
       }
+
+      // 3. Decrementa barganhas (Rounds)
+      if (sessionState.devilsBargain?.activeBargains?.length > 0) {
+        const updatedBargains = sessionState.devilsBargain.activeBargains.map(b => {
+            if (b.player === targetCharName && b.unit === 'rounds') {
+                return { ...b, duration: b.duration - 1 };
+            }
+            return b;
+        }).filter(b => b.duration > 0);
+
+        if (JSON.stringify(sessionState.devilsBargain.activeBargains) !== JSON.stringify(updatedBargains)) {
+            await updateSessionState({
+                devilsBargain: {
+                    ...sessionState.devilsBargain,
+                    activeBargains: updatedBargains
+                }
+            });
+        }
+      }
     } catch(e) {
       console.error("Erro ao avançar turno:", e);
     }
@@ -754,6 +802,7 @@ function App() {
   };
 
 
+
   // --- COMPONENTE DE BIBLIOTECA (OVERLAY GLOBAL) ---
   const LibraryOverlay = isLibraryOpen && el(LibraryView, {
     key: 'library-overlay-global',
@@ -761,6 +810,15 @@ function App() {
     libraryData: sessionState.library || {},
     updateSessionState,
     onBack: () => setIsLibraryOpen(false)
+  });
+
+  const BargainOverlay = isBargainOpen && el(DevilsBargain, {
+    key: 'bargain-overlay-global',
+    mode: view === 'master' ? 'master' : 'player',
+    bargainData: sessionState.devilsBargain || { categories: BARGAIN_EFFECTS, activeBargains: [] },
+    updateSessionState,
+    onBack: () => setIsBargainOpen(false),
+    allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name)
   });
 
   // Se estivermos na visão do mestre, renderizamos a MasterView
@@ -786,7 +844,8 @@ function App() {
         deleteCharacter,
         sessionState,
         updateSessionState,
-        setIsLibraryOpen
+        setIsLibraryOpen,
+        setIsBargainOpen
       }),
       el(DiceRoller, {
         key: 'dice-roller-master',
@@ -799,7 +858,8 @@ function App() {
         tabletopMode: true,
         externalRoll
       }),
-      LibraryOverlay
+      LibraryOverlay,
+      BargainOverlay
     ]);
   }
   // Se estivermos na visão da ficha e tivermos os dados da ficha, renderizamos a SheetView
@@ -848,7 +908,8 @@ function App() {
         recentRolls,
         isNewCharacter,
         sessionState,
-        setIsLibraryOpen
+        setIsLibraryOpen,
+        setIsBargainOpen
       }),
 
 
@@ -872,7 +933,8 @@ function App() {
         tabletopMode: true,
         externalRoll
       }),
-      LibraryOverlay
+      LibraryOverlay,
+      BargainOverlay
     ]);
   }
 
@@ -907,7 +969,8 @@ function App() {
       // 3. O TOOLTIP COM POSICIONAMENTO INTELIGENTE - EXTRAÍDO
       el(TalentTooltip, { key: 'talent-tooltip', tooltip }),
 
-      LibraryOverlay
+      LibraryOverlay,
+      BargainOverlay
     );
   }
 
@@ -922,7 +985,8 @@ function App() {
       TALENT_TREES, 
       iconMap
     }),
-    LibraryOverlay
+    LibraryOverlay,
+    BargainOverlay
   ]);
 }
 
