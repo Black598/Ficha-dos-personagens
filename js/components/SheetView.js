@@ -24,7 +24,9 @@ export function SheetView({
     triggerExternalRoll,
     recentRolls,
     setIsLibraryOpen,
-    setIsBargainOpen
+    setIsBargainOpen,
+    sendChatMessage,
+    chatMessages
 }) {
     const charData = characterSheetData; // Alias para compatibilidade com código legado
 
@@ -32,6 +34,8 @@ export function SheetView({
     const [effectClass, setEffectClass] = useState(''); // Classe global (shake, sparkle, rest)
     const [bagEffect, setBagEffect] = useState(''); // Efeito local da mochila
     const [showSetupModal, setShowSetupModal] = useState(!!isNewCharacter); // Abre auto para novos
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [chatInput, setChatInput] = useState('');
 
     const triggerEffect = (type) => {
         if (type === 'bag') {
@@ -1307,6 +1311,59 @@ export function SheetView({
                     }, "🌟 Confirmar")
                 )
             )
-        )
+        ),
+
+        // 4. CHAT COM O MESTRE (FLOAT)
+        el('div', { key: 'chat-floating-node', className: "fixed bottom-6 right-6 z-[300] font-sans" }, [
+            !isChatOpen && el('button', {
+                key: 'chat-toggle',
+                onClick: () => setIsChatOpen(true),
+                className: "relative w-16 h-16 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl flex items-center justify-center text-3xl shadow-2xl transition-all active:scale-95 group"
+            }, [
+                "💬",
+                chatMessages && chatMessages.length > 0 && el('span', { className: "absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-slate-900 animate-pulse" })
+            ]),
+            isChatOpen && el('div', {
+                key: 'chat-window',
+                className: "w-80 h-[28rem] bg-slate-900 border-2 border-purple-500/30 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden animate-slide-up"
+            }, [
+                el('div', { className: "p-5 bg-gradient-to-r from-purple-700 to-indigo-800 flex justify-between items-center text-white" }, [
+                    el('div', { className: "flex flex-col" }, [
+                        el('h4', { className: "text-[10px] font-black uppercase tracking-[0.2em]" }, "Chat com o Mestre"),
+                        el('span', { className: "text-[8px] text-purple-200 uppercase font-bold" }, "🔒 Mensagens Privadas")
+                    ]),
+                    el('button', { onClick: () => setIsChatOpen(false), className: "w-8 h-8 rounded-full bg-black/20 text-white flex items-center justify-center hover:bg-red-500 transition-colors" }, "×")
+                ]),
+                el('div', { className: "flex-1 overflow-y-auto p-5 space-y-4 bg-slate-950/50 flex flex-col custom-scrollbar" }, 
+                    (!chatMessages || chatMessages.length === 0) ? 
+                        el('div', { className: "h-full flex flex-col items-center justify-center text-slate-600 space-y-2 opacity-50" }, [
+                            el('span', { className: "text-4xl" }, "🕯️"),
+                            el('p', { className: "text-[9px] font-black uppercase tracking-widest" }, "Silêncio na Masmorra...")
+                        ]) :
+                        chatMessages.map(m => el('div', { 
+                            key: m.id, 
+                            className: `flex flex-col ${m.sender === 'Mestre' ? 'items-start' : 'items-end'}`
+                        }, [
+                            el('div', { 
+                                className: `max-w-[90%] p-3 rounded-2xl text-[11px] shadow-sm ${m.sender === 'Mestre' ? 'bg-slate-800 text-slate-200 border-l-2 border-purple-500' : 'bg-purple-600 text-white'}`
+                            }, m.text),
+                            el('span', { className: "text-[7px] font-black text-slate-600 uppercase mt-1 px-1" }, m.sender)
+                        ]))
+                ),
+                el('div', { className: "p-4 bg-slate-900 flex gap-2" }, [
+                    el('input', {
+                        value: chatInput,
+                        onChange: e => setChatInput(e.target.value),
+                        onKeyDown: e => e.key === 'Enter' && chatInput.trim() && (sendChatMessage(chatInput, characterName), setChatInput('')),
+                        placeholder: "Sussurre ao mestre...",
+                        className: "flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white outline-none"
+                    }),
+                    el('button', {
+                        onClick: () => { if (chatInput.trim()) { sendChatMessage(chatInput, characterName); setChatInput(''); } },
+                        className: "w-10 h-10 bg-purple-600 hover:bg-purple-500 text-white rounded-xl flex items-center justify-center transition-all shadow-lg text-lg"
+                    }, "➔")
+                ])
+            ])
+        ])
     ]);
 }

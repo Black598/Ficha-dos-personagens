@@ -63,11 +63,41 @@ function App() {
     devilsBargain: {
       categories: BARGAIN_EFFECTS,
       activeBargains: []
-    }
+    },
+    announcementTarget: 'all',
+    handoutTarget: 'all'
   });
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isBargainOpen, setIsBargainOpen] = useState(false);
   const [lastTriggerSound, setLastTriggerSound] = useState(null);
+  const [showHandout, setShowHandout] = useState(true);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [hasNewMessage, setHasNewMessage] = useState(false);
+
+  // --- FUNÇÕES AUXILIARES ---
+  const updateSessionState = async (updates) => {
+    try {
+      await db.collection('artifacts').doc(appId)
+        .collection('public').doc('data').collection('global').doc('session')
+        .set(updates, { merge: true });
+    } catch (e) { console.error("Erro ao atualizar sessão:", e); }
+  };
+
+  const sendChatMessage = (text, sender, recipient = null) => {
+    db.collection('artifacts').doc(appId)
+      .collection('public').doc('data').collection('messages')
+      .add({
+        text,
+        sender,
+        recipient,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+  };
+
+  // Reset showHandout local state when handout URL changes in session
+  useEffect(() => {
+    setShowHandout(true);
+  }, [sessionState.handout]);
 
   // --- ESCUTA DE DIAS PARA BARGANHAS ---
   const lastDayRef = useRef(sessionState.day);
@@ -146,6 +176,28 @@ function App() {
       });
     return () => unsubSession();
   }, [user, lastTriggerSound]);
+
+  // --- 1.4 ESCUTA CHAT (MENSAGENS PRIVADAS) ---
+  useEffect(() => {
+    if (!user) return;
+    const unsubChat = db.collection('artifacts').doc(appId)
+      .collection('public').doc('data').collection('messages')
+      .orderBy('timestamp', 'asc')
+      .limitToLast(50)
+      .onSnapshot(snap => {
+        const msgs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setChatMessages(msgs);
+        
+        // Notifica o mestre se houver nova mensagem de jogador
+        if (msgs.length > 0) {
+            const lastMsg = msgs[msgs.length - 1];
+            if (lastMsg.sender !== 'Mestre' && view === 'master') {
+                setHasNewMessage(true);
+            }
+        }
+      });
+    return () => unsubChat();
+  }, [user, view]);
 
   // --- 2. CARREGAMENTO DE DADOS (PLANILHA + FIREBASE) ---
   useEffect(() => {
@@ -713,15 +765,6 @@ function App() {
     } catch (e) { console.error("Erro ao salvar almas:", e); }
   };
 
-  // --- 8.6 ESTADO DA SESSÃO ---
-  const updateSessionState = async (updates) => {
-    try {
-      await db.collection('artifacts').doc(appId)
-        .collection('public').doc('data').collection('global').doc('session')
-        .set(updates, { merge: true });
-    } catch (e) { console.error("Erro ao atualizar sessão:", e); }
-  };
-
   // --- 8.6 PERMISSÃO DE EDIÇÃO ---
   const updateEditPermission = async (targetCharName, allow) => {
     try {
@@ -821,6 +864,33 @@ function App() {
     allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name)
   });
 
+  // --- MURAL E HANDOUTS GLOBAIS ---
+  const AnnouncementOverlay = (sessionState.announcement && (sessionState.announcementTarget === 'all' || sessionState.announcementTarget === characterName || view === 'master')) && el('div', {
+    key: 'announcement-overlay',
+    className: "fixed top-0 left-0 right-0 z-[200] bg-gradient-to-r from-purple-700 to-indigo-800 text-white p-4 text-center shadow-[0_4px_30px_rgba(0,0,0,0.5)] border-b border-purple-500/30 animate-slide-down flex items-center justify-center gap-4"
+  }, [
+    el('span', { key: 'icon', className: "text-lg" }, "📢"),
+    el('p', { key: 'text', className: "text-[11px] font-bold uppercase tracking-[0.2em] drop-shadow-md" }, sessionState.announcement)
+  ]);
+
+  const HandoutOverlay = (sessionState.handout && showHandout && (sessionState.handoutTarget === 'all' || sessionState.handoutTarget === characterName || view === 'master')) && el('div', {
+    key: 'handout-overlay',
+    className: "fixed inset-0 z-[250] bg-black/90 backdrop-blur-md flex items-center justify-center p-8 md:p-20 transition-all animate-fade-in"
+  }, [
+    el('div', { key: 'image-container', className: "relative max-w-7xl max-h-full group" }, [
+        el('img', { 
+            key: 'handout-img',
+            src: sessionState.handout, 
+            className: "max-w-full max-h-[85vh] rounded-[2rem] shadow-[0_0_80px_rgba(0,0,0,0.8)] border-4 border-white/5 object-contain" 
+        }),
+        el('button', {
+            key: 'close-handout',
+            onClick: () => setShowHandout(false),
+            className: "absolute -top-6 -right-6 w-14 h-14 bg-white text-slate-900 rounded-2xl flex items-center justify-center text-4xl font-light hover:bg-red-500 hover:text-white transition-all shadow-2xl active:scale-90"
+        }, "×")
+    ])
+  ]);
+
   // Se estivermos na visão do mestre, renderizamos a MasterView
   if (view === 'master') {
     return React.createElement(React.Fragment, null, [
@@ -845,7 +915,12 @@ function App() {
         sessionState,
         updateSessionState,
         setIsLibraryOpen,
-        setIsBargainOpen
+        setIsBargainOpen,
+        allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name),
+        chatMessages,
+        sendChatMessage,
+        hasNewMessage,
+        setHasNewMessage
       }),
       el(DiceRoller, {
         key: 'dice-roller-master',
@@ -859,7 +934,9 @@ function App() {
         externalRoll
       }),
       LibraryOverlay,
-      BargainOverlay
+      BargainOverlay,
+      AnnouncementOverlay,
+      HandoutOverlay
     ]);
   }
   // Se estivermos na visão da ficha e tivermos os dados da ficha, renderizamos a SheetView
@@ -909,7 +986,12 @@ function App() {
         isNewCharacter,
         sessionState,
         setIsLibraryOpen,
-        setIsBargainOpen
+        setIsBargainOpen,
+        sendChatMessage,
+        chatMessages: chatMessages.filter(m => 
+          m.sender === characterName || 
+          (m.sender === 'Mestre' && (m.recipient === characterName || !m.recipient))
+        )
       }),
 
 
@@ -934,7 +1016,9 @@ function App() {
         externalRoll
       }),
       LibraryOverlay,
-      BargainOverlay
+      BargainOverlay,
+      AnnouncementOverlay,
+      HandoutOverlay
     ]);
   }
 
@@ -970,7 +1054,9 @@ function App() {
       el(TalentTooltip, { key: 'talent-tooltip', tooltip }),
 
       LibraryOverlay,
-      BargainOverlay
+      BargainOverlay,
+      AnnouncementOverlay,
+      HandoutOverlay
     );
   }
 
@@ -986,7 +1072,9 @@ function App() {
       iconMap
     }),
     LibraryOverlay,
-    BargainOverlay
+    BargainOverlay,
+    AnnouncementOverlay,
+    HandoutOverlay
   ]);
 }
 
