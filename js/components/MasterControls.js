@@ -48,6 +48,39 @@ export function MasterControls({ sessionState, updateSessionState }) {
             )
         ]),
 
+        // CALENDÁRIO / DIA
+        el('div', { key: 'day-section', className: "space-y-4" }, [
+            el('h3', { key: 'day-title', className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-2" }, [
+                el('span', { key: 'day-icon' }, "📅"), "Calendário da Campanha"
+            ]),
+            el('div', { key: 'day-counter-box', className: "bg-slate-950 border border-slate-800 rounded-3xl p-4 flex items-center justify-between shadow-inner" }, [
+                el('div', { key: 'day-text-box', className: "flex flex-col" }, [
+                    el('span', { key: 'day-label', className: "text-[8px] font-black text-slate-600 uppercase tracking-widest" }, "Tempo Passado"),
+                    el('span', { key: 'day-value', className: "text-3xl font-black text-amber-500 tracking-tighter" }, `Dia ${sessionState?.day || 1}`)
+                ]),
+                el('div', { key: 'day-btns', className: "flex gap-2" }, [
+                    el('button', {
+                        key: 'btn-dec-day',
+                        onClick: () => {
+                            const currentDay = sessionState?.day || 1;
+                            updateSessionState({ day: Math.max(1, currentDay - 1) });
+                            AudioManager.play('click');
+                        },
+                        className: "w-10 h-10 bg-slate-900 border border-slate-700 rounded-xl flex items-center justify-center text-xl text-slate-400 hover:text-white hover:border-amber-500/50 transition-all shadow-lg"
+                    }, "−"),
+                    el('button', {
+                        key: 'btn-inc-day',
+                        onClick: () => {
+                            const currentDay = sessionState?.day || 1;
+                            updateSessionState({ day: currentDay + 1 });
+                            AudioManager.play('click');
+                        },
+                        className: "w-10 h-10 bg-slate-900 border border-slate-700 rounded-xl flex items-center justify-center text-xl text-slate-400 hover:text-white hover:border-amber-500/50 transition-all shadow-lg"
+                    }, "+")
+                ])
+            ])
+        ]),
+
         // AMBIENTE
         el('div', { key: 'env-section', className: "space-y-4" }, [
             el('h3', { key: 'env-title', className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-2" }, [

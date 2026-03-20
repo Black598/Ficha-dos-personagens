@@ -25,24 +25,26 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
 
     // --- HANDLE HISTORY BALLOONS ---
     React.useEffect(() => {
-        if (recentRolls && recentRolls.length > 0) {
-            if (isFirstLoad) {
-                setIsFirstLoad(false);
-                return;
-            }
-            const latestRoll = recentRolls[0];
-            if (latestRoll.secret && characterName.toLowerCase() !== 'mestre') return;
+        const latestRoll = recentRolls?.[0];
+        if (!latestRoll) return;
 
-            setVisibleRolls(prev => {
-                if (prev.find(r => r.id === latestRoll.id)) return prev;
-                return [latestRoll, ...prev].slice(0, 4);
-            });
-            const timer = setTimeout(() => {
-                setVisibleRolls(prev => prev.filter(r => r.id !== latestRoll.id));
-            }, 2500);
-            return () => clearTimeout(timer);
+        if (isFirstLoad) {
+            setIsFirstLoad(false);
+            return;
         }
-    }, [recentRolls, characterName]);
+        
+        // Reforço de segurança: se for secreta e não for mestre, ignora
+        if (latestRoll.secret && characterName.toLowerCase() !== 'mestre') return;
+
+        setVisibleRolls(prev => {
+            if (prev.find(r => r.id === latestRoll.id)) return prev;
+            return [latestRoll, ...prev].slice(0, 4);
+        });
+        const timer = setTimeout(() => {
+            setVisibleRolls(prev => prev.filter(r => r.id !== latestRoll.id));
+        }, 2500);
+        return () => clearTimeout(timer);
+    }, [recentRolls?.[0]?.id, characterName, isFirstLoad]);
 
     // --- 3D ENGINE ---
     React.useEffect(() => {

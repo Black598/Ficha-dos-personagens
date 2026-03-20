@@ -10,6 +10,7 @@ import { LoadingScreen } from './components/LoadingScreen.js'
 import { RawDataEditor } from './components/RawDataEditor.js'
 import { TalentTooltip } from './components/TalentTooltip.js'
 import { AudioManager } from './AudioManager.js'
+import { LibraryView } from './components/LibraryView.js'
 
 // 2. INICIALIZAÇÃO FIREBASE
 const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app()
@@ -50,8 +51,15 @@ function App() {
     handout: '',
     environment: 'none',
     monsters: [],
-    masterNotes: ''
+    masterNotes: '',
+    day: 1,
+    library: {
+      characters: [],
+      books: [],
+      bestiary: []
+    }
   });
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [lastTriggerSound, setLastTriggerSound] = useState(null);
 
   // --- 1. EFEITO DE AUTENTICAÇÃO ---
@@ -746,6 +754,15 @@ function App() {
   };
 
 
+  // --- COMPONENTE DE BIBLIOTECA (OVERLAY GLOBAL) ---
+  const LibraryOverlay = isLibraryOpen && el(LibraryView, {
+    key: 'library-overlay-global',
+    mode: view === 'master' ? 'master' : 'player',
+    libraryData: sessionState.library || {},
+    updateSessionState,
+    onBack: () => setIsLibraryOpen(false)
+  });
+
   // Se estivermos na visão do mestre, renderizamos a MasterView
   if (view === 'master') {
     return React.createElement(React.Fragment, null, [
@@ -768,7 +785,8 @@ function App() {
         triggerExternalRoll,
         deleteCharacter,
         sessionState,
-        updateSessionState
+        updateSessionState,
+        setIsLibraryOpen
       }),
       el(DiceRoller, {
         key: 'dice-roller-master',
@@ -780,7 +798,8 @@ function App() {
         setRollingModalOpen,
         tabletopMode: true,
         externalRoll
-      })
+      }),
+      LibraryOverlay
     ]);
   }
   // Se estivermos na visão da ficha e tivermos os dados da ficha, renderizamos a SheetView
@@ -807,6 +826,13 @@ function App() {
           newData.recursos['PV Perdido'] = 0;
           newData.recursos['PV Temporário'] = 0;
 
+          // Zera os slots de magia usados
+          if (newData.magias && newData.magias.slots) {
+            Object.keys(newData.magias.slots).forEach(circle => {
+              newData.magias.slots[circle].used = 0;
+            });
+          }
+
           const max = parseInt(newData.recursos['PV Máximo']) || 0;
           newData.recursos['PV Atual'] = max;
 
@@ -821,7 +847,8 @@ function App() {
         triggerExternalRoll,
         recentRolls,
         isNewCharacter,
-        sessionState
+        sessionState,
+        setIsLibraryOpen
       }),
 
 
@@ -844,8 +871,8 @@ function App() {
         setRollingModalOpen,
         tabletopMode: true,
         externalRoll
-      })
-
+      }),
+      LibraryOverlay
     ]);
   }
 
@@ -875,24 +902,28 @@ function App() {
       }),
 
       // 2. O Rolo de Dados
-      el(DiceRoller, { rollDice, recentRolls, characterName, view }),
+      el(DiceRoller, { key: 'dice-roller-character', rollDice, recentRolls, characterName, view }),
 
       // 3. O TOOLTIP COM POSICIONAMENTO INTELIGENTE - EXTRAÍDO
-      el(TalentTooltip, { tooltip })
+      el(TalentTooltip, { key: 'talent-tooltip', tooltip }),
+
+      LibraryOverlay
     );
   }
 
-  return el(LoginView, {
-    allCharacters, 
-    onSelectCharacter: selectCharacter,
-    onCreateCharacter: createNewCharacter,
-    creatingCharacter: creatingCharacter,
-    isCreating: isCreating,
-    TALENT_TREES, 
-    iconMap
-  })
-
-
+  return el(React.Fragment, null, [
+    el(LoginView, {
+      key: 'login-view',
+      allCharacters, 
+      onSelectCharacter: selectCharacter,
+      onCreateCharacter: createNewCharacter,
+      creatingCharacter: creatingCharacter,
+      isCreating: isCreating,
+      TALENT_TREES, 
+      iconMap
+    }),
+    LibraryOverlay
+  ]);
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

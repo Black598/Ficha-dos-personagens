@@ -28,7 +28,8 @@ export function MasterView({
     triggerExternalRoll,
     deleteCharacter,
     sessionState,
-    updateSessionState
+    updateSessionState,
+    setIsLibraryOpen
 }) {
     const [showSettings, setShowSettings] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(null); 
@@ -90,6 +91,11 @@ export function MasterView({
                     className: "bg-slate-800 p-3 rounded-2xl text-xl hover:bg-slate-700 border border-slate-700 transition-all",
                     title: "Configurações"
                 }, "⚙️"),
+                el('button', {
+                    key: 'btn-library',
+                    onClick: () => setIsLibraryOpen(true),
+                    className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-amber-600 transition-all text-white"
+                }, "📚 Biblioteca"),
                 el('button', {
                     key: 'btn-clear-turns',
                     onClick: () => advanceTurn(null),
@@ -418,12 +424,13 @@ export function MasterView({
 
         // SETTINGS MODAL
         showSettings && el('div', { className: "fixed inset-0 bg-black/90 backdrop-blur-xl z-[300] flex items-center justify-center p-6" }, 
-            el('div', { className: "bg-slate-900 border-2 border-amber-500/30 p-10 rounded-[3rem] max-w-md w-full shadow-3xl animate-zoom-in" }, [
-                el('h3', { className: "text-amber-500 font-black uppercase mb-8 tracking-widest" }, "⚙️ Configurações"),
-                el('div', { className: "space-y-8" }, [
-                    el('div', null, [
-                        el('label', { className: "text-[10px] text-slate-500 font-black uppercase mb-3 block" }, "Gemini API Key"),
+            el('div', { key: 'settings-container', className: "bg-slate-900 border-2 border-amber-500/30 p-10 rounded-[3rem] max-w-md w-full shadow-3xl animate-zoom-in" }, [
+                el('h3', { key: 'settings-title', className: "text-amber-500 font-black uppercase mb-8 tracking-widest" }, "⚙️ Configurações"),
+                el('div', { key: 'settings-body', className: "space-y-8" }, [
+                    el('div', { key: 'api-key-group' }, [
+                        el('label', { key: 'api-key-label', className: "text-[10px] text-slate-500 font-black uppercase mb-3 block" }, "Gemini API Key"),
                         el('input', {
+                            key: 'api-key-input',
                             type: 'password',
                             value: geminiApiKey,
                             onChange: (e) => setGeminiApiKey(e.target.value),
@@ -431,6 +438,7 @@ export function MasterView({
                         })
                     ]),
                     el('button', {
+                        key: 'btn-save',
                         onClick: () => setShowSettings(false),
                         className: "w-full bg-amber-600 text-slate-950 font-black py-5 rounded-2xl uppercase text-[10px] tracking-widest hover:bg-amber-500 transition-colors"
                     }, "Salvar e Fechar")

@@ -22,7 +22,8 @@ export function SheetView({
     handleDescansoLongo,
     setEditableSheetData,
     triggerExternalRoll,
-    recentRolls
+    recentRolls,
+    setIsLibraryOpen
 }) {
     const charData = characterSheetData; // Alias para compatibilidade com código legado
 
@@ -389,8 +390,13 @@ export function SheetView({
                         className: "bg-purple-600/10 hover:bg-purple-600 text-purple-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-purple-600/30 px-4 py-2 rounded-xl transition-all"
                     }, "⭐ Talentos"),
 
-                    // BOTÃO SAIR ADICIONADO NO HEADER
                     el('button', {
+                        key: 'btn-library',
+                        onClick: () => setIsLibraryOpen(true),
+                        className: "bg-amber-600/10 hover:bg-amber-600 text-amber-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-amber-600/30 px-4 py-2 rounded-xl transition-all"
+                    }, "📚 Biblioteca"),
+                    el('button', {
+                        key: 'btn-exit',
                         onClick: onBack,
                         className: "bg-slate-800 hover:bg-red-900/40 text-slate-400 hover:text-red-400 border border-slate-700 hover:border-red-900/50 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
                     }, "Sair")
@@ -483,7 +489,7 @@ export function SheetView({
                                     newData.recursos['PV Temporário'] = temp;
                                     newData.recursos['PV Atual'] = max - (perdido + danoRestante);
 
-                                    await onUpdateSheet(newData); // Envia para a planilha correta
+                                    await updateSheetData(newData); // Envia para a planilha correta
                                     document.getElementById('hpModifierInput').value = '';
                                 }
                             }, "Dano"),
@@ -503,7 +509,7 @@ export function SheetView({
                                     newData.recursos['PV Perdido'] = novoPerdido;
                                     newData.recursos['PV Atual'] = max - novoPerdido;
 
-                                    await onUpdateSheet(newData);
+                                    await updateSheetData(newData);
                                     document.getElementById('hpModifierInput').value = '';
                                 }
                             }, "Cura"),
@@ -519,7 +525,7 @@ export function SheetView({
                                     const tempAtual = parseInt(newData.recursos['PV Temporário']) || 0;
                                     newData.recursos['PV Temporário'] = tempAtual + val;
 
-                                    await onUpdateSheet(newData);
+                                    await updateSheetData(newData);
                                     document.getElementById('hpModifierInput').value = '';
                                 }
                             }, "Escudo")
@@ -740,7 +746,7 @@ export function SheetView({
                                                 const fullData = JSON.parse(JSON.stringify(characterSheetData));
                                                 if (!fullData.outros) fullData.outros = {};
                                                 fullData.outros['Talentos'] = newTalents.join(' / ');
-                                                onUpdateSheet(fullData);
+                                                updateSheetData(fullData);
                                             }
                                         }
                                     }, "×"),
@@ -951,12 +957,57 @@ export function SheetView({
                                             );
                                             
                                             // 3. Salva e envia à planilha (as strings vazias limparão as células lá)
-                                            onUpdateSheet(newData);
+                                            updateSheetData(newData);
                                         }
                                     }
                                 }, "🗑️"),
 
-                                el('h4', { key: 'title-' + nivel, className: "text-blue-400 font-black uppercase text-xl italic mb-8 border-b border-blue-900/30 pb-5" }, nivel),
+                                el('h4', { key: 'title-' + nivel, className: "text-blue-400 font-black uppercase text-xl italic mb-4 border-b border-blue-900/30 pb-5" }, nivel),
+
+                                // --- CONTADOR DE SLOTS (O NOVO RECURSO) ---
+                                (() => {
+                                    const slots = characterSheetData.magias.slots || {};
+                                    const slotInfo = slots[nivel] || { max: 0, used: 0 };
+                                    const maxSlots = parseInt(slotInfo.max) || 0;
+                                    const usedSlots = parseInt(slotInfo.used) || 0;
+
+                                    return el('div', { key: 'slots-ctrl-' + nivel, className: "flex items-center justify-between mb-8 bg-blue-950/20 p-4 rounded-3xl border border-blue-500/20" }, [
+                                        el('div', { className: "flex items-center gap-3 overflow-hidden" }, [
+                                            el('span', { className: "text-[10px] font-black text-blue-400 uppercase tracking-widest whitespace-nowrap" }, "Slots:"),
+                                            el('div', { className: "flex flex-wrap gap-2" }, 
+                                                Array.from({ length: maxSlots }).map((_, i) => el('button', {
+                                                    key: 'slot-' + i,
+                                                    onClick: () => {
+                                                        const newUsed = (i + 1 === usedSlots) ? i : i + 1;
+                                                        const newSlots = { ...slots, [nivel]: { ...slotInfo, used: newUsed } };
+                                                        updateSheetField('magias', 'slots', newSlots);
+                                                        AudioManager.play('click');
+                                                    },
+                                                    className: `w-5 h-5 rounded-full border-2 transition-all ${i < usedSlots ? 'bg-blue-500 border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'border-blue-900/50 hover:border-blue-500/40'}`
+                                                }))
+                                            )
+                                        ]),
+                                        el('div', { className: "flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-2xl border border-slate-800" }, [
+                                            el('button', { 
+                                                onClick: () => {
+                                                    const newMax = Math.max(0, maxSlots - 1);
+                                                    const newSlots = { ...slots, [nivel]: { ...slotInfo, max: newMax, used: Math.min(usedSlots, newMax) } };
+                                                    updateSheetField('magias', 'slots', newSlots);
+                                                },
+                                                className: "text-blue-400 hover:text-white font-bold w-6 h-6 flex items-center justify-center bg-slate-800 rounded-lg transition-colors" 
+                                            }, "−"),
+                                            el('p', { className: "text-[10px] font-black text-blue-100 min-w-[3rem] text-center uppercase" }, `Max: ${maxSlots}`),
+                                            el('button', { 
+                                                onClick: () => {
+                                                    const newMax = maxSlots + 1;
+                                                    const newSlots = { ...slots, [nivel]: { ...slotInfo, max: newMax } };
+                                                    updateSheetField('magias', 'slots', newSlots);
+                                                },
+                                                className: "text-blue-400 hover:text-white font-bold w-6 h-6 flex items-center justify-center bg-slate-800 rounded-lg transition-colors" 
+                                            }, "+")
+                                        ])
+                                    ]);
+                                })(),
 
                                 el('div', { className: "space-y-5 overflow-y-auto pr-2 custom-scrollbar max-h-[500px]" },
                                     // Adicionamos dinamicamente novos campos, garantindo que "lista" cresça
@@ -1067,7 +1118,6 @@ export function SheetView({
                         )
                     ]),
                     
-                    // Barra Principal
                     el('div', { key: 'main-bar', className: "bg-slate-900/80 backdrop-blur-xl border border-slate-700 p-4 rounded-full shadow-2xl flex items-center gap-3" }, [
                         // Botão Dado (Abre o Canvas 3D global)
                         el('button', {
