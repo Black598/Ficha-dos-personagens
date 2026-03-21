@@ -154,8 +154,24 @@ export function SheetView({
     // Efeito para tocar sons disparados pelo mestre
     useEffect(() => {
         if (sessionState?.triggerSound && sessionState.triggerSound.timestamp > (Date.now() - 5000)) {
-            // Toca se o som for recente (últimos 5 segundos) para evitar loops ao carregar
-            AudioManager.play(sessionState.triggerSound.type);
+            const soundType = sessionState.triggerSound.type;
+            
+            // Toca o som
+            AudioManager.play(soundType);
+
+            // Aciona efeito visual correspondente na tela do jogador
+            const soundToEffect = {
+                'damage': 'shake',
+                'heal': 'sparkle',
+                'shield': 'shield',
+                'rest': 'rest'
+            };
+
+            if (soundToEffect[soundType]) {
+                const effectName = soundToEffect[soundType];
+                setEffectClass(`animate-${effectName}`);
+                setTimeout(() => setEffectClass(''), effectName === 'rest' ? 3000 : 1000);
+            }
         }
     }, [sessionState?.triggerSound?.timestamp]);
 

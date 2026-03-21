@@ -204,13 +204,32 @@ export function MasterView({
                                     ])
                                 ]),
                                 el('div', { key: 'footer-row', className: "flex items-center justify-between gap-4" }, [
-                                    el('div', { key: 'conditions', className: "flex flex-wrap gap-1.5" }, 
-                                        safeParseJSON(char.sheetData?.info?.['Condicoes']).map((cond, idx) => 
-                                            el('span', { key: `cond-${idx}`, className: "px-2 py-0.5 bg-slate-950 border rounded-lg text-[9px] font-bold text-amber-500 flex items-center gap-1" }, [
-                                                el('span', { key: `icon-${idx}` }, cond.icon), el('span', { key: `name-${idx}` }, cond.name)
-                                            ])
-                                        )
-                                    ),
+                                    el('div', { key: 'conditions-container', className: "flex items-center gap-2" }, [
+                                        el('div', { key: 'conditions', className: "flex flex-wrap gap-1.5" }, 
+                                            safeParseJSON(char.sheetData?.info?.['Condicoes']).map((cond, idx) => 
+                                                el('button', { 
+                                                    key: `cond-${idx}`, 
+                                                    onClick: () => {
+                                                        const currentConds = safeParseJSON(char.sheetData?.info?.['Condicoes']);
+                                                        const updated = currentConds.filter((_, i) => i !== idx);
+                                                        updateCharacterConditions(char.name, updated);
+                                                    },
+                                                    className: "px-2 py-0.5 bg-slate-950 border border-slate-800 hover:border-red-500/50 hover:text-red-400 rounded-lg text-[9px] font-bold text-amber-500 flex items-center gap-1 transition-all group/cond",
+                                                    title: "Clique para remover"
+                                                }, [
+                                                    el('span', { key: `icon-${idx}` }, cond.icon), 
+                                                    el('span', { key: `name-${idx}` }, cond.name),
+                                                    el('span', { className: "opacity-0 group-hover/cond:opacity-100 text-red-500 ml-1" }, "×")
+                                                ])
+                                            )
+                                        ),
+                                        el('button', {
+                                            key: 'btn-add-cond',
+                                            onClick: () => setShowCondModalFor(char.name),
+                                            className: "w-6 h-6 bg-slate-800 hover:bg-purple-600 rounded-lg flex items-center justify-center text-[10px] border border-slate-700 transition-all shadow-lg",
+                                            title: "Adicionar Condição"
+                                        }, "✨")
+                                    ]),
                                     el('div', { key: 'xp-box', className: "flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800" }, [
                                         el('div', { key: 'xp-info', className: "flex flex-col" }, [
                                             el('span', { key: 'label', className: "text-[6px] font-black text-slate-600 uppercase" }, "XP"),
@@ -368,6 +387,20 @@ export function MasterView({
                     ])
                 ])
             ])
-        ])
+        ]),
+
+        // --- MODAL DE CONDIÇÕES ---
+        showCondModalFor && el(ConditionModal, {
+            characterName: showCondModalFor,
+            onClose: () => setShowCondModalFor(null),
+            onSave: (newCond) => {
+                const char = allCharacters.find(c => c.name === showCondModalFor);
+                if (char) {
+                    const currentConds = safeParseJSON(char.sheetData?.info?.['Condicoes']);
+                    updateCharacterConditions(showCondModalFor, [...currentConds, newCond]);
+                }
+                setShowCondModalFor(null);
+            }
+        })
     ]);
 }
