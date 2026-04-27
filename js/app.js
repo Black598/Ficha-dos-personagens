@@ -459,27 +459,46 @@ function App() {
                 const shDataStr = JSON.stringify(dataFromSheet);
 
                 if (fbDataStr !== shDataStr) {
-                    // 2. Mescla Granular: Planilha manda em Atributos/HP, Firebase manda em Ataques/Magias/Descrições
+                    // 2. Mescla Inteligente:
+                    // A planilha serve como base de fallback, mas TUDO que houver no Firebase 
+                    // (estado atual e em tempo real do jogo) tem prioridade absoluta.
+                    // Isso evita que o cache da planilha (que pode demorar até 5 min)
+                    // desfaça edições recentes como tomada de dano, uso de poções e moedas.
                     const mergedSheetData = {
-                        ...dataFromSheet, // Base vem da planilha (Atributos, HP, etc.)
-                        
-                        // Preserva campos que a planilha não tem ou tem de forma limitada
-                        ataques: freshData.sheetData?.ataques || dataFromSheet.ataques || [],
+                        ...dataFromSheet, 
+                        ...freshData.sheetData, // Firebase domina, preservando campos avulsos
+
+                        // Mesclagem profunda para garantir que novos campos da planilha não
+                        // apaguem os dados salvos previamente no Firebase
+                        info: {
+                            ...(dataFromSheet.info || {}),
+                            ...(freshData.sheetData?.info || {})
+                        },
+                        atributos: {
+                            ...(dataFromSheet.atributos || {}),
+                            ...(freshData.sheetData?.atributos || {})
+                        },
+                        recursos: {
+                            ...(dataFromSheet.recursos || {}),
+                            ...(freshData.sheetData?.recursos || {})
+                        },
+                        outros: {
+                            ...(dataFromSheet.outros || {}),
+                            ...(freshData.sheetData?.outros || {})
+                        },
                         magias: {
                             ...(dataFromSheet.magias || {}),
-                            ...(freshData.sheetData?.magias || {}) // Firebase tem prioridade nas magias (app-first)
+                            ...(freshData.sheetData?.magias || {})
+                        },
+                        pericias: {
+                            ...(dataFromSheet.pericias || {}),
+                            ...(freshData.sheetData?.pericias || {})
                         },
                         statsMagia: {
                             ...(dataFromSheet.statsMagia || {}),
                             ...(freshData.sheetData?.statsMagia || {})
                         },
-                        outros: {
-                            ...(dataFromSheet.outros || {}),
-                            ...Object.fromEntries(
-                                Object.entries(freshData.sheetData?.outros || {})
-                                    .filter(([k]) => k.startsWith('spell_desc_') || k.startsWith('desc_talento_') || k === 'Talentos')
-                            )
-                        }
+                        ataques: freshData.sheetData?.ataques || dataFromSheet.ataques || []
                     };
 
                     const mergedData = { ...freshData, sheetData: mergedSheetData };

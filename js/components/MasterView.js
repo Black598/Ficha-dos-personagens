@@ -230,12 +230,38 @@ export function MasterView({
                                             title: "Adicionar Condição"
                                         }, "✨")
                                     ]),
-                                    el('div', { key: 'xp-box', className: "flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800" }, [
+                                    el('div', { 
+                                        key: 'xp-box', 
+                                        title: "Clique para editar o XP. Digite +100 para somar ou -50 para subtrair.", 
+                                        className: "flex items-center gap-1 bg-slate-950 px-2 py-1.5 rounded-xl border border-slate-800 focus-within:border-amber-500/50 transition-colors cursor-text hover:border-amber-500/30" 
+                                    }, [
                                         el('div', { key: 'xp-info', className: "flex flex-col" }, [
-                                            el('span', { key: 'label', className: "text-[6px] font-black text-slate-600 uppercase" }, "XP"),
-                                            el('span', { key: 'value', className: "text-[10px] font-black text-amber-500" }, char.sheetData?.info?.['XP'] || 0),
+                                            el('span', { key: 'label', className: "text-[6px] font-black text-slate-600 uppercase" }, "XP (Editar)"),
+                                            el('input', {
+                                                key: `xp-${char.name}-${char.sheetData?.info?.['XP'] || 0}`,
+                                                className: "block bg-transparent text-[10px] font-black text-amber-500 w-12 outline-none p-0 focus:ring-0",
+                                                defaultValue: char.sheetData?.info?.['XP'] || 0,
+                                                onBlur: (e) => {
+                                                    const currentXP = parseInt(char.sheetData?.info?.['XP']) || 0;
+                                                    let inputVal = e.target.value.trim();
+                                                    let finalXP = currentXP;
+                                                    if (inputVal.startsWith('+')) {
+                                                        finalXP = currentXP + (parseInt(inputVal.substring(1)) || 0);
+                                                    } else if (inputVal.startsWith('-')) {
+                                                        finalXP = Math.max(0, currentXP - (parseInt(inputVal.substring(1)) || 0));
+                                                    } else {
+                                                        finalXP = parseInt(inputVal) || 0;
+                                                    }
+                                                    if (finalXP !== currentXP) {
+                                                        updateCharacterXP(char.name, finalXP);
+                                                    } else {
+                                                        e.target.value = currentXP;
+                                                    }
+                                                },
+                                                onKeyDown: (e) => e.key === 'Enter' && e.target.blur()
+                                            }),
                                         ]),
-                                        el('span', { className: "text-slate-700 text-xs ml-auto" }, "⭐")
+                                        el('span', { className: "text-slate-700 text-[10px] ml-auto pb-1" }, "⭐")
                                     ])
                                 ])
                             ]);
