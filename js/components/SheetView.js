@@ -596,17 +596,22 @@ export function SheetView({
             // --- BLOCO 3: ATRIBUTOS (6) ---
             el('div', { className: "grid grid-cols-3 md:grid-cols-6 gap-4" },
                 ['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'].map(key => {
-                    const value = characterSheetData.atributos?.[key] || '10';
-                    const mod = characterSheetData.modificadores?.[key] || '0';
+                    const valueStr = characterSheetData.atributos?.[key] || '10';
+                    const value = parseInt(valueStr) || 10;
+                    
+                    // Cálculo dinâmico do modificador: (Atributo - 10) / 2 arredondado para baixo.
+                    // Isso evita bugs onde a planilha salva valor desatualizado do modificador.
+                    const modNum = Math.floor((value - 10) / 2);
+                    const mod = fmtNum(modNum);
 
                     return el('div', { key: key, className: "bg-slate-900 border-2 border-slate-800 rounded-3xl text-center shadow-xl hover:border-amber-500/40 transition-all overflow-hidden flex flex-col" },
                         el('div', { className: "p-3 pb-2" },
                             el('p', { className: "text-[9px] font-black text-slate-500 uppercase mb-1" }, key),
-                            el('p', { className: "text-xs font-bold text-slate-400 italic" }, value)
+                            el('p', { className: "text-xs font-bold text-slate-400 italic" }, valueStr)
                         ),
                         el('div', { className: "border-t border-slate-800 w-full" }),
                         el('div', { className: "p-4 bg-slate-950/40 flex-grow flex items-center justify-center" },
-                            el('p', { className: `text-4xl font-black ${parseInt(mod) >= 0 ? 'text-amber-500' : 'text-red-500'}` }, fmtNum(mod))
+                            el('p', { className: `text-4xl font-black ${modNum >= 0 ? 'text-amber-500' : 'text-red-500'}` }, mod)
                         )
                     );
                 })
