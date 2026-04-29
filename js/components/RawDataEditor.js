@@ -36,6 +36,22 @@ export function RawDataEditor({ data, onSave, onClose }) {
                 ]);
             } else {
                 const isArray = Array.isArray(value);
+                const isBoolean = typeof value === 'boolean';
+                
+                if (isBoolean) {
+                    return el('div', { key: currentPath.join('-'), className: "flex justify-between items-center bg-slate-950/80 p-3 rounded-2xl border border-slate-800 hover:border-amber-500/40 transition-colors" }, [
+                        el('label', { className: "text-[7px] text-slate-500 font-black uppercase truncate tracking-widest" }, key),
+                        el('button', {
+                            className: `relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${value ? 'bg-emerald-500' : 'bg-slate-700'}`,
+                            onClick: () => updateField(currentPath, !value)
+                        }, [
+                            el('span', {
+                                className: `inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${value ? 'translate-x-5' : 'translate-x-1'}`
+                            })
+                        ])
+                    ]);
+                }
+
                 const displayValue = isArray ? value.join(', ') : (value === null || value === undefined ? "" : value);
                 const isLongText = typeof value === 'string' && value.length > 30;
                 

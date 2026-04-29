@@ -858,20 +858,71 @@ export function SheetView({
                 el('div', { className: "lg:col-span-4 bg-slate-900 border border-slate-800 p-6 rounded-[2.5rem] shadow-xl flex flex-col h-[500px]" },
                     el('h4', { className: "text-amber-500 font-black mb-6 flex items-center gap-2 uppercase text-xs italic border-b border-amber-900/20 pb-3" }, "🎯 Perícias"),
                     el('div', { className: "flex-grow overflow-y-auto pr-2 custom-scrollbar space-y-1" },
-                        Object.entries(characterSheetData.pericias || {}).map(([key, data]) => {
-                            // Suporte a compatibilidade: se for string, converte pra novo formato assumindo sem proficiência
-                            const isNewFormat = typeof data === 'object' && data !== null;
-                            const value = isNewFormat ? data.val : data;
-                            const isProficient = isNewFormat ? data.prof : false;
+                        (() => {
+                            const currentProf = parseInt(characterSheetData.info?.['Proficiência']) || Math.floor((parseInt(characterSheetData.info?.['Nivel'] || 1) - 1) / 4) + 2;
+                            const periciaToAttr = {
+                                'Acrobacia': 'DES', 'Arcanismo': 'INT', 'Atletismo': 'FOR',
+                                'Atuação': 'CAR', 'Enganação': 'CAR', 'Furtividade': 'DES',
+                                'História': 'INT', 'Intimidação': 'CAR', 'Intuição': 'SAB',
+                                'Investigação': 'INT', 'Lidar com Animais': 'SAB', 'Medicina': 'SAB',
+                                'Natureza': 'INT', 'Percepção': 'SAB', 'Persuasão': 'CAR',
+                                'Prestidigitação': 'DES', 'Religião': 'INT', 'Sobrevivência': 'SAB'
+                            };
 
-                            return el('div', { key: key, className: "flex justify-between items-center text-[11px] border-b border-slate-800/30 py-2.5 hover:bg-white/5 px-2 rounded-lg group transition-colors" },
-                                el('span', { className: "text-slate-400 font-bold uppercase group-hover:text-slate-200 flex items-center gap-2" }, 
-                                    isProficient ? el('span', { className: "w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" }) : el('span', { className: "w-2 h-2 rounded-full border border-slate-700 bg-slate-900/50" }),
-                                    key
-                                ),
-                                el('span', { className: "text-amber-400 font-black" }, value || '+0')
-                            );
-                        })
+                            return Object.entries(characterSheetData.pericias || {}).map(([key, data]) => {
+                                // Suporte a compatibilidade: se for string, converte pra novo formato assumindo sem proficiência
+                                const isNewFormat = typeof data === 'object' && data !== null;
+                                const value = isNewFormat ? data.val : data;
+                                const isProficient = isNewFormat ? data.prof : false;
+
+                                const attrKey = periciaToAttr[key];
+                                const attrVal = parseInt(characterSheetData.atributos?.[attrKey]) || 10;
+                                const attrMod = Math.floor((attrVal - 10) / 2);
+                                const baseValue = attrMod + (isProficient ? currentProf : 0);
+                                const baseValueStr = baseValue >= 0 ? `+${baseValue}` : `${baseValue}`;
+
+                                return el('div', { key: key, className: "flex justify-between items-center text-[11px] border-b border-slate-800/30 py-2.5 hover:bg-white/5 px-2 rounded-lg group transition-colors" },
+                                    el('span', { className: "text-slate-400 font-bold uppercase group-hover:text-slate-200 flex items-center gap-2" }, 
+                                        el('button', {
+                                            className: `w-2 h-2 rounded-full transition-all flex-shrink-0 ${characterSheetData.allowEditing ? 'cursor-pointer hover:scale-150 hover:bg-emerald-400' : 'cursor-default'} ${isProficient ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'border border-slate-700 bg-slate-900/50'}`,
+                                            title: characterSheetData.allowEditing ? "Clique para inverter proficiência" : "",
+                                            onClick: () => {
+                                                if (!characterSheetData.allowEditing) return;
+                                                const newPericias = JSON.parse(JSON.stringify(characterSheetData.pericias || {}));
+                                                if (typeof newPericias[key] !== 'object' || newPericias[key] === null) {
+                                                    newPericias[key] = { val: newPericias[key] || '+0', prof: false };
+                                                }
+                                                const isNowProf = !isProficient;
+                                                newPericias[key].prof = isNowProf;
+                                                
+                                                let numericVal = parseInt(newPericias[key].val) || 0;
+                                                numericVal += isNowProf ? currentProf : -currentProf;
+                                                newPericias[key].val = numericVal >= 0 ? `+${numericVal}` : `${numericVal}`;
+                                                
+                                                updateSheetData({ ...characterSheetData, pericias: newPericias });
+                                            }
+                                        }),
+                                        key
+                                    ),
+                                    el('div', { className: "text-right flex items-center gap-2" },
+                                        el('span', { className: "text-[9px] text-slate-600 font-bold hidden group-hover:block transition-all", title: "Valor base puro (Atributo + Proficiência)" }, `[${baseValueStr}]`),
+                                        characterSheetData.allowEditing ? el('input', {
+                                            className: "bg-transparent text-amber-400 font-black w-8 text-right outline-none hover:bg-slate-800 focus:bg-slate-800 rounded transition-colors cursor-text",
+                                            defaultValue: value || '+0',
+                                            onBlur: (e) => {
+                                                const newPericias = JSON.parse(JSON.stringify(characterSheetData.pericias || {}));
+                                                if (typeof newPericias[key] !== 'object' || newPericias[key] === null) {
+                                                    newPericias[key] = { val: e.target.value, prof: isProficient };
+                                                } else {
+                                                    newPericias[key].val = e.target.value;
+                                                }
+                                                updateSheetData({ ...characterSheetData, pericias: newPericias });
+                                            }
+                                        }) : el('span', { className: "text-amber-400 font-black w-6 text-right inline-block" }, value || '+0')
+                                    )
+                                );
+                            });
+                        })()
                     )
                 ),
                 // --- Características e Talentos Editáveis ---
