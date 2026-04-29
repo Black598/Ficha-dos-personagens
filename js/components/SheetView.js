@@ -207,6 +207,60 @@ export function SheetView({
         });
     };
 
+    const handleProficiencyChange = (newValStr) => {
+        const newVal = parseInt(newValStr);
+        if (isNaN(newVal)) return;
+
+        const currentNivel = parseInt(charData.info?.['Nivel']) || 1;
+        const fallbackProf = Math.floor((currentNivel - 1) / 4) + 2;
+        const oldVal = parseInt(charData.info?.['Proficiência']) || fallbackProf;
+
+        const profDiff = newVal - oldVal;
+        if (profDiff === 0) return;
+
+        const newPericias = JSON.parse(JSON.stringify(charData.pericias || {}));
+        Object.keys(newPericias).forEach(nomePericia => {
+            const isNewFormat = typeof newPericias[nomePericia] === 'object' && newPericias[nomePericia] !== null;
+            const prof = isNewFormat ? newPericias[nomePericia].prof : false;
+            if (prof) {
+                let val = parseInt(isNewFormat ? newPericias[nomePericia].val : newPericias[nomePericia]) || 0;
+                val += profDiff;
+                const finalStr = val >= 0 ? `+${val}` : `${val}`;
+                if (isNewFormat) {
+                    newPericias[nomePericia].val = finalStr;
+                } else {
+                    newPericias[nomePericia] = finalStr;
+                }
+            }
+        });
+
+        const newAtaques = JSON.parse(JSON.stringify(charData.ataques || []));
+        newAtaques.forEach(atk => {
+            let b = parseInt(atk.bonus?.replace('+', '')) || 0;
+            b += profDiff;
+            atk.bonus = b >= 0 ? `+${b}` : `${b}`;
+        });
+
+        const newStatsMagia = JSON.parse(JSON.stringify(charData.statsMagia || {}));
+        let bAtk = parseInt(newStatsMagia['Bônus de Ataque']?.replace('+', '')) || 0;
+        bAtk += profDiff;
+        newStatsMagia['Bônus de Ataque'] = bAtk >= 0 ? `+${bAtk}` : `${bAtk}`;
+
+        let salv = parseInt(newStatsMagia['Salvaguarda']) || 8;
+        salv += profDiff;
+        newStatsMagia['Salvaguarda'] = salv.toString();
+
+        const newData = {
+            ...charData,
+            info: { ...charData.info, 'Proficiência': newVal.toString() },
+            pericias: newPericias,
+            ataques: newAtaques,
+            statsMagia: newStatsMagia
+        };
+
+        updateSheetData(newData);
+    };
+
     const handleLevelUpConfirm = () => {
         const newNivel = nivelAtual + 1;
         // Aplica os novos atributos primeiro
@@ -238,9 +292,12 @@ export function SheetView({
         const newMaxHp = currentMaxHp + retroactiveHp + levelUpHp;
 
         // --- CÁLCULO DE PROFICIÊNCIA E ATRIBUTOS (PERÍCIAS, ATAQUES, MAGIAS) ---
-        const oldProfBonus = Math.floor((nivelAtual - 1) / 4) + 2;
-        const newProfBonus = Math.floor((newNivel - 1) / 4) + 2;
-        const profDiff = newProfBonus - oldProfBonus;
+        const baseOldProf = Math.floor((nivelAtual - 1) / 4) + 2;
+        const baseNewProf = Math.floor((newNivel - 1) / 4) + 2;
+        const profDiff = baseNewProf - baseOldProf;
+        
+        const currentProf = parseInt(charData.info?.['Proficiência']) || baseOldProf;
+        const finalProf = currentProf + profDiff;
 
         // Mapeamento de Perícias para Atributos
         const periciaToAttr = {
@@ -309,7 +366,7 @@ export function SheetView({
 
         const newData = {
             ...charData,
-            info: { ...charData.info, 'Nivel': newNivel.toString(), 'XP': '0' },
+            info: { ...charData.info, 'Nivel': newNivel.toString(), 'XP': '0', 'Proficiência': finalProf.toString() },
             recursos: { ...charData.recursos, 'PV Máximo': newMaxHp.toString() },
             atributos: newAtributos,
             pericias: newPericias,
@@ -554,6 +611,14 @@ export function SheetView({
                         el('div', { className: "flex justify-between border-t border-slate-800 pt-2" },
                             el('p', { className: "text-[8px] font-black text-slate-500 uppercase" }, "Nível"),
                             el('p', { className: "text-[10px] font-black text-white" }, characterSheetData.info?.['Nivel'] || '1')
+                        ),
+                        characterSheetData.allowEditing && el('div', { className: "flex justify-between items-center border-t border-slate-800 pt-2 group relative" },
+                            el('p', { className: "text-[8px] font-black text-amber-500 uppercase cursor-help", title: "Bônus de Proficiência (Editável pelo Mestre)" }, "Proficiência"),
+                            el('input', {
+                                className: "bg-transparent text-right text-[10px] font-black text-amber-400 outline-none w-8 hover:bg-slate-800 rounded px-1 transition-colors",
+                                defaultValue: characterSheetData.info?.['Proficiência'] || (Math.floor((parseInt(characterSheetData.info?.['Nivel'] || 1) - 1) / 4) + 2).toString(),
+                                onBlur: (e) => handleProficiencyChange(e.target.value)
+                            })
                         )
                     )
                 )
