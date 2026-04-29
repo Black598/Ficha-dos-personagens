@@ -237,11 +237,84 @@ export function SheetView({
         const currentMaxHp = parseInt(charData.recursos?.['PV Máximo'] || '0');
         const newMaxHp = currentMaxHp + retroactiveHp + levelUpHp;
 
+        // --- CÁLCULO DE PROFICIÊNCIA E ATRIBUTOS (PERÍCIAS, ATAQUES, MAGIAS) ---
+        const oldProfBonus = Math.floor((nivelAtual - 1) / 4) + 2;
+        const newProfBonus = Math.floor((newNivel - 1) / 4) + 2;
+        const profDiff = newProfBonus - oldProfBonus;
+
+        // Mapeamento de Perícias para Atributos
+        const periciaToAttr = {
+            'Acrobacia': 'DES', 'Arcanismo': 'INT', 'Atletismo': 'FOR',
+            'Atuação': 'CAR', 'Enganação': 'CAR', 'Furtividade': 'DES',
+            'História': 'INT', 'Intimidação': 'CAR', 'Intuição': 'SAB',
+            'Investigação': 'INT', 'Lidar com Animais': 'SAB', 'Medicina': 'SAB',
+            'Natureza': 'INT', 'Percepção': 'SAB', 'Persuasão': 'CAR',
+            'Prestidigitação': 'DES', 'Religião': 'INT', 'Sobrevivência': 'SAB'
+        };
+
+        const newPericias = JSON.parse(JSON.stringify(charData.pericias || {}));
+        Object.keys(newPericias).forEach(nomePericia => {
+            const isNewFormat = typeof newPericias[nomePericia] === 'object' && newPericias[nomePericia] !== null;
+            const prof = isNewFormat ? newPericias[nomePericia].prof : false;
+            let val = parseInt(isNewFormat ? newPericias[nomePericia].val : newPericias[nomePericia]) || 0;
+
+            let change = 0;
+            // 1. Aumento por Proficiência (se tiver proficiência)
+            if (prof && profDiff > 0) {
+                change += profDiff;
+            }
+
+            // 2. Aumento por Atributo
+            const attrKey = periciaToAttr[nomePericia];
+            if (attrKey) {
+                const oldAttrMod = Math.floor((parseInt(charData.atributos?.[attrKey]) || 10) - 10) / 2;
+                const newAttrMod = Math.floor((parseInt(newAtributos[attrKey]) || 10) - 10) / 2;
+                if (newAttrMod > oldAttrMod) {
+                    change += (newAttrMod - oldAttrMod);
+                }
+            }
+
+            if (change > 0) {
+                val += change;
+                const finalStr = val >= 0 ? `+${val}` : `${val}`;
+                if (isNewFormat) {
+                    newPericias[nomePericia].val = finalStr;
+                } else {
+                    newPericias[nomePericia] = finalStr;
+                }
+            }
+        });
+
+        // Ataques (Assume que os ataques listados se beneficiam da proficiência base do personagem)
+        const newAtaques = JSON.parse(JSON.stringify(charData.ataques || []));
+        if (profDiff > 0) {
+            newAtaques.forEach(atk => {
+                let b = parseInt(atk.bonus?.replace('+', '')) || 0;
+                b += profDiff;
+                atk.bonus = b >= 0 ? `+${b}` : `${b}`;
+            });
+        }
+
+        // Magia
+        const newStatsMagia = JSON.parse(JSON.stringify(charData.statsMagia || {}));
+        if (profDiff > 0) {
+            let bAtk = parseInt(newStatsMagia['Bônus de Ataque']?.replace('+', '')) || 0;
+            bAtk += profDiff;
+            newStatsMagia['Bônus de Ataque'] = bAtk >= 0 ? `+${bAtk}` : `${bAtk}`;
+
+            let salv = parseInt(newStatsMagia['Salvaguarda']) || 8;
+            salv += profDiff;
+            newStatsMagia['Salvaguarda'] = salv.toString();
+        }
+
         const newData = {
             ...charData,
             info: { ...charData.info, 'Nivel': newNivel.toString(), 'XP': '0' },
             recursos: { ...charData.recursos, 'PV Máximo': newMaxHp.toString() },
-            atributos: newAtributos
+            atributos: newAtributos,
+            pericias: newPericias,
+            ataques: newAtaques,
+            statsMagia: newStatsMagia
         };
 
         updateSheetData(newData);
