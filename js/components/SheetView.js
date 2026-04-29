@@ -209,26 +209,33 @@ export function SheetView({
 
     const handleLevelUpConfirm = () => {
         const newNivel = nivelAtual + 1;
-        let hpIncrease = 0;
-        const constMod = Math.floor((parseInt(charData.atributos?.['CON']) || 10) - 10) / 2;
-
-        if (levelUpData.hpChoice === 'fixed') {
-            hpIncrease = Math.floor(parseInt(levelUpData.hitDie) / 2) + 1 + Math.floor(constMod);
-        } else {
-            const rolled = levelUpData.hpRolledValue || Math.floor(Math.random() * parseInt(levelUpData.hitDie)) + 1;
-            hpIncrease = rolled + Math.floor(constMod);
-        }
-        if (hpIncrease < 1) hpIncrease = 1;
-
-        const currentMaxHp = parseInt(charData.recursos?.['PV Máximo'] || '0');
-        const newMaxHp = currentMaxHp + hpIncrease;
-
+        // Aplica os novos atributos primeiro
         const newAtributos = { ...charData.atributos };
         Object.keys(levelUpData.attributes).forEach(attr => {
             if (levelUpData.attributes[attr] > 0) {
                 newAtributos[attr] = (parseInt(newAtributos[attr]) || 10) + levelUpData.attributes[attr];
             }
         });
+
+        // Calcula os modificadores de Constituição antigo e novo
+        const oldConMod = Math.floor((parseInt(charData.atributos?.['CON']) || 10) - 10) / 2;
+        const newConMod = Math.floor((parseInt(newAtributos['CON']) || 10) - 10) / 2;
+        
+        // HP Retroativo (aplica a diferença do modificador aos níveis anteriores)
+        const retroactiveHp = Math.max(0, newConMod - oldConMod) * nivelAtual;
+
+        // Calcula o HP recebido pelo nível atual
+        let levelUpHp = 0;
+        if (levelUpData.hpChoice === 'fixed') {
+            levelUpHp = Math.floor(parseInt(levelUpData.hitDie) / 2) + 1 + Math.floor(newConMod);
+        } else {
+            const rolled = levelUpData.hpRolledValue || Math.floor(Math.random() * parseInt(levelUpData.hitDie)) + 1;
+            levelUpHp = rolled + Math.floor(newConMod);
+        }
+        if (levelUpHp < 1) levelUpHp = 1;
+
+        const currentMaxHp = parseInt(charData.recursos?.['PV Máximo'] || '0');
+        const newMaxHp = currentMaxHp + retroactiveHp + levelUpHp;
 
         const newData = {
             ...charData,
