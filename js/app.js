@@ -233,6 +233,19 @@ function App() {
             })
             .filter(p => !p.deleted); // Oculta personagens marcados como excluídos
 
+          // Adiciona personagens que estão APENAS no Firebase (novos heróis)
+          const googlePlayerIds = googlePlayers.map(p => (p.Personagem || p.name || "").toLowerCase().trim());
+          Object.keys(firebaseData).forEach(id => {
+              if (!googlePlayerIds.includes(id) && id !== 'mestre' && id !== 'sessao' && id !== 'globais') {
+                  if (!firebaseData[id].deleted) {
+                     mergedList.push({
+                        ...firebaseData[id],
+                        name: firebaseData[id].name || id
+                     });
+                  }
+              }
+          });
+
           setAllCharacters(mergedList);
           setLoading(false);
         });
@@ -558,32 +571,107 @@ function App() {
 
     setIsCreating(true);
     try {
-      // 1. Cria no Google Drive
-      const driveResult = await createCharacterInDrive(scriptWebhook, name, user.displayName || 'Jogador');
-      
-      if (!driveResult || driveResult.status !== 'success') {
-         throw new Error("Falha na criação do arquivo no Drive.");
-      }
-
-      // 2. Prepara o objeto para o Firebase
+      // 1. Prepara o objeto para o Firebase (molde inicial)
       const newHero = {
         name: name,
         selectedTree: null,
         unlocked: {},
-        sheetData: null,
-        url: driveResult.url // Link oficial gerado pelo Drive
+        isFirebaseOnly: true, // Indica que não tem planilha atrelada
+        deleted: false, // Força a recuperar caso tenha sido excluído antes
+        url: '',
+        sheetData: {
+          info: {
+            'Nome do Personagem': name,
+            'Classe': '---',
+            'Antecedente': '---',
+            'Jogador': user?.displayName || 'Jogador',
+            'Raça': '---',
+            'XP': '0',
+            'Nivel': '1',
+            'Alinhamento': '---'
+          },
+          atributos: { 'FOR': '10', 'DES': '10', 'CON': '10', 'INT': '10', 'SAB': '10', 'CAR': '10' },
+          modificadores: { 'FOR': '0', 'DES': '0', 'CON': '0', 'INT': '0', 'SAB': '0', 'CAR': '0' },
+          recursos: {
+            'CA': '10',
+            'Iniciativa': '0',
+            'Deslocamento': '9m',
+            'PV Máximo': '10',
+            'PV Atual': '10',
+            'PV Temporário': '0',
+            'PV Perdido': '0'
+          },
+          magias: {
+            "Infusões": ["", "", "", ""],
+            "Círculo 0 (Truques)": ["", "", "", ""],
+            "Círculo 1": ["", "", "", ""],
+            "Círculo 2": ["", "", "", ""],
+            "Círculo 3": ["", "", "", ""],
+            "Círculo 4": ["", "", "", ""],
+            "Círculo 5": ["", "", "", ""],
+            "Círculo 6": ["", "", "", ""],
+            "Círculo 7": ["", "", "", ""],
+            "Círculo 8": ["", "", "", ""],
+            "Círculo 9": ["", "", "", ""]
+          },
+          statsMagia: {
+            'Modificador': '0',
+            'Salvaguarda': '8',
+            'Bônus de Ataque': '0',
+          },
+          outros: {
+            'Talentos': [],
+            'Equipamento': "",
+            'PO': '0', 'PP': '0', 'PC': '0',
+          },
+          pericias: {
+             'Acrobacia': { val: '+0', prof: false },
+             'Arcanismo': { val: '+0', prof: false },
+             'Atletismo': { val: '+0', prof: false },
+             'Atuação': { val: '+0', prof: false },
+             'Enganação': { val: '+0', prof: false },
+             'Furtividade': { val: '+0', prof: false },
+             'História': { val: '+0', prof: false },
+             'Intimidação': { val: '+0', prof: false },
+             'Intuição': { val: '+0', prof: false },
+             'Investigação': { val: '+0', prof: false },
+             'Lidar com Animais': { val: '+0', prof: false },
+             'Medicina': { val: '+0', prof: false },
+             'Natureza': { val: '+0', prof: false },
+             'Percepção': { val: '+0', prof: false },
+             'Persuasão': { val: '+0', prof: false },
+             'Prestidigitação': { val: '+0', prof: false },
+             'Religião': { val: '+0', prof: false },
+             'Sobrevivência': { val: '+0', prof: false }
+          },
+          personalidade: { 'Traços': '', 'Ideais': '', 'Vínculos': '', 'Defeitos': '' },
+          ataques: []
+        }
       };
 
-      // 3. Salva no Firebase
+      // 2. Salva no Firebase
       await saveCharacter(name, newHero);
       
       setCreatingCharacter(false);
       setIsCreating(false);
-      alert('✨ Herói criado e sincronizado com o Drive!');
+      alert('✨ Herói criado!');
       
       // 4. Seleciona o personagem automaticamente (com flag de novo)
       setIsNewCharacter(true);
-      selectCharacter(name);
+      
+      // Atualiza localmente a lista para garantir que ele apareça imediatamente no menu
+      setAllCharacters(prev => {
+         const exists = prev.find(p => p.name.toLowerCase() === name.toLowerCase());
+         if (exists) {
+            return prev.map(p => p.name.toLowerCase() === name.toLowerCase() ? newHero : p);
+         }
+         return [...prev, newHero];
+      });
+
+      setCharacterName(name);
+      setCharacterData(newHero);
+      setCharacterSheetData(newHero.sheetData);
+      setView('sheet');
       
     } catch (e) { 
       console.error(e);
