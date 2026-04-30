@@ -8,9 +8,16 @@ export function LoginView({
     creatingCharacter,
     isCreating,
     TALENT_TREES,
-    iconMap
+    iconMap,
+    campaigns = [],
+    currentAppId,
+    setCurrentAppId,
+    createNewCampaign
 }) {
     const el = React.createElement;
+    const { useState } = React;
+
+    const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
 
     // Componentes de ícone seguros
     const Crown = iconMap?.Crown ? iconMap.Crown({}) : '👑';
@@ -23,7 +30,22 @@ export function LoginView({
             el('div', { className: "max-w-7xl mx-auto flex justify-between items-center" },
                 el('div', null,
                     el('h1', { className: "text-2xl md:text-4xl font-black text-white mb-2 tracking-tighter uppercase italic" }, "Selecione seu Herói"),
-                    el('p', { className: "text-slate-500 text-xs md:text-[10px] uppercase font-bold tracking-[0.3em]" }, "Dungeon Delvers")
+                    el('div', { className: "flex items-center gap-2" },
+                        el('select', {
+                            value: currentAppId,
+                            onChange: (e) => {
+                                if (e.target.value === 'new') {
+                                    setIsCreatingCampaign(true);
+                                } else {
+                                    setCurrentAppId(e.target.value);
+                                }
+                            },
+                            className: "bg-slate-950/50 text-amber-500 text-xs md:text-sm uppercase font-bold tracking-[0.2em] border border-slate-800 rounded-lg p-2 focus:outline-none focus:border-amber-500 cursor-pointer hover:bg-slate-900 transition-all"
+                        }, [
+                            ...campaigns.map(camp => el('option', { key: camp.id, value: camp.id }, camp.name)),
+                            el('option', { key: 'new', value: 'new', className: "text-emerald-400" }, "+ CRIAR NOVA SALA/CAMPANHA")
+                        ])
+                    )
                 ),
                 el('button', {
                     onClick: () => onSelectCharacter('mestre'),
@@ -85,11 +107,47 @@ export function LoginView({
             )
         ),
 
-        // --- MODAL DE CRIAÇÃO ---
+        // --- MODAL DE CRIAÇÃO DE PERSONAGEM ---
         creatingCharacter && el(CharacterCreationModal, {
             onClose: () => onCreateCharacter(false), // Função para fechar (passando null/false para o estado no app.js)
             onCreate: (name) => onCreateCharacter(name), // Função para realmente criar
             isCreating: isCreating
-        })
+        }),
+
+        // --- MODAL DE CRIAÇÃO DE CAMPANHA ---
+        isCreatingCampaign && el('div', { className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" },
+            el('div', { className: "bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-sm w-full shadow-2xl relative animate-slide-up" },
+                el('h3', { className: "text-2xl font-black text-white uppercase italic tracking-tighter mb-4" }, "Nova Campanha"),
+                el('p', { className: "text-slate-400 text-sm mb-6" }, "Dê um nome para a nova sala de RPG. Todos que acessarem essa sala terão um novo conjunto de personagens, chat e grimório."),
+                el('form', {
+                    onSubmit: (e) => {
+                        e.preventDefault();
+                        const name = e.target.campaignName.value.trim();
+                        if (name) {
+                            createNewCampaign(name);
+                            setIsCreatingCampaign(false);
+                        }
+                    }
+                },
+                    el('input', {
+                        name: 'campaignName',
+                        autoFocus: true,
+                        placeholder: "Ex: Cyberpunk 2077",
+                        className: "w-full bg-slate-950 border-2 border-slate-800 rounded-xl p-4 text-white font-bold mb-6 focus:outline-none focus:border-amber-500 transition-colors"
+                    }),
+                    el('div', { className: "flex gap-3" },
+                        el('button', {
+                            type: 'button',
+                            onClick: () => setIsCreatingCampaign(false),
+                            className: "flex-1 px-4 py-3 bg-slate-800 text-slate-300 font-bold uppercase tracking-widest text-xs rounded-xl hover:bg-slate-700 transition-colors"
+                        }, "Cancelar"),
+                        el('button', {
+                            type: 'submit',
+                            className: "flex-1 px-4 py-3 bg-amber-600 text-white font-black uppercase tracking-widest text-xs rounded-xl hover:bg-amber-500 hover:shadow-[0_0_20px_rgba(217,119,6,0.4)] transition-all"
+                        }, "Criar Sala")
+                    )
+                )
+            )
+        )
     );
 }

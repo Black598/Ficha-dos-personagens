@@ -1,5 +1,5 @@
 // 1. IMPORTAÇÕES
-import { TALENT_TREES, firebaseConfig, appId, iconMap } from './data.js';
+import { TALENT_TREES, firebaseConfig, DEFAULT_APP_ID, iconMap } from './data.js';
 import { loadCharacterSheet, loadPlayerList, getCharacterByName, updateSheetViaScript, extractSpreadsheetId, createCharacterInDrive } from './utils.js'
 import { SheetView } from './components/SheetView.js'
 import { TreeView } from './components/TreeView.js'
@@ -45,6 +45,38 @@ function App() {
   const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
   const [externalRoll, setExternalRoll] = useState(null); // Gatilho para rolagens 3D sem modal
 
+  // --- ESTADOS DE CAMPANHAS / SALAS ---
+  const [currentAppId, setCurrentAppId] = useState(localStorage.getItem('selected_rpg') || DEFAULT_APP_ID);
+  const [campaigns, setCampaigns] = useState([{ id: DEFAULT_APP_ID, name: 'Dungeon Delvers (Original)' }]);
+
+  // Buscar lista de campanhas globais do Firebase
+  useEffect(() => {
+    const unsub = db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
+      .onSnapshot((doc) => {
+        if (doc.exists && doc.data().list) {
+          setCampaigns(doc.data().list);
+        } else {
+          // Inicializa se não existir
+          db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
+            .set({ list: [{ id: DEFAULT_APP_ID, name: 'Dungeon Delvers (Original)' }] }, { merge: true });
+        }
+      });
+    return () => unsub();
+  }, []);
+
+  // Salvar a campanha atual no localStorage
+  useEffect(() => {
+    localStorage.setItem('selected_rpg', currentAppId);
+  }, [currentAppId]);
+
+  const createNewCampaign = async (name) => {
+    const newId = 'rpg-' + name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    const newList = [...campaigns, { id: newId, name: name }];
+    await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
+      .set({ list: newList }, { merge: true });
+    setCurrentAppId(newId);
+  };
+
   const lastHPs = useRef({}); // Rastreador de HP para mortes automáticas (Ref evita re-renders)
   
   // --- NOVOS ESTADOS GLOBAIS (SALA DO MESTRE) ---
@@ -77,14 +109,14 @@ function App() {
   // --- FUNÇÕES AUXILIARES ---
   const updateSessionState = async (updates) => {
     try {
-      await db.collection('artifacts').doc(appId)
+      await db.collection('artifacts').doc(currentAppId)
         .collection('public').doc('data').collection('global').doc('session')
         .set(updates, { merge: true });
     } catch (e) { console.error("Erro ao atualizar sessão:", e); }
   };
 
   const sendChatMessage = (text, sender, recipient = null) => {
-    db.collection('artifacts').doc(appId)
+    db.collection('artifacts').doc(currentAppId)
       .collection('public').doc('data').collection('messages')
       .add({
         text,
@@ -136,29 +168,31 @@ function App() {
   // --- 1.1 ESCUTA ESTADO DE TURNOS ---
   useEffect(() => {
     if (!user) return;
-    const unsubTurns = db.collection('artifacts').doc(appId)
+    const unsubTurns = db.collection('artifacts').doc(currentAppId)
       .collection('public').doc('data').collection('global').doc('turnState')
       .onSnapshot((doc) => {
         if (doc.exists) setTurnState(doc.data());
+        else setTurnState({ activeChar: '', round: 1 }); // Reset se for sala nova
       });
     return () => unsubTurns();
-  }, [user]);
+  }, [user, currentAppId]);
 
   // --- 1.2 ESCUTA GRIMÓRIO DE ALMAS ---
   useEffect(() => {
     if (!user) return;
-    const unsubSouls = db.collection('artifacts').doc(appId)
+    const unsubSouls = db.collection('artifacts').doc(currentAppId)
       .collection('public').doc('data').collection('global').doc('souls')
       .onSnapshot((doc) => {
         if (doc.exists) setSouls(doc.data().list || []);
+        else setSouls([]); // Reset
       });
     return () => unsubSouls();
-  }, [user]);
+  }, [user, currentAppId]);
   
   // --- 1.3 ESCUTA ESTADO DA SESSÃO ---
   useEffect(() => {
     if (!user) return;
-    const unsubSession = db.collection('artifacts').doc(appId)
+    const unsubSession = db.collection('artifacts').doc(currentAppId)
       .collection('public').doc('data').collection('global').doc('session')
       .onSnapshot((doc) => {
         if (doc.exists) {
@@ -172,15 +206,26 @@ function App() {
                     AudioManager.play(data.triggerSound.type);
                 }
             }
+        } else {
+            setSessionState({
+              announcement: '', handout: '', environment: 'none', monsters: [],
+              masterNotes: '', day: 1, library: { characters: [], books: [], bestiary: [] },
+              devilsBargain: { categories: BARGAIN_EFFECTS, activeBargains: [] },
+              announcementTarget: 'all', handoutTarget: 'all'
+            });
         }
       });
     return () => unsubSession();
-  }, [user, lastTriggerSound]);
+  }, [user, lastTriggerSound, currentAppId]);
 
   // --- 1.4 ESCUTA CHAT (MENSAGENS PRIVADAS) ---
   useEffect(() => {
     if (!user) return;
-    const unsubChat = db.collection('artifacts').doc(appId)
+    
+    // Reset chat messages on campaign change
+    setChatMessages([]);
+    
+    const unsubChat = db.collection('artifacts').doc(currentAppId)
       .collection('public').doc('data').collection('messages')
       .orderBy('timestamp', 'asc')
       .limitToLast(50)
@@ -197,7 +242,7 @@ function App() {
         }
       });
     return () => unsubChat();
-  }, [user, view]);
+  }, [user, view, currentAppId]);
 
   // --- 2. CARREGAMENTO DE DADOS (PLANILHA + FIREBASE) ---
   useEffect(() => {
@@ -206,10 +251,12 @@ function App() {
     const initAppData = async () => {
       let googlePlayers = [];
       try {
-        googlePlayers = await loadPlayerList(); // Pega a lista da Planilha Mestre
+        if (currentAppId === DEFAULT_APP_ID) {
+           googlePlayers = await loadPlayerList(); // Pega a lista da Planilha Mestre apenas na campanha original
+        }
       } catch (e) { console.error("Erro planilha:", e); }
 
-      const unsub = db.collection('artifacts').doc(appId)
+      const unsub = db.collection('artifacts').doc(currentAppId)
         .collection('public').doc('data')
         .collection('characters')
         .onSnapshot((snap) => {
@@ -254,7 +301,7 @@ function App() {
     };
 
     initAppData();
-  }, [user])
+  }, [user, currentAppId])
 
   // --- 3. CARREGAMENTO DE DADOS (FIREBASE) ---
   useEffect(() => {
@@ -276,7 +323,7 @@ function App() {
   // --- ESCUTA DE ROLAGENS ---
   useEffect(() => {
     if (!user) return;
-    const unsubRolls = db.collection('artifacts').doc(appId)
+    const unsubRolls = db.collection('artifacts').doc(currentAppId)
       .collection('public').doc('data').collection('rolls')
       .orderBy('timestamp', 'desc').limit(50)
       .onSnapshot(snap => {
@@ -289,7 +336,7 @@ function App() {
         setRecentRolls(filteredRolls.slice(0, 5));
       });
     return () => unsubRolls();
-  }, [user, characterName])
+  }, [user, characterName, currentAppId])
 
   // --- 1.4 MONITOR DE MORTES AUTOMÁTICO ---
   useEffect(() => {
@@ -340,7 +387,7 @@ function App() {
       setCharacterSheetData(newData);
 
       // 2. Salva no Firebase
-      await db.collection('artifacts').doc(appId)
+      await db.collection('artifacts').doc(currentAppId)
         .collection('public').doc('data')
         .collection('characters')
         .doc(characterName.toLowerCase())
@@ -383,7 +430,7 @@ function App() {
   // --- 3. ROLAR DADOS ---
   const rollDice = async (sides, forcedResult = null, extraLabel = '', isSecret = false) => {
     const result = forcedResult !== null ? forcedResult : Math.floor(Math.random() * sides) + 1;
-    await db.collection('artifacts').doc(appId).collection('public').doc('data')
+    await db.collection('artifacts').doc(currentAppId).collection('public').doc('data')
       .collection('rolls').add({
         playerName: characterName || "Anônimo",
         sides: sides, 
@@ -399,7 +446,7 @@ function App() {
   const saveCharacter = async (name, data) => {
     try {
       // 1. Salva no Firebase
-      await db.collection('artifacts').doc(appId)
+      await db.collection('artifacts').doc(currentAppId)
         .collection('public').doc('data')
         .collection('characters').doc(name.toLowerCase())
         .set(data, { merge: true });
@@ -463,7 +510,7 @@ function App() {
            loadCharacterSheet(sheetUrl).then(async dataFromSheet => {
              if (dataFromSheet) {
                 // 1. Pega a versão MAIS FRESCA do Firebase para evitar sobrescrever edições recentes (Race Condition)
-                const charRef = db.collection('artifacts').doc(appId).collection('public')
+                const charRef = db.collection('artifacts').doc(currentAppId).collection('public')
                                   .doc('data').collection('characters').doc(charName.toLowerCase());
                 const freshSnap = await charRef.get();
                 const freshData = freshSnap.exists ? freshSnap.data() : charFromFirebase;
@@ -683,7 +730,7 @@ function App() {
   // A função de atualizar XP agora salva o XP no Firebase, que por sua vez é ouvida em tempo real para atualizar a ficha do personagem
   const updateCharacterXP = async (name, newXP) => {
     try {
-      const charRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('characters').doc(name.toLowerCase());
+      const charRef = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters').doc(name.toLowerCase());
       const snap = await charRef.get();
       if (snap.exists) {
         const data = snap.data();
@@ -710,7 +757,7 @@ function App() {
   // --- 8.1 ATUALIZAR CONDIÇÕES DO PERSONAGEM ---
   const updateCharacterConditions = async (name, conditionsArray) => {
     try {
-      const charRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('characters').doc(name.toLowerCase());
+      const charRef = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters').doc(name.toLowerCase());
       const snap = await charRef.get();
       if (snap.exists) {
         const data = snap.data();
@@ -736,7 +783,7 @@ function App() {
   // --- 8.2 AVANÇAR TURNO / GERENCIAR RODADA ---
   const advanceTurn = async (targetCharName) => {
     try {
-      const turnRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('global').doc('turnState');
+      const turnRef = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('turnState');
       
       // Se clicar no personagem que já tem a vez, remove a vez dele (Limpa o estado)
       // Ou se passar null (botão Limpar Turnos)
@@ -756,7 +803,7 @@ function App() {
 
       // 2. Decrementa turnos das condições do personagem que acabou de começar o turno
       const charId = targetCharName.toLowerCase();
-      const charRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('characters').doc(charId);
+      const charRef = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters').doc(charId);
       const snap = await charRef.get();
       
       if (snap.exists) {
@@ -854,7 +901,7 @@ function App() {
   // --- 8.4 INICIATIVA ---
   const updateInitiative = async (newOrder) => {
     try {
-      await db.collection('artifacts').doc(appId)
+      await db.collection('artifacts').doc(currentAppId)
         .collection('public').doc('data').collection('global').doc('turnState')
         .set({ 
           ...turnState,
@@ -866,7 +913,7 @@ function App() {
   // --- 8.5 GRIMÓRIO DE ALMAS ---
   const updateSouls = async (newList) => {
     try {
-      await db.collection('artifacts').doc(appId)
+      await db.collection('artifacts').doc(currentAppId)
         .collection('public').doc('data').collection('global').doc('souls')
         .set({ list: newList }, { merge: true });
     } catch (e) { console.error("Erro ao salvar almas:", e); }
@@ -876,7 +923,7 @@ function App() {
   const updateEditPermission = async (targetCharName, allow) => {
     try {
       const charId = targetCharName.toLowerCase();
-      const charRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('characters').doc(charId);
+      const charRef = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters').doc(charId);
       await charRef.set({
         sheetData: { allowEditing: allow }
       }, { merge: true });
@@ -940,7 +987,7 @@ function App() {
   const deleteCharacter = async (name) => {
     try {
       // Marca como excluído no Firebase (não remove o doc, apenas oculta)
-      await db.collection('artifacts').doc(appId)
+      await db.collection('artifacts').doc(currentAppId)
         .collection('public').doc('data')
         .collection('characters').doc(name.toLowerCase())
         .set({ deleted: true }, { merge: true });
@@ -1176,7 +1223,11 @@ function App() {
       creatingCharacter: creatingCharacter,
       isCreating: isCreating,
       TALENT_TREES, 
-      iconMap
+      iconMap,
+      campaigns,
+      currentAppId,
+      setCurrentAppId,
+      createNewCampaign
     }),
     LibraryOverlay,
     BargainOverlay,

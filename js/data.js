@@ -12,7 +12,7 @@ export const firebaseConfig = {
 }
 
 // --- ID DO APP PARA O FIRESTORE ---
-export const appId = 'rpg-mega-trees-v7';
+export const DEFAULT_APP_ID = 'rpg-mega-trees-v7';
 
 // --- SISTEMA DE ÍCONES ---
 const makeIcon = label => props => React.createElement('span', props, label);
