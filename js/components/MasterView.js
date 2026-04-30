@@ -7,6 +7,7 @@ import { OracleMural } from './OracleMural.js';
 import { MasterControls } from './MasterControls.js';
 import { MonsterManager } from './MonsterManager.js';
 import { ConditionModal } from './ConditionModal.js';
+import { MasterTutorialPopup } from './MasterTutorialPopup.js';
 
 export function MasterView({ 
     allCharacters, 
@@ -38,6 +39,7 @@ export function MasterView({
     setHasNewMessage
 }) {
     const [showSettings, setShowSettings] = useState(false);
+    const [showTutorial, setShowTutorial] = useState(() => localStorage.getItem('has_seen_master_tutorial') !== 'true');
     const [confirmDelete, setConfirmDelete] = useState(null); 
     const [oracleOpen, setOracleOpen] = useState(false);
     const [showChat, setShowChat] = useState(false);
@@ -92,6 +94,12 @@ export function MasterView({
                 el('span', { key: 'title-text' }, " Sala do Mestre")
             ]),
             el('div', { key: 'header-actions-container', className: "flex gap-3" }, [
+                el('button', {
+                    key: 'btn-tutorial',
+                    onClick: () => setShowTutorial(true),
+                    className: "bg-slate-800 p-3 rounded-2xl text-xl hover:bg-purple-600 border border-slate-700 transition-all",
+                    title: "Tutorial do Mestre"
+                }, "❔"),
                 el('button', {
                     key: 'btn-settings',
                     onClick: () => setShowSettings(true),
@@ -426,6 +434,15 @@ export function MasterView({
                     updateCharacterConditions(showCondModalFor, [...currentConds, newCond]);
                 }
                 setShowCondModalFor(null);
+            }
+        }),
+
+        // --- 5. TUTORIAL POPUP ---
+        showTutorial && el(MasterTutorialPopup, {
+            key: 'master-tutorial',
+            onClose: () => {
+                localStorage.setItem('has_seen_master_tutorial', 'true');
+                setShowTutorial(false);
             }
         })
     ]);
