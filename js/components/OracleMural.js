@@ -1,4 +1,5 @@
 const { useState } = React;
+import { parseImageUrl } from '../utils.js';
 
 export function OracleMural({ sessionState, updateSessionState, allPlayers = [] }) {
     const el = React.createElement;
@@ -47,7 +48,7 @@ export function OracleMural({ sessionState, updateSessionState, allPlayers = [] 
                         className: "w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-xs text-blue-400 outline-none focus:border-blue-500/50 pr-12",
                         placeholder: "https://...",
                         value: sessionState?.handout || '',
-                        onChange: (e) => updateSessionState({ handout: e.target.value })
+                        onChange: (e) => updateSessionState({ handout: parseImageUrl(e.target.value) })
                     }),
                     sessionState?.handout && el('button', {
                         key: 'clear-btn',

@@ -33,8 +33,8 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
             return;
         }
         
-        // Reforço de segurança: se for secreta e não for mestre, ignora
-        if (latestRoll.secret && characterName.toLowerCase() !== 'mestre') return;
+        // Reforço de segurança: se for secreta e não for mestre E não for quem rolou, ignora
+        if (latestRoll.secret && characterName.toLowerCase() !== 'mestre' && latestRoll.playerName !== characterName) return;
 
         setVisibleRolls(prev => {
             if (prev.find(r => r.id === latestRoll.id)) return prev;
@@ -402,9 +402,9 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
                                 el('input', { type: 'radio', name: 'rollMode', value: 'desvantagem', checked: localRollMode === 'desvantagem', onChange: () => setLocalRollMode('desvantagem'), className: "accent-purple-500" }),
                                 el('span', { key: 'txt' }, "Desvantagem")
                             ]),
-                            (characterName || "").toLowerCase() === 'mestre' && el('label', { key: 'secret', className: "flex items-center gap-2 cursor-pointer text-red-500 hover:text-red-400 ml-4 border-l border-slate-700 pl-4" },
-                                el('input', { type: 'checkbox', checked: localSecret, onChange: (e) => setLocalSecret(e.target.checked), className: "accent-red-500" }),
-                                el('span', { key: 'txt' }, "Oculto 👁️")
+                            el('label', { key: 'secret', className: `flex items-center gap-2 cursor-pointer ml-4 border-l border-slate-700 pl-4 text-purple-500 hover:text-purple-400` },
+                                el('input', { type: 'checkbox', checked: localSecret, onChange: (e) => setLocalSecret(e.target.checked), className: "accent-purple-500" }),
+                                el('span', { key: 'txt', className: "font-bold text-xs uppercase" }, (characterName || "").toLowerCase() === 'mestre' ? "Oculto 👁️" : "Privado 👁️")
                             )
                         ]),
                         el('div', { key: 'mod-box', className: "modifiers flex items-center gap-3 bg-slate-950/50 p-2 px-4 rounded-2xl border border-slate-800" }, [

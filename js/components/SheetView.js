@@ -5,11 +5,13 @@ import { DiceRoller } from './DiceRoller.js';
 import { AudioManager } from '../AudioManager.js';
 import { CharacterSetupModal } from './CharacterSetupModal.js';
 import { TalentTooltip } from './TalentTooltip.js';
-import { safeParseJSON } from '../utils.js';
+import { safeParseJSON, parseImageUrl } from '../utils.js';
 
 export function SheetView({
     characterName,
     characterSheetData,
+    characterImageUrl,
+    onUpdateImage,
     onBack,
     onToggleTree,
     onUpdateSheet: updateSheetData,
@@ -36,6 +38,7 @@ export function SheetView({
     const [showSetupModal, setShowSetupModal] = useState(!!isNewCharacter); // Abre auto para novos
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [chatInput, setChatInput] = useState('');
+    const [hiddenRollRequests, setHiddenRollRequests] = useState({});
 
     const triggerEffect = (type) => {
         if (type === 'bag') {
@@ -535,13 +538,28 @@ export function SheetView({
         // --- HEADER FICHADO ---
         el('header', { key: 'sheet-header', className: "bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 p-4 md:p-6 sticky top-0 z-40" },
             el('div', { className: "max-w-7xl mx-auto flex justify-between items-center" },
-                el('div', { className: "flex items-center gap-4" },
-                    el('div', { className: "bg-slate-800 p-2 rounded-xl border border-slate-700 shadow-inner" }, "📄"),
+                el('div', { className: "flex items-center gap-4" }, [
+                    el('div', { 
+                        onClick: () => {
+                            const url = prompt("Cole o link da imagem (Google, Pinterest) ou ID do Google Drive:", characterImageUrl || '');
+                            if (url !== null) {
+                                onUpdateImage(parseImageUrl(url));
+                            }
+                        },
+                        className: "w-12 h-12 bg-slate-800 rounded-xl border border-slate-700 shadow-inner flex items-center justify-center overflow-hidden cursor-pointer hover:border-amber-500 transition-all group/avatar relative"
+                    }, [
+                        characterImageUrl ? 
+                            el('img', { src: characterImageUrl, className: "w-full h-full object-cover" }) : 
+                            el('span', { className: "text-lg" }, "👤"),
+                        el('div', { className: "absolute inset-0 bg-amber-500/20 opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center transition-opacity" }, 
+                            el('span', { className: "text-[7px] font-black text-white uppercase" }, "Mudar")
+                        )
+                    ]),
                     el('div', null,
                         el('h2', { className: "text-xl md:text-2xl font-black uppercase tracking-tighter text-white" }, characterName),
                         el('p', { className: "text-slate-500 text-[10px] font-bold uppercase tracking-widest italic" }, characterSheetData.info?.['Classe'] || 'Aventureiro')
                     )
-                ),
+                ]),
                 el('div', { className: "flex gap-3" },
                     el('button', {
                         onClick: onToggleTree,
@@ -1580,6 +1598,61 @@ export function SheetView({
                         className: "w-10 h-10 bg-purple-600 hover:bg-purple-500 text-white rounded-xl flex items-center justify-center transition-all shadow-lg text-lg"
                     }, "➔")
                 ])
+            ])
+        ]),
+
+        // --- 5. ROLAGEM SECRETA (FORÇADA PELO MESTRE) ---
+        (sessionState?.rollRequests?.[characterName.toLowerCase()] && !hiddenRollRequests[characterName.toLowerCase()]) && el('div', {
+            key: 'secret-roll-modal',
+            className: "fixed inset-0 z-[1000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+        }, [
+            el('div', { className: "bg-slate-900 border-4 border-red-600 rounded-[3rem] p-10 max-w-lg w-full text-center shadow-[0_0_100px_rgba(220,38,38,0.5)] animate-pulse-soft flex flex-col items-center relative overflow-hidden" }, [
+                el('div', { className: "absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz4KPC9zdmc+')] opacity-20" }),
+                el('div', { className: "text-6xl mb-4 animate-bounce relative z-10" }, "🎲"),
+                el('h2', { className: "text-3xl font-black text-red-500 uppercase tracking-tighter mb-2 relative z-10" }, "Teste Oculto Exigido!"),
+                el('p', { className: "text-slate-300 text-lg mb-8 relative z-10" }, [
+                    "O Mestre exige que você role ",
+                    el('strong', { className: "text-amber-400 uppercase font-black px-2" }, sessionState.rollRequests[characterName.toLowerCase()].skill),
+                    "."
+                ]),
+                el('p', { className: "text-xs text-slate-500 font-bold uppercase tracking-widest mb-8 relative z-10" }, "Os dados cairão às cegas. Apenas o mestre verá o resultado."),
+                el('button', {
+                    onClick: () => {
+                        const skill = sessionState.rollRequests[characterName.toLowerCase()].skill;
+                        let bonus = 0;
+                        if (charData?.pericias?.[skill]) bonus = parseInt(charData.pericias[skill].val) || 0;
+                        else if (charData?.modificadores?.[skill]) bonus = parseInt(charData.modificadores[skill]) || 0;
+                        
+                        const roll = Math.floor(Math.random() * 20) + 1;
+                        const total = roll + bonus;
+                        
+                        const dbRef = firebase.firestore().collection('artifacts').doc(localStorage.getItem('current_rpg_app_id') || 'rpg-mega-trees-v7');
+                        
+                        dbRef.collection('public').doc('data').collection('rolls')
+                            .add({
+                                charName: characterName,
+                                type: `Teste Oculto (${skill})`,
+                                formula: `1d20 + ${bonus}`,
+                                result: total,
+                                details: `[?] + ${bonus}`, 
+                                secret: true,
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        
+                        // Hide instantly locally
+                        setHiddenRollRequests(prev => ({ ...prev, [characterName.toLowerCase()]: true }));
+                        
+                        // Delete safely in firebase
+                        const newRequests = { ...sessionState.rollRequests };
+                        delete newRequests[characterName.toLowerCase()];
+                        
+                        dbRef.collection('public').doc('data').collection('global').doc('session')
+                            .set({ rollRequests: newRequests }, { merge: true });
+                        
+                        triggerEffect('bag');
+                    },
+                    className: "bg-red-600 hover:bg-red-500 text-white w-full py-4 rounded-2xl text-xl font-black uppercase tracking-widest shadow-[0_0_30px_rgba(220,38,38,0.4)] transition-all active:scale-95 relative z-10"
+                }, "Rolar Dados")
             ])
         ])
     ]);

@@ -847,6 +847,40 @@ function App() {
     }
   }
 
+  // --- 8.5 ATUALIZAR HP DO MESTRE ---
+  const updateCharacterHP = async (charName, delta) => {
+    const char = allCharacters.find(c => c.name.toLowerCase() === charName.toLowerCase());
+    if (!char) return;
+    const newData = JSON.parse(JSON.stringify(char));
+    
+    // Assegura que recursos existe
+    if (!newData.sheetData) newData.sheetData = {};
+    if (!newData.sheetData.recursos) newData.sheetData.recursos = {};
+    
+    let perdido = parseInt(newData.sheetData.recursos['PV Perdido']) || 0;
+    let temp = parseInt(newData.sheetData.recursos['PV Temporário']) || 0;
+    const maxPV = parseInt(newData.sheetData.recursos['PV Máximo']) || 10;
+    
+    if (delta > 0) { // Curar (diminui PV perdido)
+       perdido = Math.max(0, perdido - delta);
+    } else { // Dano
+       const damage = Math.abs(delta);
+       if (temp >= damage) {
+           temp -= damage;
+       } else {
+           const remaining = damage - temp;
+           temp = 0;
+           perdido += remaining;
+       }
+    }
+    
+    newData.sheetData.recursos['PV Perdido'] = perdido;
+    newData.sheetData.recursos['PV Temporário'] = temp;
+    newData.sheetData.recursos['PV Atual'] = (maxPV - perdido) + temp;
+    
+    await saveCharacter(charName, newData);
+  };
+
   // --- 9. ATUALIZAR CAMPO DA FICHA ---
   // Esta função é chamada toda vez que um campo da ficha é editado
   const updateSheetField = (section, field, value) => {
@@ -1053,6 +1087,7 @@ function App() {
         allCharacters, rollHistory, onBack: () => setView('login'),
         updateCharacterXP,
         updateCharacterConditions,
+        updateCharacterHP,
         advanceTurn,
         turnState,
         geminiApiKey,
@@ -1063,6 +1098,7 @@ function App() {
         updateSouls,
         updateEditPermission,
         onViewSheet: (char) => { setCharacterSheetData(char.sheetData); setCharacterName(char.name); setView('sheet'); },
+        saveCharacter,
         rollDice,
         triggerExternalRoll,
         deleteCharacter,
@@ -1073,6 +1109,14 @@ function App() {
         allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name),
         chatMessages,
         sendChatMessage,
+        clearRollHistory: async () => {
+          if (!confirm("Deseja limpar todo o histórico de rolagens?")) return;
+          const snap = await db.collection('artifacts').doc(currentAppId)
+            .collection('public').doc('data').collection('rolls').get();
+          const batch = db.batch();
+          snap.forEach(doc => batch.delete(doc.ref));
+          await batch.commit();
+        },
         hasNewMessage,
         setHasNewMessage
       }),
@@ -1101,6 +1145,8 @@ function App() {
         key: 'sheet-view',
         characterName,
         characterSheetData,
+        characterImageUrl: characterData?.imageUrl,
+        onUpdateImage: (url) => saveCharacter(characterName, { ...characterData, imageUrl: url }),
         onBack: () => { setIsNewCharacter(false); setView('login'); },
 
         onToggleTree: () => setView('character'),
@@ -1109,6 +1155,8 @@ function App() {
         updateSheetField: updateSheetField,
         onUpdateSheet: onUpdateSheet,
         turnState,
+        sessionState,
+        updateSessionState,
         handleDescansoLongo: async () => {
           if (!confirm("Realizar Descanso Longo? Isso zerará o dano acumulado e escudos.")) return;
 

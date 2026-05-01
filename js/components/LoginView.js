@@ -87,8 +87,10 @@ export function LoginView({
                         className: `relative bg-slate-900 border-2 rounded-[2rem] p-6 transition-all h-full min-h-[220px] flex flex-col group shadow-lg ${tree ? `${tree.border} hover:shadow-[0_0_40px_rgba(0,0,0,0.6)]` : 'border-slate-800 hover:border-slate-600'}`
                     },
                         el('div', { className: "text-left" },
-                            el('div', { className: `${tree?.color || 'bg-slate-800'} w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl mb-4 border border-white/10 group-hover:scale-110 transition-transform` },
-                                char.name[0].toUpperCase()
+                            el('div', { className: `${tree?.color || 'bg-slate-800'} w-16 h-16 rounded-2xl flex items-center justify-center text-white font-black text-2xl mb-4 border border-white/10 group-hover:scale-110 transition-transform overflow-hidden shadow-lg` },
+                                char.imageUrl ? 
+                                    el('img', { src: char.imageUrl, className: "w-full h-full object-cover" }) : 
+                                    char.name[0].toUpperCase()
                             ),
                             el('h3', { className: "text-lg font-black text-white uppercase tracking-tight mb-1 group-hover:text-amber-400 transition-colors" }, char.name),
                             el('p', { className: "text-xs font-bold text-amber-500 uppercase tracking-widest mb-4" },

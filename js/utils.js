@@ -45,6 +45,19 @@ export function extractSpreadsheetId(url) {
   const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
   return match ? match[1] : null;
 }
+
+export function parseImageUrl(url) {
+    if (!url || typeof url !== 'string' || url.trim() === '') return '';
+    let finalUrl = url.trim();
+    const driveMatch = finalUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (driveMatch) {
+        return `https://lh3.googleusercontent.com/u/0/d/${driveMatch[1]}`;
+    } else if (!finalUrl.startsWith('http') && finalUrl.length > 20 && !finalUrl.includes(' ')) {
+        return `https://lh3.googleusercontent.com/u/0/d/${finalUrl}`;
+    }
+    return finalUrl;
+}
+
 // A função parseCSV é complexa porque precisa lidar com a estrutura específica da planilha de personagem, que tem dados organizados em linhas e colunas fixas. Ela extrai informações como atributos, magias, ataques, etc., com base na posição dos dados na planilha.
 export function parseCSV(csvText) {
   const splitRow = (row) => {

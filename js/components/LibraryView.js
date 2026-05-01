@@ -1,5 +1,6 @@
 const { useState } = React;
 const el = React.createElement;
+import { parseImageUrl } from '../utils.js';
 
 export function LibraryView({ mode, libraryData, updateSessionState, onBack }) {
     const [activeTab, setActiveTab] = useState('characters');
@@ -138,8 +139,8 @@ export function LibraryView({ mode, libraryData, updateSessionState, onBack }) {
                         el('input', {
                             key: 'image-input',
                             value: newItem.image || '',
-                            onChange: (e) => setNewItem({...newItem, image: e.target.value}),
-                            placeholder: "https://...",
+                            onChange: (e) => setNewItem({...newItem, image: parseImageUrl(e.target.value)}),
+                            placeholder: "https://... ou ID do Drive",
                             className: "w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-sm text-white outline-none focus:border-amber-500/50 font-mono"
                         })
                     ]),

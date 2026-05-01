@@ -1,6 +1,6 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
-import { safeParseJSON } from '../utils.js';
+import { safeParseJSON, parseImageUrl } from '../utils.js';
 
 import { SoulGrimoire } from './SoulGrimoire.js';
 import { OracleMural } from './OracleMural.js';
@@ -8,6 +8,7 @@ import { MasterControls } from './MasterControls.js';
 import { MonsterManager } from './MonsterManager.js';
 import { ConditionModal } from './ConditionModal.js';
 import { MasterTutorialPopup } from './MasterTutorialPopup.js';
+import { MasterVault } from './MasterVault.js';
 
 export function MasterView({ 
     allCharacters, 
@@ -16,30 +17,34 @@ export function MasterView({
     onViewSheet, 
     updateCharacterXP, 
     updateCharacterConditions,
+    updateCharacterHP,
     advanceTurn,
     turnState,
     geminiApiKey,
     setGeminiApiKey,
     askGemini,
-    updateInitiative,
-    souls,
-    updateSouls,
-    updateEditPermission,
-    rollDice,
-    triggerExternalRoll,
-    deleteCharacter,
+    saveCharacter,
     sessionState,
     updateSessionState,
+    updateSouls,
+    updateEditPermission,
+    deleteCharacter,
+    updateInitiative,
+    souls,
+    rollDice,
+    triggerExternalRoll,
     setIsLibraryOpen,
     setIsBargainOpen,
     allPlayers,
     chatMessages,
     sendChatMessage,
     hasNewMessage,
-    setHasNewMessage
+    setHasNewMessage,
+    clearRollHistory
 }) {
     const [showSettings, setShowSettings] = useState(false);
     const [showTutorial, setShowTutorial] = useState(() => localStorage.getItem('has_seen_master_tutorial') !== 'true');
+    const [showVault, setShowVault] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(null); 
     const [oracleOpen, setOracleOpen] = useState(false);
     const [showChat, setShowChat] = useState(false);
@@ -95,6 +100,12 @@ export function MasterView({
             ]),
             el('div', { key: 'header-actions-container', className: "flex gap-3" }, [
                 el('button', {
+                    key: 'btn-vault',
+                    onClick: () => setShowVault(true),
+                    className: "bg-slate-800 p-3 rounded-2xl text-xl hover:bg-amber-600 border border-slate-700 transition-all",
+                    title: "O Cofre do Mestre"
+                }, "🔒"),
+                el('button', {
                     key: 'btn-tutorial',
                     onClick: () => setShowTutorial(true),
                     className: "bg-slate-800 p-3 rounded-2xl text-xl hover:bg-purple-600 border border-slate-700 transition-all",
@@ -116,11 +127,7 @@ export function MasterView({
                     onClick: () => setIsBargainOpen(true),
                     className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-red-600 transition-all text-white"
                 }, "👺 Barganha"),
-                el('button', {
-                    key: 'btn-clear-turns',
-                    onClick: () => advanceTurn(null),
-                    className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-amber-600 transition-all text-amber-500"
-                }, "Limpar Turnos"),
+
                 el('button', {
                     key: 'btn-chat',
                     onClick: () => { setHasNewMessage(false); setShowChat(true); },
@@ -140,9 +147,42 @@ export function MasterView({
         el('div', { key: 'master-main-grid', className: "max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 mb-24" }, [
             el('div', { key: 'master-left-col', className: "lg:col-span-8 space-y-12" }, [
                 el(OracleMural, { key: 'oracle-mural', sessionState, updateSessionState, allPlayers }),
-                el(MonsterManager, { key: 'monster-manager', sessionState, updateSessionState }),
+                el(MonsterManager, { key: 'monster-manager', sessionState, updateSessionState, geminiApiKey }),
                 el('div', { key: 'players-section', className: "space-y-6" }, [
-                    el('h2', { key: 'players-title', className: "text-xs font-black uppercase tracking-[0.4em] text-slate-500" }, "🏰 Heróis no Reino"),
+                    el('div', { key: 'players-header', className: "flex justify-between items-end border-b border-slate-800 pb-4" }, [
+                        el('h2', { key: 'players-title', className: "text-xs font-black uppercase tracking-[0.4em] text-slate-500" }, "🏰 Heróis no Reino"),
+                        el('div', { key: 'players-actions', className: "flex gap-2" }, [
+                            el('button', {
+                                key: 'btn-short-rest',
+                                onClick: () => {
+                                    const amount = parseInt(prompt("Quantos PV cada jogador vai recuperar no Descanso Curto?"));
+                                    if (!isNaN(amount) && amount > 0) {
+                                        allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').forEach(c => {
+                                            updateCharacterHP(c.name, amount);
+                                        });
+                                    }
+                                },
+                                className: "bg-slate-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-emerald-900 hover:bg-emerald-600 transition-all text-emerald-500 hover:text-white"
+                            }, "Descanso Curto"),
+                            el('button', {
+                                key: 'btn-long-rest',
+                                onClick: () => {
+                                    if(confirm("Curar todos os PVs e remover todas as condições de todos os jogadores?")) {
+                                        allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').forEach(c => {
+                                            updateCharacterHP(c.name, 9999);
+                                            updateCharacterConditions(c.name, []);
+                                        });
+                                    }
+                                },
+                                className: "bg-slate-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-emerald-900 hover:bg-emerald-600 transition-all text-emerald-500 hover:text-white"
+                            }, "Descanso Longo"),
+                            el('button', {
+                                key: 'btn-clear-turns',
+                                onClick: () => advanceTurn(null),
+                                className: "bg-slate-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-amber-900 hover:bg-amber-600 transition-all text-amber-500 hover:text-slate-900 ml-4"
+                            }, "Limpar Turnos")
+                        ])
+                    ]),
                     el('div', { key: 'players-grid', className: "grid grid-cols-1 md:grid-cols-2 gap-6" }, 
                         allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(char => {
                             const maxPV = parseInt(char.sheetData?.recursos?.['PV Máximo']) || 10;
@@ -151,51 +191,135 @@ export function MasterView({
                             const atualPV = (maxPV - perdido) + temp;
                             const percentPV = Math.min(((maxPV - perdido) / maxPV) * 100, 100);
                             return el('div', { key: char.name, className: "bg-slate-900 border border-slate-800 p-6 rounded-[2.5rem] shadow-xl hover:border-purple-500/30 transition-all group relative" }, [
-                                el('div', { key: 'char-header', className: "flex justify-between items-start mb-6" }, [
-                                    el('div', { key: 'char-info' }, [
-                                        el('h3', { key: 'char-name', className: "text-lg font-black uppercase text-white tracking-tighter" }, char.name),
-                                        el('p', { key: 'char-class', className: "text-[10px] text-purple-400 font-bold uppercase tracking-widest" }, char.sheetData?.info?.['Classe'] || char.Player || 'Aventureiro')
+                                el('div', { key: 'char-header-container', className: "space-y-4 mb-6" }, [
+                                    el('div', { key: 'char-info-row', className: "flex items-center gap-4" }, [
+                                        el('div', {
+                                            key: 'avatar-container',
+                                            onClick: () => {
+                                                const url = prompt(`URL da Imagem/Avatar para ${char.name}:`, char.imageUrl || '');
+                                                if (url !== null) {
+                                                    const finalUrl = parseImageUrl(url);
+                                                    saveCharacter(char.name, { ...char, imageUrl: finalUrl });
+                                                }
+                                            },
+                                            className: "w-16 h-16 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden cursor-pointer hover:border-purple-500 transition-all shrink-0 group/avatar relative shadow-lg"
+                                        }, [
+                                            char.imageUrl ? 
+                                                el('img', { src: char.imageUrl, className: "w-full h-full object-cover" }) : 
+                                                el('span', { className: "text-2xl" }, "👤"),
+                                            el('div', { className: "absolute inset-0 bg-purple-600/20 opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center transition-opacity" }, 
+                                                el('span', { className: "text-[8px] font-black text-white uppercase" }, "Mudar")
+                                            )
+                                        ]),
+                                        el('div', { key: 'name-stack', className: "min-w-0 flex-1" }, [
+                                            el('h3', { key: 'char-name', className: "text-xl font-black uppercase text-white tracking-tighter leading-tight" }, char.name),
+                                            el('div', { className: "flex items-center gap-2 mt-1 flex-wrap" }, [
+                                                el('p', { key: 'char-class', className: "text-[11px] text-purple-400 font-bold uppercase tracking-widest" }, char.sheetData?.info?.['Classe'] || char.Player || 'Aventureiro'),
+                                                el('span', { key: 'passive-perc', className: "text-[10px] font-bold text-slate-400 bg-slate-950 px-2 py-1 rounded-lg flex items-center gap-1.5 border border-slate-800 whitespace-nowrap shadow-inner", title: "Percepção Passiva" }, [
+                                                    "👁️", 
+                                                    10 + parseInt(char.sheetData?.pericias?.['Percepção']?.val || char.sheetData?.modificadores?.['SAB'] || 0)
+                                                ])
+                                            ])
+                                        ])
                                     ]),
-                                    el('div', { key: 'char-actions', className: "flex gap-2" }, [
+                                    el('div', { key: 'char-actions-row', className: "flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/50" }, [
                                         el('button', {
                                             key: 'btn-turn',
                                             onClick: () => advanceTurn(char.name),
-                                            className: `px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${(turnState?.activeChar || "").toLowerCase() === char.name.toLowerCase() ? 'bg-amber-500 text-slate-950 border-amber-400' : 'bg-slate-800/50 text-slate-400 border-slate-700 hover:bg-slate-700'}`
+                                            className: `px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all border shadow-md ${(turnState?.activeChar || "").toLowerCase() === char.name.toLowerCase() ? 'bg-amber-500 text-slate-950 border-amber-400 scale-105' : 'bg-slate-800/50 text-slate-400 border-slate-700 hover:bg-slate-700'}`
                                         }, "Dar Vez"),
-                                        el('button', { key: 'btn-sheet', onClick: () => onViewSheet(char), className: "p-2 bg-slate-800/50 rounded-xl hover:bg-purple-600 text-lg border border-slate-700 transition-all" }, "📜"),
+                                        el('button', { key: 'btn-sheet', onClick: () => onViewSheet(char), className: "p-2 bg-slate-800/50 rounded-xl hover:bg-purple-600 text-base border border-slate-700 transition-all shadow-md", title: "Abrir Ficha" }, "📜"),
                                         el('button', { 
                                             key: 'btn-lock',
                                             onClick: () => updateEditPermission(char.name, !(char.sheetData?.allowEditing)), 
-                                            className: `p-2 rounded-xl text-lg border transition-all ${char.sheetData?.allowEditing ? 'bg-emerald-900/40 border-emerald-500 text-emerald-400' : 'bg-amber-900/40 border-amber-500 text-amber-500'}`
+                                            className: `p-2 rounded-xl text-base border transition-all shadow-md ${char.sheetData?.allowEditing ? 'bg-emerald-900/40 border-emerald-500 text-emerald-400' : 'bg-amber-900/40 border-amber-500 text-amber-500'}`
                                         }, "🔒"),
+                                        el('button', {
+                                            key: 'btn-secret-roll',
+                                            onClick: () => {
+                                                const stat = prompt(`Qual perícia ou atributo testar ocultamente para ${char.name}? (Ex: Percepção)`);
+                                                if (stat) {
+                                                    let bonus = 0;
+                                                    if (char.sheetData?.pericias?.[stat]) bonus = parseInt(char.sheetData.pericias[stat].val) || 0;
+                                                    else if (char.sheetData?.modificadores?.[stat]) bonus = parseInt(char.sheetData.modificadores[stat]) || 0;
+                                                    const roll = Math.floor(Math.random() * 20) + 1;
+                                                    const total = roll + bonus;
+                                                    firebase.firestore().collection('artifacts').doc(localStorage.getItem('current_rpg_app_id') || 'rpg-mega-trees-v7')
+                                                        .collection('public').doc('data').collection('rolls')
+                                                        .add({
+                                                            charName: char.name, type: `Teste Oculto (${stat})`, formula: `1d20 + ${bonus}`,
+                                                            result: total, details: `[${roll}] + ${bonus}`, secret: true,
+                                                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                                                        });
+                                                }
+                                            },
+                                            className: "p-2 bg-slate-800/50 rounded-xl hover:bg-amber-600 text-base border border-slate-700 transition-all text-slate-400 hover:text-white shadow-md",
+                                            title: "Mestre rola ocultamente por este jogador"
+                                        }, "🎲"),
+                                        el('button', {
+                                            key: 'btn-ask-roll',
+                                            onClick: () => {
+                                                const stat = prompt(`Qual teste você quer obrigar ${char.name} a rolar ocultamente?`);
+                                                if (stat) {
+                                                    updateSessionState({
+                                                        rollRequests: {
+                                                            ...(sessionState.rollRequests || {}),
+                                                            [char.name.toLowerCase()]: { skill: stat, id: Date.now() }
+                                                        }
+                                                    });
+                                                }
+                                            },
+                                            className: "p-2 bg-slate-800/50 rounded-xl hover:bg-red-600 text-base border border-slate-700 transition-all text-slate-400 hover:text-white shadow-md",
+                                            title: "Solicitar Rolagem Oculta"
+                                        }, "🔔"),
                                         el('button', {
                                             key: 'btn-delete',
                                             onClick: () => {
-                                                if (confirmDelete === char.name) { deleteCharacter(char.name); setConfirmDelete(null); }
-                                                else { setConfirmDelete(char.name); setTimeout(() => setConfirmDelete(null), 3000); }
+                                                if(confirm(`Tem certeza que deseja excluir ${char.name} permanentemente?`)) {
+                                                    deleteCharacter(char.name);
+                                                }
                                             },
-                                            className: `p-2 rounded-xl transition-all border ${confirmDelete === char.name ? 'bg-red-600 border-red-400 text-white animate-pulse' : 'bg-red-900/20 border-red-900/40 text-red-600 opacity-0 group-hover:opacity-100 hover:bg-red-600 hover:text-white'}`
-                                        }, confirmDelete === char.name ? "!" : "🗑️")
+                                            className: "p-2 bg-slate-800/50 rounded-xl hover:bg-red-900 text-base border border-slate-700 transition-all text-slate-500 hover:text-white shadow-md opacity-0 group-hover:opacity-100",
+                                            title: "Excluir Personagem"
+                                        }, "🗑️")
                                     ])
                                 ]),
                                 el('div', { key: 'hp-section', className: "space-y-2 mb-6" }, [
-                                    el('div', { key: 'hp-label-row', className: "flex justify-between text-[9px] font-black uppercase tracking-widest" }, [
+                                    el('div', { key: 'hp-label-row', className: "flex justify-between items-center text-[9px] font-black uppercase tracking-widest" }, [
                                         el('span', { key: 'hp-label', className: "text-slate-500" }, "Vitalidade"),
-                                        el('span', { key: 'hp-value', className: percentPV < 30 ? 'text-red-500' : 'text-slate-300' }, `${atualPV} / ${maxPV}`)
+                                        el('div', { key: 'hp-controls', className: "flex items-center gap-2" }, [
+                                            el('input', {
+                                                key: `hp-input-${char.name}`,
+                                                className: "bg-slate-950 border border-slate-700 rounded px-1 py-0.5 w-12 text-center text-white focus:border-red-500 outline-none text-[8px]",
+                                                placeholder: "- Dano / + Cura",
+                                                onKeyDown: (e) => {
+                                                    if (e.key === 'Enter') {
+                                                        const val = parseInt(e.target.value);
+                                                        if (!isNaN(val)) updateCharacterHP(char.name, val);
+                                                        e.target.value = '';
+                                                    }
+                                                }
+                                            }),
+                                            el('span', { key: 'hp-value', className: percentPV < 30 ? 'text-red-500 text-xs' : 'text-slate-300 text-xs' }, `${atualPV} / ${maxPV}`)
+                                        ])
                                     ]),
                                     el('div', { key: 'hp-bar-outer', className: "h-2 w-full bg-slate-950 rounded-full overflow-hidden flex border border-slate-800" }, [
                                         el('div', { key: 'hp-bar-fill', className: `h-full transition-all duration-700 ${percentPV < 30 ? 'bg-red-600' : 'bg-emerald-500'}`, style: { width: `${Math.max(0, percentPV)}%` } }),
                                         temp > 0 && el('div', { key: 'hp-bar-temp', className: "h-full bg-blue-500", style: { width: `${(temp/maxPV)*100}%` } })
                                     ])
                                 ]),
-                                el('div', { key: 'stats-grid', className: "grid grid-cols-2 gap-4 mb-6" }, [
+                                el('div', { key: 'stats-grid', className: "grid grid-cols-2 gap-4 mb-4" }, [
                                     el('div', { key: 'attrs', className: "grid grid-cols-3 gap-1" }, 
-                                        ['FOR', 'DEX', 'CON', 'INT', 'SAB', 'CAR'].map(attr => (
-                                            el('div', { key: attr, className: "bg-slate-950 p-1.5 rounded-lg border border-slate-800 text-center" }, [
-                                                el('p', { key: `label-${attr}`, className: "text-[7px] text-slate-500 font-bold" }, attr),
-                                                el('p', { key: `value-${attr}`, className: "text-[10px] font-black text-white" }, char.sheetData?.atributos?.[attr] || '10')
-                                            ])
-                                        ))
+                                        ['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'].map(attr => {
+                                            const mod = char.sheetData?.modificadores?.[attr] || '0';
+                                            const modNum = parseInt(mod);
+                                            const modText = modNum >= 0 ? `+${modNum}` : `${modNum}`;
+                                            return el('div', { key: attr, className: "bg-slate-950 p-1 rounded-lg border border-slate-800 text-center flex flex-col items-center justify-center" }, [
+                                                el('p', { key: `label-${attr}`, className: "text-[6px] text-slate-500 font-bold" }, attr),
+                                                el('p', { key: `value-${attr}`, className: "text-[10px] font-black text-white leading-none mt-0.5" }, char.sheetData?.atributos?.[attr] || '10'),
+                                                el('p', { key: `mod-${attr}`, className: `text-[7px] font-black mt-0.5 ${modNum >= 0 ? 'text-emerald-400' : 'text-red-400'}` }, modText)
+                                            ]);
+                                        })
                                     ),
                                     el('div', { key: 'gold', className: "bg-amber-900/5 border border-amber-500/10 p-2 rounded-2xl flex flex-col justify-center" }, [
                                         el('div', { key: 'gold-header', className: "flex justify-between text-[7px] font-black text-amber-600 uppercase mb-1 px-1" }, [
@@ -204,13 +328,26 @@ export function MasterView({
                                         el('div', { key: 'gold-values', className: "flex justify-between gap-1" }, 
                                             ['PO', 'PP', 'PC'].map(coin => (
                                                 el('div', { key: coin, className: "text-center flex-grow" }, [
-                                                    el('p', { key: 'val', className: "text-[9px] font-black text-white" }, char.sheetData?.recursos?.[coin] || '0'),
+                                                    el('p', { key: 'val', className: "text-[9px] font-black text-white" }, char.sheetData?.outros?.[coin] || '0'),
                                                     el('p', { key: 'lbl', className: "text-[6px] text-slate-500 font-bold" }, coin)
                                                 ])
                                             ))
                                         )
                                     ])
                                 ]),
+                                (() => {
+                                    const profs = Object.keys(char.sheetData?.pericias || {}).filter(k => char.sheetData.pericias[k].prof);
+                                    if (profs.length === 0) return null;
+                                    return el('div', { key: 'profs', className: "mb-6" }, [
+                                        el('p', { className: "text-[7px] font-black text-slate-500 uppercase tracking-widest mb-2" }, "Proficiências"),
+                                        el('div', { className: "flex flex-wrap gap-1" }, 
+                                            profs.map(p => el('span', { 
+                                                key: p, 
+                                                className: "px-1.5 py-0.5 bg-purple-900/20 border border-purple-500/30 text-purple-300 text-[7px] rounded uppercase font-bold" 
+                                            }, `${p} (${char.sheetData.pericias[p].val})`))
+                                        )
+                                    ]);
+                                })(),
                                 el('div', { key: 'footer-row', className: "flex items-center justify-between gap-4" }, [
                                     el('div', { key: 'conditions-container', className: "flex items-center gap-2" }, [
                                         el('div', { key: 'conditions', className: "flex flex-wrap gap-1.5" }, 
@@ -307,7 +444,13 @@ export function MasterView({
                     ])
                 ]),
                 el('section', { key: 'history-section', className: "bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden" }, [
-                    el('div', { className: "p-5 border-b border-slate-800 text-[10px] text-slate-500 uppercase font-black" }, "🎲 Rolagens"),
+                    el('div', { className: "p-5 border-b border-slate-800 flex justify-between items-center" }, [
+                        el('span', { className: "text-[10px] text-slate-500 uppercase font-black" }, "🎲 Rolagens"),
+                        el('button', { 
+                            onClick: clearRollHistory,
+                            className: "text-[9px] text-red-500 uppercase font-bold hover:text-red-400 transition-colors"
+                        }, "Limpar Tudo")
+                    ]),
                     el('div', { className: "max-h-[250px] overflow-y-auto" }, 
                         rollHistory.map(roll => el('div', { key: roll.id, className: "p-3 border-b border-slate-800/30 flex justify-between text-[11px]" }, [
                             el('span', { className: "font-bold text-slate-400" }, roll.playerName),
@@ -444,6 +587,14 @@ export function MasterView({
                 localStorage.setItem('has_seen_master_tutorial', 'true');
                 setShowTutorial(false);
             }
+        }),
+
+        // --- 6. THE VAULT ---
+        showVault && el(MasterVault, {
+            key: 'master-vault',
+            onClose: () => setShowVault(false),
+            geminiApiKey: geminiApiKey,
+            setGeminiApiKey: setGeminiApiKey
         })
     ]);
 }
