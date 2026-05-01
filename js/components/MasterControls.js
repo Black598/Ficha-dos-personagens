@@ -100,8 +100,14 @@ export function MasterControls({ sessionState, updateSessionState }) {
 
         // NOTAS DO MESTRE
         el('div', { key: 'notes-section', className: "space-y-4" }, [
-            el('h3', { key: 'notes-title', className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-2" }, [
-                el('span', { key: 'notes-icon' }, "📝"), "Notas do Mestre (Privado)"
+            el('div', { key: 'notes-header', className: "flex justify-between items-center px-2" }, [
+                el('h3', { key: 'notes-title', className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-2" }, [
+                    el('span', { key: 'notes-icon' }, "📝"), "Notas do Mestre (Privado)"
+                ]),
+                sessionState?.masterNotes && el('button', {
+                    onClick: () => updateSessionState({ masterNotes: '' }),
+                    className: "text-[8px] text-red-500 font-bold uppercase hover:text-red-400"
+                }, "Limpar")
             ]),
             el('textarea', {
                 key: 'notes-textarea',

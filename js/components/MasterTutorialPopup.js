@@ -15,7 +15,8 @@ export function MasterTutorialPopup({ onClose }) {
         { id: 'herois', label: '🏰 Heróis', icon: '🛡️' },
         { id: 'monstros', label: '🐉 Monstros', icon: '🐙' },
         { id: 'sessao', label: '🎭 Sessão', icon: '📜' },
-        { id: 'gemini', label: '🤖 Oráculo (Gemini)', icon: '✨' }
+        { id: 'gemini', label: '🤖 Oráculo (Gemini)', icon: '✨' },
+        { id: 'novidades', label: '🔥 Novidades', icon: '⭐' }
     ];
 
     const renderContent = () => {
@@ -81,6 +82,27 @@ export function MasterTutorialPopup({ onClose }) {
                         )
                     ),
                     el('p', { className: "text-xs text-amber-500/80 italic mt-2" }, "Nota: A chave fica salva apenas no seu navegador local, garantindo sua privacidade.")
+                );
+            case 'novidades':
+                return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
+                    el('p', null, "As últimas atualizações focaram em ", el('strong', { className: "text-purple-400" }, "automação e organização"), ":"),
+                    el('div', { className: "grid grid-cols-1 gap-4 mt-4" }, [
+                        el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
+                            el('h4', { className: "text-purple-400 font-bold mb-1" }, "🖼️ Avatares e Google Drive"),
+                            el('p', null, "Agora você pode colar links de 'Compartilhar' do Google Drive diretamente nos campos de imagem. O sistema converte automaticamente para o formato visual!"),
+                            el('p', { className: "text-xs text-slate-500 mt-2" }, "• Clique na foto do jogador no seu painel para mudar o avatar dele.\n• As fotos aparecem agora na tela de seleção de personagens e no cabeçalho das fichas.")
+                        ]),
+                        el('div', { className: "bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl" }, [
+                            el('h4', { className: "text-emerald-400 font-bold mb-1" }, "🧹 Limpeza de Dados"),
+                            el('p', null, "Adicionamos botões 'Limpar' em locais estratégicos para manter sua mesa organizada:"),
+                            el('ul', { className: "list-disc pl-5 text-xs space-y-1 mt-2 text-slate-400" }, [
+                                el('li', null, "Histórico de Rolagens (no seu painel lateral)."),
+                                el('li', null, "Mural de Avisos e Handouts."),
+                                el('li', null, "Notas Privadas do Mestre."),
+                                el('li', null, "Ordem de Iniciativa.")
+                            ])
+                        ])
+                    ])
                 );
             default:
                 return null;

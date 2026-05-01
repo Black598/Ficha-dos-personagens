@@ -25,8 +25,14 @@ export function OracleMural({ sessionState, updateSessionState, allPlayers = [] 
         ]),
         el('div', { key: 'content-grid', className: "grid grid-cols-1 md:grid-cols-2 gap-6" }, [
             el('div', { key: 'announcement-section', className: "space-y-3" }, [
-                el('div', { className: "flex justify-between items-center" }, [
-                    el('label', { key: 'label', className: "text-[9px] font-black text-slate-500 uppercase ml-2" }, "Aviso/Narração Pública"),
+                el('div', { className: "flex justify-between items-center px-2" }, [
+                    el('div', { className: "flex items-center gap-2" }, [
+                        el('label', { key: 'label', className: "text-[9px] font-black text-slate-500 uppercase" }, "Aviso/Narração Pública"),
+                        sessionState?.announcement && el('button', {
+                            onClick: () => updateSessionState({ announcement: '' }),
+                            className: "text-[8px] text-red-500 font-bold uppercase hover:text-red-400"
+                        }, "Limpar")
+                    ]),
                     renderTargetSelector(sessionState?.announcementTarget, 'announcementTarget', 'purple')
                 ]),
                 el('textarea', {
