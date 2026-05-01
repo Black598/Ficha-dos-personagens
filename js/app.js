@@ -484,6 +484,21 @@ function App() {
   //  A função de selecionar árvore agora salva a árvore no Firebase, que por sua vez é ouvida em tempo real para atualizar o feed de árvores
   const selectCharacter = async (charName) => {
     if (charName.toLowerCase() === 'mestre') {
+      try {
+        const vaultSnap = await db.collection('artifacts').doc('global_directory').collection('public').doc('vault').get();
+        if (vaultSnap.exists) {
+            const vaultData = vaultSnap.data();
+            if (vaultData.password) {
+                const typedPass = prompt("Digite a senha de Mestre para acessar o Painel:");
+                if (typedPass !== vaultData.password) {
+                    alert("Acesso Negado: Senha incorreta.");
+                    return;
+                }
+            }
+        }
+      } catch (e) {
+        console.error("Erro ao validar cofre:", e);
+      }
       setCharacterName('Mestre');
       setView('master');
       return;
