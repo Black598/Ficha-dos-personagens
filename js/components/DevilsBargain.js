@@ -1,7 +1,7 @@
 const { useState } = React;
 const el = React.createElement;
 
-export function DevilsBargain({ mode, bargainData, updateSessionState, onBack, allPlayers = [] }) {
+export function DevilsBargain({ mode, bargainData, updateSessionState, onBack, allPlayers = [], characterName }) {
     const [activeTab, setActiveTab ] = useState('draw'); // 'draw' or 'manage'
     const [selectedCategory, setSelectedCategory] = useState('leve');
     const [drawResult, setDrawResult] = useState(null);
@@ -215,7 +215,7 @@ export function DevilsBargain({ mode, bargainData, updateSessionState, onBack, a
 
     // Renderiza a lista de barganhas ativas para os jogadores (visualização simples)
     if (mode === 'player') {
-        const playerBargains = (bargainData.activeBargains || []).filter(b => b.player === allPlayers[0]);
+        const playerBargains = (bargainData.activeBargains || []).filter(b => b.player === characterName);
         
         return el('div', { key: 'player-bargain-overlay', className: "fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-6 animate-fade-in" }, [
             el('div', { key: 'player-bargain-modal', className: "bg-slate-900 border-2 border-red-500/30 rounded-[3rem] p-10 max-w-2xl w-full shadow-3xl flex flex-col max-h-[80vh]" }, [

@@ -1064,7 +1064,8 @@ function App() {
     bargainData: sessionState.devilsBargain || { categories: BARGAIN_EFFECTS, activeBargains: [] },
     updateSessionState,
     onBack: () => setIsBargainOpen(false),
-    allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name)
+    allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name),
+    characterName: characterName
   });
 
   // --- MURAL E HANDOUTS GLOBAIS ---
