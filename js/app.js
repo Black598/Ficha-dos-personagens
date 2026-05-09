@@ -1,6 +1,6 @@
 // 1. IMPORTAÇÕES
 import { TALENT_TREES, firebaseConfig, DEFAULT_APP_ID, iconMap } from './data.js';
-import { loadCharacterSheet, loadPlayerList, getCharacterByName, updateSheetViaScript, extractSpreadsheetId, createCharacterInDrive } from './utils.js'
+import { loadCharacterSheet, loadPlayerList, getCharacterByName, updateSheetViaScript, extractSpreadsheetId, createCharacterInDrive, levelToRoman } from './utils.js'
 import { SheetView } from './components/SheetView.js'
 import { TreeView } from './components/TreeView.js'
 import { MasterView } from './components/MasterView.js'
@@ -476,7 +476,77 @@ function App() {
     if (level === currentLv + 1) updatedUnlocked[talentId] = level;
     else if (level === currentLv) updatedUnlocked[talentId] = level - 1;
 
-    const updatedData = { ...characterData, unlocked: updatedUnlocked };
+    if (updatedUnlocked[talentId] <= 0) delete updatedUnlocked[talentId];
+
+    // --- SINCRONIZAÇÃO AUTOMÁTICA COM A FICHA ---
+    let updatedSheetData = JSON.parse(JSON.stringify(characterSheetData || {}));
+    
+    if (updatedSheetData.outros) {
+        // 1. Mapeia todos os nomes possíveis de talentos de árvore (para identificar o que é automático)
+        const allTreeTalentNames = [];
+        Object.values(TALENT_TREES).forEach(tree => {
+            tree.talents.forEach(t => {
+                [1, 2, 3].forEach(lv => {
+                    allTreeTalentNames.push(`${t.name} ${levelToRoman(lv)}`.toUpperCase());
+                });
+            });
+        });
+
+        // 2. Separa características manuais de talentos de árvore
+        let currentTalentos = updatedSheetData.outros['Talentos'] || "";
+        let talentList = typeof currentTalentos === 'string' ? currentTalentos.split('/').map(s => s.trim()).filter(s => s) : [];
+        
+        const manualFeatures = [];
+        talentList.forEach((tName, idx) => {
+            if (!allTreeTalentNames.includes(tName.toUpperCase())) {
+                manualFeatures.push({
+                    name: tName,
+                    desc: updatedSheetData.outros[`desc_talento_${idx}`] || ""
+                });
+            }
+        });
+
+        // 3. Obtém os talentos de árvore desbloqueados atuais
+        const treeFeatures = [];
+        Object.entries(updatedUnlocked).forEach(([tId, lv]) => {
+            if (lv <= 0) return;
+            let found = null;
+            Object.values(TALENT_TREES).forEach(tree => {
+                const t = tree.talents.find(tt => tt.id === tId);
+                if (t) found = { talent: t, level: t.levels.find(l => l.lv === lv) };
+            });
+
+            if (found) {
+                treeFeatures.push({
+                    name: `${found.talent.name} ${levelToRoman(lv)}`.toUpperCase(),
+                    desc: `${found.level.effect} - ${found.level.desc}`
+                });
+            }
+        });
+
+        // 4. Combina e reconstrói a ficha
+        const finalFeatures = [...manualFeatures, ...treeFeatures];
+        updatedSheetData.outros['Talentos'] = finalFeatures.map(f => f.name).join(' / ');
+        
+        // Limpamos descs antigos primeiro para não sobrar lixo
+        for (let i = 0; i < 20; i++) {
+            if (updatedSheetData.outros[`desc_talento_${i}`]) {
+                updatedSheetData.outros[`desc_talento_${i}`] = "";
+            }
+        }
+
+        finalFeatures.forEach((f, idx) => {
+            updatedSheetData.outros[`desc_talento_${idx}`] = f.desc;
+        });
+    }
+
+    const updatedData = { ...characterData, unlocked: updatedUnlocked, sheetData: updatedSheetData };
+    
+    // Atualiza estados locais
+    setCharacterData(updatedData);
+    setCharacterSheetData(updatedSheetData);
+    
+    // Salva globalmente
     saveCharacter(characterName, updatedData);
   }
 

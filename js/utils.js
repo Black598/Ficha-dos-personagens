@@ -16,6 +16,13 @@ export const safeParseJSON = (str, fallback = []) => {
   }
 };
 
+export const levelToRoman = (lv) => {
+  if (lv === 1) return 'I';
+  if (lv === 2) return 'II';
+  if (lv === 3) return 'III';
+  return lv;
+};
+
 // --- FUNÇÕES DE BUSCA E FILTRO ---
 export function getCharacterByName(players, name) {
   const possibleKeys = ['Nome', 'Player', 'Personagem', 'Name'];
