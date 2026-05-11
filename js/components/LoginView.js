@@ -77,6 +77,7 @@ export function LoginView({
                     if (!char || !char.name) return null;
 
                     if (char.name.toLowerCase() === 'mestre') return null;
+                    if (char.pendingDeletion) return null;
 
                     const tree = char.selectedTree ? TALENT_TREES[char.selectedTree] : null;
                     const talentsCount = char.unlocked ? Object.values(char.unlocked).filter(v => v > 0).length : 0;

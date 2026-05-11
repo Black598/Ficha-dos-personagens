@@ -26,10 +26,10 @@ export function SheetView({
     setEditableSheetData,
     triggerExternalRoll,
     recentRolls,
-    setIsLibraryOpen,
     setIsBargainOpen,
     sendChatMessage,
-    chatMessages
+    chatMessages,
+    onRequestDelete
 }) {
     const charData = characterSheetData; // Alias para compatibilidade com código legado
 
@@ -584,6 +584,12 @@ export function SheetView({
                         className: "w-10 h-10 bg-slate-800 hover:bg-amber-600 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg",
                         title: "Ajuda/Tutorial"
                     }, "❓"),
+                    el('button', {
+                        key: 'btn-request-delete',
+                        onClick: onRequestDelete,
+                        className: "w-10 h-10 bg-slate-800 hover:bg-red-900 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg",
+                        title: "Solicitar Exclusão de Ficha"
+                    }, "🗑️"),
                     el('button', {
                         key: 'btn-exit',
                         onClick: onBack,

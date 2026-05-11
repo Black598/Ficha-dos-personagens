@@ -148,6 +148,40 @@ export function MasterView({
             el('div', { key: 'master-left-col', className: "lg:col-span-8 space-y-12" }, [
                 el(OracleMural, { key: 'oracle-mural', sessionState, updateSessionState, allPlayers }),
                 el(MonsterManager, { key: 'monster-manager', sessionState, updateSessionState, geminiApiKey }),
+                (() => {
+                    const pendingDeletions = allCharacters.filter(c => c.pendingDeletion === true);
+                    if (pendingDeletions.length === 0) return null;
+                    return el('div', { key: 'pending-deletions-section', className: "space-y-6" }, [
+                        el('div', { className: "flex justify-between items-end border-b border-red-900/50 pb-4" }, [
+                            el('h2', { className: "text-xs font-black uppercase tracking-[0.4em] text-red-500" }, "🗑️ Solicitações de Exclusão"),
+                        ]),
+                        el('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-6" }, 
+                            pendingDeletions.map(char => el('div', { key: char.name, className: "bg-red-950/20 border border-red-900/50 p-6 rounded-[2.5rem] shadow-xl flex items-center justify-between" }, [
+                                el('div', { className: "flex items-center gap-4" }, [
+                                    el('div', { className: "w-12 h-12 rounded-xl bg-slate-950 border border-red-900 flex items-center justify-center overflow-hidden shrink-0 shadow-lg opacity-50" }, [
+                                        char.imageUrl ? el('img', { src: char.imageUrl, className: "w-full h-full object-cover grayscale" }) : el('span', { className: "text-xl grayscale" }, "👤")
+                                    ]),
+                                    el('div', null, [
+                                        el('h3', { className: "text-lg font-black uppercase text-red-400 tracking-tighter" }, char.name),
+                                        el('p', { className: "text-[10px] text-red-500/70 font-bold uppercase tracking-widest" }, "Solicitou Exclusão")
+                                    ])
+                                ]),
+                                el('div', { className: "flex gap-2" }, [
+                                    el('button', {
+                                        onClick: () => saveCharacter(char.name, { ...char, pendingDeletion: false }),
+                                        className: "p-2 bg-emerald-900/20 hover:bg-emerald-600 text-emerald-500 hover:text-white rounded-xl border border-emerald-900/50 transition-all text-sm",
+                                        title: "Restaurar Ficha"
+                                    }, "↩️"),
+                                    el('button', {
+                                        onClick: () => deleteCharacter(char.name),
+                                        className: "p-2 bg-red-900/20 hover:bg-red-600 text-red-500 hover:text-white rounded-xl border border-red-900/50 transition-all text-sm",
+                                        title: "Confirmar Exclusão"
+                                    }, "☠️")
+                                ])
+                            ]))
+                        )
+                    ]);
+                })(),
                 el('div', { key: 'players-section', className: "space-y-6" }, [
                     el('div', { key: 'players-header', className: "flex justify-between items-end border-b border-slate-800 pb-4" }, [
                         el('h2', { key: 'players-title', className: "text-xs font-black uppercase tracking-[0.4em] text-slate-500" }, "🏰 Heróis no Reino"),
@@ -184,7 +218,7 @@ export function MasterView({
                         ])
                     ]),
                     el('div', { key: 'players-grid', className: "grid grid-cols-1 md:grid-cols-2 gap-6" }, 
-                        allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(char => {
+                        allCharacters.filter(c => c.name.toLowerCase() !== 'mestre' && !c.pendingDeletion).map(char => {
                             const maxPV = parseInt(char.sheetData?.recursos?.['PV Máximo']) || 10;
                             const perdido = parseInt(char.sheetData?.recursos?.['PV Perdido']) || 0;
                             const temp = parseInt(char.sheetData?.recursos?.['PV Temporário']) || 0;

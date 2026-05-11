@@ -1234,7 +1234,13 @@ function App() {
         characterImageUrl: characterData?.imageUrl,
         onUpdateImage: (url) => saveCharacter(characterName, { ...characterData, imageUrl: url }),
         onBack: () => { setIsNewCharacter(false); setView('login'); },
-
+        onRequestDelete: async () => {
+          if(confirm('Tem certeza que deseja solicitar a exclusão deste personagem?')) {
+            await saveCharacter(characterName, { ...characterData, pendingDeletion: true });
+            setView('login');
+            alert('Solicitação enviada ao Mestre.');
+          }
+        },
         onToggleTree: () => setView('character'),
         rollDice,
         iconMap,
