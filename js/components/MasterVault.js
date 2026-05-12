@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
 
-export function MasterVault({ onClose, geminiApiKey, setGeminiApiKey }) {
+export function MasterVault({ onClose, geminiApiKey, setGeminiApiKey, currentAppId }) {
     const [loading, setLoading] = useState(true);
     const [isFirstTime, setIsFirstTime] = useState(false);
     const [unlocked, setUnlocked] = useState(false);
@@ -18,7 +18,7 @@ export function MasterVault({ onClose, geminiApiKey, setGeminiApiKey }) {
     
     const [errorMsg, setErrorMsg] = useState('');
     const db = firebase.firestore();
-    const vaultRef = db.collection('artifacts').doc('global_directory').collection('public').doc('vault');
+    const vaultRef = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('vault');
 
     useEffect(() => {
         vaultRef.get().then(doc => {

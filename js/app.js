@@ -16,6 +16,7 @@ import { BARGAIN_EFFECTS } from './data/bargainEffects.js'
 import { DevilsBargain } from './components/DevilsBargain.js'
 import { getRandomLoot, LOOT_RARITY } from './data/LootTables.js'
 import { LootChest } from './components/LootChest.js'
+import { WorldMapView } from './components/WorldMapView.js'
 
 // 2. INICIALIZAÇÃO FIREBASE
 const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app()
@@ -207,6 +208,7 @@ function App() {
   });
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isBattlemapOpen, setIsBattlemapOpen] = useState(false);
+  const [isWorldMapOpen, setIsWorldMapOpen] = useState(false);
   const [isBargainOpen, setIsBargainOpen] = useState(false);
   const [lastTriggerSound, setLastTriggerSound] = useState(null);
   const [showHandout, setShowHandout] = useState(true);
@@ -795,15 +797,28 @@ function App() {
   const selectCharacter = async (charName) => {
     if (charName.toLowerCase() === 'mestre') {
       try {
-        const vaultSnap = await db.collection('artifacts').doc('global_directory').collection('public').doc('vault').get();
-        if (vaultSnap.exists) {
-            const vaultData = vaultSnap.data();
-            if (vaultData.password) {
-                const typedPass = prompt("Digite a senha de Mestre para acessar o Painel:");
-                if (typedPass !== vaultData.password) {
-                    alert("Acesso Negado: Senha incorreta.");
-                    return;
-                }
+        // 1. Busca a senha específica desta campanha
+        const campaignVaultSnap = await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('vault').get();
+        
+        let targetVaultData = null;
+
+        if (campaignVaultSnap.exists && campaignVaultSnap.data()?.password) {
+            // Existe senha específica para esta sala
+            targetVaultData = campaignVaultSnap.data();
+        } else if (currentAppId === DEFAULT_APP_ID) {
+            // É a sala original e não tem senha local, tenta a global (legado)
+            const globalVaultSnap = await db.collection('artifacts').doc('global_directory').collection('public').doc('vault').get();
+            if (globalVaultSnap.exists && globalVaultSnap.data()?.password) {
+                targetVaultData = globalVaultSnap.data();
+            }
+        }
+
+        // Se encontrou alguma senha válida (local ou fallback global para sala original)
+        if (targetVaultData && targetVaultData.password) {
+            const typedPass = prompt("Digite a senha de Mestre para acessar o Painel desta sala:");
+            if (typedPass !== targetVaultData.password) {
+                alert("Acesso Negado: Senha incorreta.");
+                return;
             }
         }
       } catch (e) {
@@ -1523,8 +1538,21 @@ function App() {
     onClose: clearLoot
   });
 
+  const WorldMapOverlay = isWorldMapOpen && el(WorldMapView, {
+    key: 'worldmap-overlay',
+    mode: view === 'master' ? 'master' : 'player',
+    worldMapData: sessionState.worldMap || {},
+    updateSessionState,
+    onBack: () => setIsWorldMapOpen(false),
+    battlemaps: sessionState.battlemap?.maps || [],
+    onOpenBattlemap: (mapId) => {
+        updateSessionState({ battlemap: { ...sessionState.battlemap, activeMapId: mapId } });
+        setIsWorldMapOpen(false);
+        setIsBattlemapOpen(true);
+    }
+  });
 
-  const AllOverlays = React.createElement(React.Fragment, null, [
+  const AllOverlays = React.createElement(React.Fragment, null, 
     AnnouncementOverlay,
     HandoutOverlay,
     LibraryOverlay,
@@ -1532,8 +1560,9 @@ function App() {
     LetterOverlay,
     LootOverlay,
     WeatherOverlay,
-    BattlemapOverlay
-  ]);
+    BattlemapOverlay,
+    WorldMapOverlay
+  );
 
   // Se estivermos na visão do mestre, renderizamos a MasterView
   if (view === 'master') {
@@ -1566,8 +1595,12 @@ function App() {
         approveLoot,
         clearLoot,
         generateNPC,
+        updateMasterPassword: async (newPass) => {
+            await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('vault').set({ password: newPass }, { merge: true });
+        },
         setIsLibraryOpen,
         setIsBattlemapOpen,
+        setIsWorldMapOpen,
         setIsBargainOpen,
         allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name),
         chatMessages,
@@ -1647,6 +1680,7 @@ function App() {
         sessionState,
         setIsLibraryOpen,
         setIsBattlemapOpen,
+        setIsWorldMapOpen,
         setIsBargainOpen,
         sendChatMessage,
         chatMessages: chatMessages.filter(m => 

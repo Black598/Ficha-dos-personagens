@@ -36,6 +36,7 @@ export function MasterView({
     triggerExternalRoll,
     setIsLibraryOpen,
     setIsBattlemapOpen,
+    setIsWorldMapOpen,
     setIsBargainOpen,
     allPlayers,
     chatMessages,
@@ -47,6 +48,7 @@ export function MasterView({
     approveLoot,
     clearLoot,
     generateNPC,
+    updateMasterPassword,
     currentAppId,
     deleteCampaign
 }) {
@@ -133,11 +135,16 @@ export function MasterView({
                     onClick: () => setIsLibraryOpen(true),
                     className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-amber-600 transition-all text-white"
                 }, "📚 Biblioteca"),
-                el('button', {
-                    key: 'btn-battlemap',
-                    onClick: () => setIsBattlemapOpen(true),
-                    className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-green-600 transition-all text-white"
+                el('button', { 
+                    key: 'btn-map',
+                    onClick: () => setIsBattlemapOpen(true), 
+                    className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-green-600 transition-all text-white" 
                 }, "🗺️ Mapa"),
+                el('button', { 
+                    key: 'btn-world-map',
+                    onClick: () => setIsWorldMapOpen(true), 
+                    className: "bg-amber-900/20 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-amber-600/30 hover:bg-amber-600 transition-all text-amber-500 hover:text-white" 
+                }, "🌍 Atlas"),
                 el('button', {
                     key: 'btn-bargain',
                     onClick: () => setIsBargainOpen(true),
@@ -424,8 +431,8 @@ export function MasterView({
                                     const profs = Object.keys(char.sheetData?.pericias || {}).filter(k => char.sheetData.pericias[k].prof);
                                     if (profs.length === 0) return null;
                                     return el('div', { key: 'profs', className: "mb-6" }, [
-                                        el('p', { className: "text-[7px] font-black text-slate-500 uppercase tracking-widest mb-2" }, "Proficiências"),
-                                        el('div', { className: "flex flex-wrap gap-1" }, 
+                                        el('p', { key: 'profs-label', className: "text-[7px] font-black text-slate-500 uppercase tracking-widest mb-2" }, "Proficiências"),
+                                        el('div', { key: 'profs-list', className: "flex flex-wrap gap-1" }, 
                                             profs.map(p => el('span', { 
                                                 key: p, 
                                                 className: "px-1.5 py-0.5 bg-purple-900/20 border border-purple-500/30 text-purple-300 text-[7px] rounded uppercase font-bold" 
@@ -780,7 +787,8 @@ export function MasterView({
             key: 'master-vault',
             onClose: () => setShowVault(false),
             geminiApiKey: geminiApiKey,
-            setGeminiApiKey: setGeminiApiKey
+            setGeminiApiKey: setGeminiApiKey,
+            currentAppId: currentAppId
         }),
 
         // --- 7. CONFIGURAÇÕES DA CAMPANHA ---
@@ -798,6 +806,29 @@ export function MasterView({
                     el('div', { className: "bg-slate-950/50 p-6 rounded-2xl border border-slate-800" }, [
                         el('p', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2" }, "ID da Campanha Atual"),
                         el('p', { className: "text-xs font-mono text-amber-500" }, currentAppId)
+                    ]),
+                    
+                    el('div', { className: "bg-slate-950/50 p-6 rounded-2xl border border-slate-800" }, [
+                        el('p', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4" }, "Senha de Mestre (Desta Sala)"),
+                        el('div', { className: "flex gap-2" }, [
+                            el('input', {
+                                id: 'master-pass-input',
+                                type: 'password',
+                                placeholder: 'Nova Senha...',
+                                className: "flex-grow bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-amber-500/50"
+                            }),
+                            el('button', {
+                                onClick: () => {
+                                    const pass = document.getElementById('master-pass-input').value;
+                                    if(pass) {
+                                        updateMasterPassword(pass);
+                                        alert("Senha da campanha atualizada!");
+                                        document.getElementById('master-pass-input').value = '';
+                                    }
+                                },
+                                className: "bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all"
+                            }, "Salvar")
+                        ])
                     ]),
 
                     el('div', { className: "border-t border-slate-800 pt-8" }, [

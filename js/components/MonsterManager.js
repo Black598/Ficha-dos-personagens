@@ -215,13 +215,14 @@ export function MonsterManager({ sessionState, updateSessionState, geminiApiKey 
                     }, [
                         m.imageUrl ? 
                             el('img', { 
+                                key: 'monster-avatar',
                                 src: m.imageUrl, 
                                 className: "w-full h-full object-cover group-hover/img:opacity-40 transition-all", 
                                 alt: "Monster",
                                 onError: (e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }
                             }) : null,
-                        el('span', { className: "text-lg absolute", style: { display: m.imageUrl ? 'none' : 'block' } }, "👹"),
-                        el('div', { className: "absolute inset-0 flex items-center justify-center opacity-0 group-hover/img:opacity-100 text-white font-black drop-shadow-md pointer-events-none" }, "✏️")
+                        el('span', { key: 'monster-icon', className: "text-lg absolute", style: { display: m.imageUrl ? 'none' : 'block' } }, "👹"),
+                        el('div', { key: 'edit-overlay', className: "absolute inset-0 flex items-center justify-center opacity-0 group-hover/img:opacity-100 text-white font-black drop-shadow-md pointer-events-none" }, "✏️")
                     ]),
                     el('div', { key: 'name-ca-box', className: "flex-grow" }, [
                         el('input', {

@@ -35,7 +35,8 @@ export function SheetView({
     shareNote,
     deleteNote,
     setIsLibraryOpen,
-    setIsBattlemapOpen
+    setIsBattlemapOpen,
+    setIsWorldMapOpen
 }) {
     const charData = characterSheetData; // Alias para compatibilidade com código legado
 
@@ -599,6 +600,10 @@ export function SheetView({
                         onClick: () => setIsBattlemapOpen(true),
                         className: "bg-green-600/10 hover:bg-green-600 text-green-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-green-600/30 px-4 py-2 rounded-xl transition-all"
                     }, "🗺️ Mapa"),
+                    el('button', {
+                        onClick: () => setIsWorldMapOpen(true),
+                        className: "bg-amber-600/10 hover:bg-amber-600 text-amber-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-amber-600/30 px-4 py-2 rounded-xl transition-all"
+                    }, "🌍 Atlas"),
                     el('button', {
                         onClick: onToggleTree,
                         className: "bg-purple-600/10 hover:bg-purple-600 text-purple-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-purple-600/30 px-4 py-2 rounded-xl transition-all"

@@ -76,7 +76,7 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 
 - **Conceito:** Sistema de combinação de itens para criar poções e upgrades.
 
-### 5. 🗺️ Mapa de Batalha (VTT) Integrado [EM ANDAMENTO]
+### 5. 🗺️ Mapa de Batalha (VTT) Integrado [CONCLUÍDO]
 
 - **Conceito:** Um Virtual Tabletop completo estilo Roll20.
 - **Features:**
@@ -84,17 +84,19 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Fase 2:** Sistema de Tokens Drag & Drop, sincronização em tempo real e Snap-to-grid.
   - ✅ **Fase 3:** Sistema de Auras em tokens, efeitos de ataques no mapa e marcadores visuais.
   - ✅ **Fase 4:** Gestão Multi-Mapas, Fog of War (Névoa de Guerra) e Sistema de Props.
-  - ✅ **Fase 7:** Ajuste nos Tokens: jogadores podem alterar seus próprios tokens e os que criarem (imagem/aura/status).
+  - ✅ **Fase 5:** Visão Dinâmica (Tokens de jogadores revelam névoa ao redor).
+  - ✅ **Fase 6:** Sistema de Dados 3D persistente integrado na UI do mapa.
 
-### 6. 🗺️ Mapa do Mundo Interativo [PRÓXIMO]
+### 6. 🗺️ Mapa do Mundo Interativo (Atlas) [CONCLUÍDO]
 
-- **Conceito:** Visão global com marcadores e pins de interesse.
+- **Conceito:** Visão global com marcadores e pins de interesse para navegação macro.
 - **Features:**
-  - 🔄 **Fase 1:** Renderização de Mapa Mundi com Pan/Zoom independente do mapa de batalha.
-  - ⏳ **Fase 2:** Sistema de Pins de Localidade com descrição e notas de lore.
-  - ⏳ **Fase 3:** Sistema de "Fast Travel" (clicar no pin abre o mapa de batalha daquela região).
+  - ✅ **Fase 1:** Renderização de Mapa Mundi com Pan/Zoom independente.
+  - ✅ **Fase 2:** Sistema de Pins de Localidade com descrição e notas de lore.
+  - ✅ **Fase 3:** Sistema de "Fast Travel" (clicar no pin abre o mapa de batalha daquela região).
+  - ✅ **Fase 4:** Integração com Google Drive para mapas de alta definição.
 
 ---
 
 **Última atualização:** 12/05/2026
-**Próximo passo:** Iniciar o **Mapa do Mundo Interativo**.
+**Próximo passo:** Iniciar o Sistema de **🧪 Alquimia e Crafting**.

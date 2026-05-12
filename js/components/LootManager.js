@@ -65,17 +65,18 @@ export function LootManager({ sessionState, generateLoot, approveLoot, clearLoot
     };
 
     return el('div', { className: "bg-slate-900/40 border border-slate-800 p-8 rounded-[3rem] shadow-2xl space-y-6" }, [
-        el('div', { className: "flex justify-between items-center border-b border-slate-800 pb-4" }, [
-            el('h2', { className: "text-xs font-black uppercase tracking-[0.4em] text-amber-500" }, "💰 Gerador de Tesouros"),
+        el('div', { key: 'loot-header', className: "flex justify-between items-center border-b border-slate-800 pb-4" }, [
+            el('h2', { key: 'loot-title', className: "text-xs font-black uppercase tracking-[0.4em] text-amber-500" }, "💰 Gerador de Tesouros"),
             activeLoot && el('button', {
+                key: 'loot-clear-btn',
                 onClick: clearLoot,
                 className: "text-[10px] font-bold uppercase text-slate-500 hover:text-white transition-colors"
             }, "Limpar")
         ]),
 
         !activeLoot ? (
-            el('div', { className: "space-y-6" }, [
-                el('div', { className: "grid grid-cols-2 md:grid-cols-4 gap-4" }, [
+            el('div', { key: 'no-loot-view', className: "space-y-6" }, [
+                el('div', { key: 'loot-presets', className: "grid grid-cols-2 md:grid-cols-4 gap-4" }, [
                     ['low', 'Pobre 📦'],
                     ['medium', 'Médio 💎'],
                     ['high', 'Rico 💰'],
@@ -88,6 +89,7 @@ export function LootManager({ sessionState, generateLoot, approveLoot, clearLoot
                     }, label)
                 )),
                 el('button', {
+                    key: 'custom-loot-btn',
                     onClick: () => {
                         updateSessionState({ activeLoot: { gold: 0, items: [], approved: false, target: 'all' } });
                         setShowCustomForm(true);

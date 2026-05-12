@@ -64,8 +64,8 @@ export function OracleMural({ sessionState, updateSessionState, allPlayers = [] 
                     }, "×")
                 ]),
                 sessionState?.handout && el('div', { key: 'preview', className: "mt-2 h-16 w-full rounded-xl overflow-hidden border border-slate-800 bg-black flex items-center justify-center relative group" }, [
-                    el('img', { src: sessionState.handout, className: "h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity" }),
-                    el('span', { className: "absolute inset-0 flex items-center justify-center text-[8px] font-black text-white/50 uppercase tracking-widest pointer-events-none" }, "Preview do Mestre")
+                    el('img', { key: 'img-preview', src: sessionState.handout, className: "h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity" }),
+                    el('span', { key: 'span-label', className: "absolute inset-0 flex items-center justify-center text-[8px] font-black text-white/50 uppercase tracking-widest pointer-events-none" }, "Preview do Mestre")
                 ])
             ])
         ])

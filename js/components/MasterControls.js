@@ -111,6 +111,7 @@ export function MasterControls({ sessionState, updateSessionState }) {
                     el('span', { key: 'notes-icon' }, "📝"), "Notas do Mestre (Privado)"
                 ]),
                 sessionState?.masterNotes && el('button', {
+                    key: 'notes-clear-btn',
                     onClick: () => updateSessionState({ masterNotes: '' }),
                     className: "text-[8px] text-red-500 font-bold uppercase hover:text-red-400"
                 }, "Limpar")
