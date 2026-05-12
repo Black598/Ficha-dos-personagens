@@ -64,13 +64,14 @@ export function MasterView({
     const [secretMode, setSecretMode] = useState(false);
     const [localModifier, setLocalModifier] = useState(0);
     const [localRollMode, setLocalRollMode] = useState('normal');
+    const [localQuantity, setLocalQuantity] = useState(1);
     const [showCondModalFor, setShowCondModalFor] = useState(null);
     const [selectedChars, setSelectedChars] = useState([]);
     const [draggedIndex, setDraggedIndex] = useState(null);
 
     const handleQuickRoll = (sides) => {
         if (triggerExternalRoll) {
-            triggerExternalRoll(sides, secretMode, localModifier, localRollMode);
+            triggerExternalRoll(sides, secretMode, localModifier, localRollMode, localQuantity);
         } else {
             rollDice(sides, null, '', secretMode);
         }
@@ -629,10 +630,41 @@ export function MasterView({
             ])
         ]),
 
-        el('div', { key: 'quick-dice-bar', className: "fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-4" }, [
+        el('div', { key: 'quick-dice-bar', className: "fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2" }, [
+            // Row 1: Modifier (Bonus)
+            el('div', { className: "bg-slate-900/90 backdrop-blur border border-purple-500/20 px-4 py-1.5 rounded-xl shadow-lg flex items-center gap-3" }, [
+                el('span', { className: "text-purple-400 text-[9px] font-black uppercase tracking-widest" }, "Bônus:"),
+                el('button', { onClick: () => setLocalModifier(m => m - 1), className: "w-6 h-6 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-lg border border-slate-700 text-xs" }, "-"),
+                el('span', { className: "text-white font-black text-sm w-8 text-center" }, localModifier >= 0 ? `+${localModifier}` : localModifier),
+                el('button', { onClick: () => setLocalModifier(m => m + 1), className: "w-6 h-6 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-lg border border-slate-700 text-xs" }, "+"),
+                el('button', { onClick: () => setLocalModifier(0), className: "text-[8px] text-slate-500 hover:text-white ml-2 uppercase font-bold" }, "Reset")
+            ]),
+
+            // Row 2: Quantity Presets
+            el('div', { className: "bg-slate-900/90 backdrop-blur border border-amber-500/20 px-3 py-2 rounded-2xl shadow-lg flex items-center gap-2" }, [
+                el('span', { className: "text-amber-500 text-[9px] font-black uppercase tracking-widest mr-1" }, "Qtd:"),
+                [1, 2, 3, 4, 5, 6, 8, 10].map(n => el('button', {
+                    key: n,
+                    onClick: () => setLocalQuantity(n),
+                    className: `w-7 h-7 rounded-lg font-black text-[10px] border-2 transition-all ${
+                        localQuantity === n
+                            ? 'bg-amber-500 border-amber-400 text-slate-900 shadow-[0_0_8px_rgba(245,158,11,0.4)]'
+                            : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-amber-500/50'
+                    }`
+                }, n))
+            ]),
+
+            // Row 3: Dice Buttons
             el('div', { className: "bg-slate-900 border-2 border-amber-500/40 p-4 rounded-[2rem] shadow-2xl flex items-center gap-3" }, [
-                el('button', { onClick: () => setSecretMode(!secretMode), className: `w-10 h-10 rounded-xl flex items-center justify-center ${secretMode ? 'bg-red-600' : 'bg-slate-800'}` }, secretMode ? "🕵️" : "👁️"),
-                [4, 6, 8, 10, 12, 20, 100].map(s => el('button', { key: s, onClick: () => handleQuickRoll(s), className: "w-10 h-10 bg-slate-800 rounded-xl font-black text-[10px] border border-slate-700" }, s))
+                el('button', { onClick: () => setSecretMode(!secretMode), className: `w-10 h-10 rounded-xl flex items-center justify-center ${secretMode ? 'bg-red-600' : 'bg-slate-800'}`, title: "Alternar modo secreto" }, secretMode ? '🕵️' : '👁️'),
+                [4, 6, 8, 10, 12, 20, 100].map(s => el('button', {
+                    key: s,
+                    onClick: () => handleQuickRoll(s),
+                    className: 'relative w-10 h-10 bg-slate-800 hover:bg-amber-600 rounded-xl font-black text-[10px] border border-slate-700 hover:border-amber-400 transition-all flex flex-col items-center justify-center'
+                }, [
+                    localQuantity > 1 ? el('span', { key: 'q', className: 'text-amber-400 text-[8px] font-black leading-none' }, localQuantity + 'x') : null,
+                    el('span', { key: 'v' }, s)
+                ]))
             ])
         ]),
 

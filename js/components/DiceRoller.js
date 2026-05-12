@@ -1,4 +1,6 @@
-export function DiceRoller({ rollDice, recentRolls, characterName, view, isRollingModalOpen, setRollingModalOpen, tabletopMode = false, externalRoll = null }) {
+﻿export function DiceRoller({ rollDice, recentRolls, characterName, view, isRollingModalOpen, setRollingModalOpen, tabletopMode = false, externalRoll = null }) {
+    // localQuantity: how many dice to roll at once (NdX)
+    const [localQuantity, setLocalQuantity] = React.useState(1);
     const el = React.createElement;
     const [visibleRolls, setVisibleRolls] = React.useState([]);
     const [isFirstLoad, setIsFirstLoad] = React.useState(true);
@@ -192,7 +194,7 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
         }
         animate(performance.now());
 
-        function rollActiveDice(sides, forcedSecret = null, forcedModifier = null, forcedMode = null) {
+        function rollActiveDice(sides, forcedSecret = null, forcedModifier = null, forcedMode = null, forcedQuantity = null) {
             if (!sides || isRolling) return;
             isRolling = true;
             if (tabletopMode) setTabletopActive(true);
@@ -203,29 +205,21 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
             const mode = forcedMode !== null ? forcedMode : (rollModeRef.current || 'normal');
             const isSecret = forcedSecret !== null ? forcedSecret : secretModeRef.current;
             
-            const numDice = (mode !== 'normal') ? 2 : 1;
+            // quantity: NdX support. vantagem/desvantagem always = 2 dice regardless of quantity.
+            const quantity = forcedQuantity !== null ? Math.max(1, parseInt(forcedQuantity) || 1) : (window._dmCurrentQuantity || 1);
+            const numDice = (mode !== 'normal') ? 2 : quantity;
 
             if(diceLabelRef.current) {
                 diceLabelRef.current.className = 'dice-label text-purple-400 font-bold tracking-widest text-lg uppercase h-8 mt-4';
-                diceLabelRef.current.textContent = `Rolando D${sides}...`;
+                const qLabel = numDice > 1 ? `${numDice}x ` : '';
+                diceLabelRef.current.textContent = `Rolando ${qLabel}D${sides}...`;
             }
 
             activeDice.forEach(d => scene.remove(d.group));
             activeDice = [];
 
-            const radius = (numDice === 2) ? 2.8 : 3.5;
-            let geometry;
-            switch (sides) {
-                case 2: geometry = new THREE.CylinderGeometry(radius, radius, 0.4, 32); break;
-                case 4: geometry = new THREE.TetrahedronGeometry(radius, 0); break;
-                case 6: geometry = new THREE.BoxGeometry(radius * 1.2, radius * 1.2, radius * 1.2); break;
-                case 8: geometry = new THREE.OctahedronGeometry(radius, 0); break;
-                case 10: geometry = createD10Geometry(radius); break;
-                case 12: geometry = new THREE.DodecahedronGeometry(radius, 0); break;
-                case 20: geometry = new THREE.IcosahedronGeometry(radius, 0); break;
-                case 100: geometry = new THREE.IcosahedronGeometry(radius, 2); break; // Zocchihedron style
-                default: geometry = new THREE.BoxGeometry(radius, radius, radius); break;
-            }
+            // Shrink dice as quantity grows so they all fit on screen
+            const radius = numDice <= 1 ? 3.5 : numDice <= 3 ? 2.8 : numDice <= 6 ? 2.2 : 1.7;
 
             const isD100 = sides === 100;
             const baseMatParams = {
@@ -235,15 +229,32 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
                 envMapIntensity: 1.0, flatShading: true
             };
 
-            let facesData = getFacesData(geometry, sides);
-            if (sides === 2) facesData = facesData.filter(f => Math.abs(f.normal.y) > 0.9);
-
             currentRollData = { sides, modifier, mode, rolls: [], isSecret };
+            console.log(`🎲 Rolling ${numDice}d${sides} (quantity=${quantity}, mode=${mode})`);
+
+
+            function createDiceGeometry(sides, radius) {
+                switch (sides) {
+                    case 2:  return new THREE.CylinderGeometry(radius, radius, 0.4, 32);
+                    case 4:  return new THREE.TetrahedronGeometry(radius, 0);
+                    case 6:  return new THREE.BoxGeometry(radius * 1.2, radius * 1.2, radius * 1.2);
+                    case 8:  return new THREE.OctahedronGeometry(radius, 0);
+                    case 10: return createD10Geometry(radius);
+                    case 12: return new THREE.DodecahedronGeometry(radius, 0);
+                    case 20: return new THREE.IcosahedronGeometry(radius, 0);
+                    case 100: return new THREE.IcosahedronGeometry(radius, 2);
+                    default: return new THREE.BoxGeometry(radius, radius, radius);
+                }
+            }
 
             for (let d = 0; d < numDice; d++) {
                 let dieGroup = new THREE.Group(); scene.add(dieGroup);
-                const dieMesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial(baseMatParams));
+                // Each die gets its OWN geometry instance to avoid shared state issues
+                const dieGeometry = createDiceGeometry(sides, radius);
+                const dieMesh = new THREE.Mesh(dieGeometry, new THREE.MeshStandardMaterial(baseMatParams));
                 dieGroup.add(dieMesh);
+
+                const dieFacesData = getFacesData(dieGeometry, sides).filter((f) => sides !== 2 || Math.abs(f.normal.y) > 0.9);
 
                 const textureCache = {};
                 function getCachedTexture(val, alt) {
@@ -260,14 +271,14 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
                     // Fill at least 1-100
                     for (let i = 1; i <= 100; i++) values.push(i);
                     // Fill remaining faces with random numbers
-                    while (values.length < facesData.length) {
+                    while (values.length < dieFacesData.length) {
                         values.push(Math.floor(Math.random() * 100) + 1);
                     }
                 }
                 values = values.sort(() => Math.random() - 0.5);
 
                 let targetNormal = new THREE.Vector3();
-                facesData.forEach((f, idx) => {
+                dieFacesData.forEach((f, idx) => {
                     if (idx >= values.length) return;
                     const val = values[idx];
                     const tex = getCachedTexture(val, sides === 2);
@@ -293,9 +304,13 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
 
                 currentRollData.rolls.push(rawRoll);
                 let velocity = new THREE.Vector3((Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5);
-                if (numDice === 2) {
-                    dieGroup.position.x = d === 0 ? -3 : 3;
-                    velocity.x += d === 0 ? -0.1 : 0.1;
+                // Position dice in a row centered on screen
+                if (numDice > 1) {
+                    const spacing = radius * 2.4;
+                    const totalWidth = spacing * (numDice - 1);
+                    dieGroup.position.x = -totalWidth / 2 + d * spacing;
+                    dieGroup.position.y = 0;
+                    velocity.x += (d - (numDice - 1) / 2) * 0.05;
                 }
 
                 // Calculate target rotation to make the rolled face point to the camera (Z axis)
@@ -317,15 +332,27 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
         function onRollComplete() {
             const { sides, modifier, mode, rolls, isSecret } = currentRollData;
             let finalRaw; let rollTextExtra = '';
-            if (mode === 'vantagem') { finalRaw = Math.max(...rolls); rollTextExtra = ` (Vant: ${rolls[0]}, ${rolls[1]})`; }
-            else if (mode === 'desvantagem') { finalRaw = Math.min(...rolls); rollTextExtra = ` (Desv: ${rolls[0]}, ${rolls[1]})`; }
-            else { finalRaw = rolls[0]; }
+            if (mode === 'vantagem') {
+                finalRaw = Math.max(...rolls);
+                rollTextExtra = ` (Vant: ${rolls[0]}, ${rolls[1]})`;
+            } else if (mode === 'desvantagem') {
+                finalRaw = Math.min(...rolls);
+                rollTextExtra = ` (Desv: ${rolls[0]}, ${rolls[1]})`;
+            } else if (rolls.length > 1) {
+                // Multiple dice: sum them all
+                finalRaw = rolls.reduce((a, b) => a + b, 0);
+                rollTextExtra = ` [${rolls.join(' + ')}]`;
+            } else {
+                finalRaw = rolls[0];
+            }
 
             const finalResult = finalRaw + modifier;
-            let modStr = modifier !== 0 ? (modifier > 0 ? `+${modifier}` : modifier) : '';
-            if(diceLabelRef.current) diceLabelRef.current.textContent = `D${sides}${modStr} = ${finalResult}${rollTextExtra}`;
+            let modStr = modifier !== 0 ? (modifier > 0 ? `+${modifier}` : `${modifier}`) : '';
+            const qLabel = rolls.length > 1 ? `${rolls.length}d` : `d`;
+            if(diceLabelRef.current) diceLabelRef.current.textContent = `${qLabel}${sides}${modStr} = ${finalResult}${rollTextExtra}`;
             
-            rollDice(sides, finalResult, (modStr + rollTextExtra).trim(), isSecret);
+            const label = (`${qLabel}${sides}${modStr}${rollTextExtra}`).trim();
+            rollDice(sides, finalResult, label, isSecret);
 
             if (tabletopMode) {
                 hiderTimeoutRef.current = setTimeout(() => {
@@ -337,6 +364,7 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
         }
 
         window._dmRollTrigger = rollActiveDice;
+        window._dmCurrentQuantity = 1; // Will be updated by React state sync
 
         return () => {
             console.log("🎲 [DiceRoller] Cleaning up 3D Engine...");
@@ -346,11 +374,16 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
         };
     }, [isRollingModalOpen, tabletopMode]);
 
+    // Keep global quantity ref in sync with React state
+    React.useEffect(() => {
+        window._dmCurrentQuantity = localQuantity;
+    }, [localQuantity]);
+
     // Handle external triggers
     React.useEffect(() => {
         if (externalRoll && window._dmRollTrigger) {
             console.log("🎲 [DiceRoller] Handling External Roll:", externalRoll);
-            window._dmRollTrigger(externalRoll.sides, externalRoll.secret, externalRoll.modifier, externalRoll.mode);
+            window._dmRollTrigger(externalRoll.sides, externalRoll.secret, externalRoll.modifier, externalRoll.mode, externalRoll.quantity || 1);
         }
     }, [externalRoll]);
 
@@ -378,41 +411,57 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
                     ]),
                     el('div', { key: 'label', ref: diceLabelRef, className: "dice-label mt-4 text-purple-400 font-bold tracking-widest text-lg uppercase h-8" }, "Escolha o dado")
                 ]),
-                el('section', { key: 'controls', className: "controls relative z-[120] flex flex-col items-center gap-6 mt-4" }, [
-                    el('div', { key: 'dice-grid', className: "grid grid-cols-4 gap-3 w-full" }, 
+                el('section', { key: 'controls', className: "controls relative z-[120] flex flex-col items-center gap-5 mt-4 w-full" }, [
+
+                    el('div', { key: 'qty-section', className: "w-full bg-slate-950/60 border border-amber-500/20 rounded-2xl p-4 flex flex-col gap-3" }, [
+                        el('p', { key: 'qty-title', className: "text-[9px] font-black text-amber-500 uppercase tracking-[0.3em] text-center" }, 'Quantos dados rodar?'),
+                        el('div', { key: 'qty-btns', className: "flex gap-2 justify-center" },
+                            [1,2,3,4,5,6,8,10].map(n => el('button', {
+                                key: n,
+                                onClick: () => setLocalQuantity(n),
+                                className: n === localQuantity
+                                    ? 'w-10 h-10 rounded-xl font-black text-sm border-2 bg-amber-500 border-amber-400 text-slate-900 shadow-[0_0_12px_rgba(245,158,11,0.5)] scale-110 transition-all'
+                                    : 'w-10 h-10 rounded-xl font-black text-sm border-2 bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:border-amber-500/50 transition-all'
+                            }, n))
+                        )
+                    ]),
+
+                    el('div', { key: 'dice-grid', className: "grid grid-cols-4 gap-3 w-full" },
                         [2,4,6,8,10,12,20,100].map(s => el('button', {
                             key: s,
-                            onClick: () => {
-                                if (window._dmRollTrigger) window._dmRollTrigger(s, localSecret);
-                            },
-                            className: "dice-btn bg-slate-800 hover:bg-amber-600 border border-slate-700 hover:border-amber-400 text-white font-black py-4 rounded-xl flex flex-col items-center justify-center"
-                        }, [el('span', { key: 'd' }, "D"), s]))
+                            onClick: () => { if (window._dmRollTrigger) window._dmRollTrigger(s, localSecret, null, null, localQuantity); },
+                            className: 'dice-btn bg-slate-800 hover:bg-amber-600 border border-slate-700 hover:border-amber-400 text-white font-black py-4 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all active:scale-95'
+                        }, [
+                            localQuantity > 1 ? el('span', { key: 'formula', className: 'text-amber-300 text-[10px] font-black leading-none' }, localQuantity + 'd' + s) : el('span', { key: 'd', className: 'text-slate-400 text-[10px]' }, 'D'),
+                            el('span', { key: 'num', className: 'text-xl leading-none' }, s)
+                        ]))
                     ),
-                    el('div', { key: 'options', className: "flex flex-col sm:flex-row gap-6 w-full items-center justify-center" }, [
+
+                    el('div', { key: 'options', className: "flex flex-col sm:flex-row gap-4 w-full items-center justify-center" }, [
                         el('div', { key: 'modes', className: "flex gap-4 bg-slate-950/50 p-2 px-4 rounded-2xl border border-slate-800" }, [
-                            el('label', { key: 'norm', className: "flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white" }, [
-                                el('input', { type: 'radio', name: 'rollMode', value: 'normal', checked: localRollMode === 'normal', onChange: () => setLocalRollMode('normal'), className: "accent-purple-500" }),
-                                el('span', { key: 'txt' }, "Normal")
+                            el('label', { key: 'norm', className: 'flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white' }, [
+                                el('input', { type: 'radio', name: 'rollMode', value: 'normal', checked: localRollMode === 'normal', onChange: () => setLocalRollMode('normal'), className: 'accent-purple-500' }),
+                                el('span', { key: 'txt' }, 'Normal')
                             ]),
-                            el('label', { key: 'vant', className: "flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white" }, [
-                                el('input', { type: 'radio', name: 'rollMode', value: 'vantagem', checked: localRollMode === 'vantagem', onChange: () => setLocalRollMode('vantagem'), className: "accent-purple-500" }),
-                                el('span', { key: 'txt' }, "Vantagem")
+                            el('label', { key: 'vant', className: 'flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white' }, [
+                                el('input', { type: 'radio', name: 'rollMode', value: 'vantagem', checked: localRollMode === 'vantagem', onChange: () => setLocalRollMode('vantagem'), className: 'accent-purple-500' }),
+                                el('span', { key: 'txt' }, 'Vantagem')
                             ]),
-                            el('label', { key: 'desv', className: "flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white" }, [
-                                el('input', { type: 'radio', name: 'rollMode', value: 'desvantagem', checked: localRollMode === 'desvantagem', onChange: () => setLocalRollMode('desvantagem'), className: "accent-purple-500" }),
-                                el('span', { key: 'txt' }, "Desvantagem")
+                            el('label', { key: 'desv', className: 'flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white' }, [
+                                el('input', { type: 'radio', name: 'rollMode', value: 'desvantagem', checked: localRollMode === 'desvantagem', onChange: () => setLocalRollMode('desvantagem'), className: 'accent-purple-500' }),
+                                el('span', { key: 'txt' }, 'Desvantagem')
                             ]),
-                            el('label', { key: 'secret', className: `flex items-center gap-2 cursor-pointer ml-4 border-l border-slate-700 pl-4 text-purple-500 hover:text-purple-400` },
-                                el('input', { type: 'checkbox', checked: localSecret, onChange: (e) => setLocalSecret(e.target.checked), className: "accent-purple-500" }),
-                                el('span', { key: 'txt', className: "font-bold text-xs uppercase" }, (characterName || "").toLowerCase() === 'mestre' ? "Oculto 👁️" : "Privado 👁️")
+                            el('label', { key: 'secret', className: 'flex items-center gap-2 cursor-pointer ml-4 border-l border-slate-700 pl-4 text-purple-500 hover:text-purple-400' },
+                                el('input', { type: 'checkbox', checked: localSecret, onChange: (e) => setLocalSecret(e.target.checked), className: 'accent-purple-500' }),
+                                el('span', { key: 'txt', className: 'font-bold text-xs uppercase' }, characterName && characterName.toLowerCase() === 'mestre' ? 'Oculto' : 'Privado')
                             )
                         ]),
                         el('div', { key: 'mod-box', className: "modifiers flex items-center gap-3 bg-slate-950/50 p-2 px-4 rounded-2xl border border-slate-800" }, [
-                            el('label', { key: 'lbl', className: "text-slate-400 text-sm font-bold uppercase tracking-wider" }, "Mod:"),
-                            el('div', { key: 'inp', className: "flex items-center bg-slate-800 rounded-lg overflow-hidden border border-slate-700" }, [
-                                el('button', { key: 'sub', onClick: () => setLocalModifier(m => m - 1), className: "px-3 py-1 hover:bg-slate-700 text-white font-black" }, "-"),
-                                el('input', { key: 'val', ref: modifierRef, type: 'number', value: localModifier, readOnly: true, className: "w-10 bg-transparent text-center text-white font-black outline-none" }),
-                                el('button', { key: 'add', onClick: () => setLocalModifier(m => m + 1), className: "px-3 py-1 hover:bg-slate-700 text-white font-black" }, "+")
+                            el('label', { key: 'lbl', className: 'text-slate-400 text-sm font-bold uppercase tracking-wider' }, 'Bonus:'),
+                            el('div', { key: 'inp', className: 'flex items-center bg-slate-800 rounded-lg overflow-hidden border border-slate-700' }, [
+                                el('button', { key: 'sub', onClick: () => setLocalModifier(m => m - 1), className: 'px-3 py-1 hover:bg-slate-700 text-white font-black' }, '-'),
+                                el('input', { key: 'val', ref: modifierRef, type: 'number', value: localModifier, readOnly: true, className: 'w-10 bg-transparent text-center text-white font-black outline-none' }),
+                                el('button', { key: 'add', onClick: () => setLocalModifier(m => m + 1), className: 'px-3 py-1 hover:bg-slate-700 text-white font-black' }, '+')
                             ])
                         ])
                     ])

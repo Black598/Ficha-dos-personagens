@@ -1291,8 +1291,8 @@ function App() {
   };
 
   // --- 8.7 DISPARAR ROLAGEM EXTERNA (MESA) ---
-  const triggerExternalRoll = (sides, secret = false, modifier = 0, mode = 'normal') => {
-    setExternalRoll({ sides, secret, modifier, mode, timestamp: Date.now() });
+  const triggerExternalRoll = (sides, secret = false, modifier = 0, mode = 'normal', quantity = 1) => {
+    setExternalRoll({ sides, secret, modifier, mode, quantity, timestamp: Date.now() });
   };
 
   // --- 8.3 INTEGRAÇÃO GEMINI ---

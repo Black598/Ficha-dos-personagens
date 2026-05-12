@@ -9,6 +9,7 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
     const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const containerRef = useRef(null);
+    const cameraRef = useRef(null);
 
     // Estado dos Tokens e Menus
     const [draggingToken, setDraggingToken] = useState(null);
@@ -36,12 +37,28 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
         // Bloqueia rolagem padrão da página
         e.preventDefault(); 
         
-        const scaleAmount = 0.1;
+        const rect = containerRef.current.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Coordenadas relativas ao centro do container
+        const ox = mouseX - rect.width / 2;
+        const oy = mouseY - rect.height / 2;
+
+        const scaleAmount = 0.15;
         const delta = e.deltaY > 0 ? -scaleAmount : scaleAmount;
         let newScale = camera.scale + delta;
-        newScale = Math.max(0.2, Math.min(newScale, 5)); // Limites de zoom (20% a 500%)
+        newScale = Math.max(0.1, Math.min(newScale, 10)); // Limites de zoom expandidos (10% a 1000%)
 
-        setCamera(prev => ({ ...prev, scale: newScale }));
+        // Calcula a posição do mundo sob o mouse ANTES do zoom
+        const worldX = (ox - camera.x) / camera.scale;
+        const worldY = (oy - camera.y) / camera.scale;
+
+        // Ajusta a câmera para que a mesma posição do mundo continue sob o mouse DEPOIS do zoom
+        const newX = ox - worldX * newScale;
+        const newY = oy - worldY * newScale;
+
+        setCamera({ x: newX, y: newY, scale: newScale });
     };
 
     const handleMouseDown = (e) => {
@@ -51,9 +68,9 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
             setIsDraggingCanvas(true);
             setDragStart({ x: e.clientX, y: e.clientY });
         } else if (e.button === 0 && drawMode && !draggingToken) {
-            const rect = containerRef.current.getBoundingClientRect();
-            const worldX = (e.clientX - rect.left - rect.width/2 - camera.x) / camera.scale;
-            const worldY = (e.clientY - rect.top - rect.height/2 - camera.y) / camera.scale;
+            const rect = cameraRef.current.getBoundingClientRect();
+            const worldX = (e.clientX - rect.left) / camera.scale;
+            const worldY = (e.clientY - rect.top) / camera.scale;
             setCurrentDraw({ shape: drawMode, startX: worldX, startY: worldY, endX: worldX, endY: worldY, color: drawColor });
         }
     };
@@ -76,9 +93,9 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
             const dy = (e.clientY - draggingToken.startMouseY) / camera.scale;
             setDraggingToken(prev => ({ ...prev, x: prev.initX + dx, y: prev.initY + dy }));
         } else if (currentDraw) {
-            const rect = containerRef.current.getBoundingClientRect();
-            const worldX = (e.clientX - rect.left - rect.width/2 - camera.x) / camera.scale;
-            const worldY = (e.clientY - rect.top - rect.height/2 - camera.y) / camera.scale;
+            const rect = cameraRef.current.getBoundingClientRect();
+            const worldX = (e.clientX - rect.left) / camera.scale;
+            const worldY = (e.clientY - rect.top) / camera.scale;
             setCurrentDraw(prev => ({ ...prev, endX: worldX, endY: worldY }));
         }
     };
@@ -277,7 +294,18 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                         value: drawColor,
                         onChange: (e) => setDrawColor(e.target.value),
                         className: "w-6 h-6 ml-1 bg-transparent cursor-pointer rounded-full overflow-hidden border-0 p-0"
-                    })
+                    }),
+                    el('button', {
+                        onClick: () => {
+                            if (drawings.length > 0) {
+                                const newDrawings = [...drawings];
+                                newDrawings.pop();
+                                updateSessionState({ battlemap: { ...battlemapData, drawings: newDrawings } });
+                            }
+                        },
+                        className: `w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800 transition-colors`,
+                        title: "Desfazer último desenho"
+                    }, "↩️")
                 ]),
                 mode === 'master' && el('button', {
                     onClick: () => {
@@ -314,6 +342,7 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
             // A "Câmera" aplica a transformação
             el('div', {
                 key: 'camera',
+                ref: cameraRef,
                 className: "absolute top-1/2 left-1/2 origin-center", // Removido will-change-transform para o navegador re-renderizar em alta resolução
                 style: {
                     transform: `translate(calc(-50% + ${camera.x}px), calc(-50% + ${camera.y}px)) scale(${camera.scale})`

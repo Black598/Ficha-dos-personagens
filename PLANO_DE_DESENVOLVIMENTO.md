@@ -57,7 +57,7 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 ### 1. 🧙‍♂️ Assistente de Criação de Personagem (Charactermancer)
 
 - **Conceito:** Um menu guiado para acelerar a criação de novos personagens.
-- **Features:** 
+- **Features:**
   - Seleção de Classe e Raça com preenchimento automático de talentos e características na ficha.
   - Progressão travada por nível (libera habilidades conforme upa).
   - Múltipla escolha para equipamento inicial (ex: "Pacote de Explorador" ou "Espada Longa") com opção de converter em ouro.
@@ -79,11 +79,14 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 ### 5. 🗺️ Mapa de Batalha (VTT) Integrado [EM ANDAMENTO]
 
 - **Conceito:** Um Virtual Tabletop completo estilo Roll20.
-- **Features:** 
+- **Features:**
   - ✅ **Fase 1:** Pan, Zoom e renderização de Grid e Fundo em alta resolução.
   - ✅ **Fase 2:** Sistema de Tokens Drag & Drop, sincronização em tempo real e Snap-to-grid.
   - 🔄 **Fase 3:** Sistema de Auras em tokens, efeitos de ataques no mapa e marcadores visuais.
   - ⏳ **Fase 4:** Gestão Multi-Mapas e Fog of War.
+  - ⏳ **Fase 5:** Sistema de Auras em tokens, efeitos de ataques no mapa e marcadores visuais.
+  - ⏳ **Fase 6:** Gestão Multi-Mapas e Fog of War.
+  - ⏳ **Fase 7:** Ajuste nos Tokens, os jogadores não podem alterar os tokens que eles criam.
 
 ### 6. 🗺️ Mapa do Mundo Interativo
 

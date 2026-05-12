@@ -133,6 +133,7 @@ export function SheetView({
     const [quickRollOpen, setQuickRollOpen] = useState(false);
     const [localModifier, setLocalModifier] = useState(0);
     const [localRollMode, setLocalRollMode] = useState('normal');
+    const [localQuantity, setLocalQuantity] = useState(1);
 
     const openJournal = () => {
         AudioManager.play('page');
@@ -818,16 +819,21 @@ export function SheetView({
                     const modNum = Math.floor((value - 10) / 2);
                     const mod = fmtNum(modNum);
 
-                    return el('div', { key: key, className: "bg-slate-900 border-2 border-slate-800 rounded-3xl text-center shadow-xl hover:border-amber-500/40 transition-all overflow-hidden flex flex-col" },
+                    return el('div', { 
+                        key: key, 
+                        onClick: () => triggerExternalRoll(20, false, modNum, 'normal', 1),
+                        className: "bg-slate-900 border-2 border-slate-800 rounded-3xl text-center shadow-xl hover:border-amber-500 hover:bg-slate-800/80 cursor-pointer transition-all overflow-hidden flex flex-col group/attr active:scale-95" 
+                    }, [
                         el('div', { className: "p-3 pb-2" },
-                            el('p', { className: "text-[9px] font-black text-slate-500 uppercase mb-1" }, key),
+                            el('p', { className: "text-[9px] font-black text-slate-500 uppercase mb-1 group-hover/attr:text-amber-500" }, key),
                             el('p', { className: "text-xs font-bold text-slate-400 italic" }, valueStr)
                         ),
                         el('div', { className: "border-t border-slate-800 w-full" }),
-                        el('div', { className: "p-4 bg-slate-950/40 flex-grow flex items-center justify-center" },
-                            el('p', { className: `text-4xl font-black ${modNum >= 0 ? 'text-amber-500' : 'text-red-500'}` }, mod)
-                        )
-                    );
+                        el('div', { className: "p-4 bg-slate-950/40 flex-grow flex items-center justify-center relative" }, [
+                            el('p', { className: `text-4xl font-black ${modNum >= 0 ? 'text-amber-500' : 'text-red-500'} group-hover/attr:scale-110 transition-transform` }, mod),
+                            el('span', { className: "absolute bottom-1 right-2 text-[8px] text-slate-700 opacity-0 group-hover/attr:opacity-100 uppercase font-black" }, "Rolar 🎲")
+                        ])
+                    ]);
                 })
             ),
             // --- BLOCO 4: ATAQUES E COMBATE ---
@@ -871,19 +877,24 @@ export function SheetView({
                                 })
                             ),
                             // Bônus
-                            el('div', { className: "col-span-2 text-center" }, 
+                            el('div', { className: "col-span-2 text-center flex items-center justify-center gap-1" }, [
                                 el('input', {
-                                    className: "bg-slate-900 px-3 py-1 rounded-lg text-amber-500 font-black text-xs border border-slate-800 shadow-inner w-12 text-center outline-none focus:border-amber-500",
+                                    className: "bg-slate-900 px-2 py-1 rounded-lg text-amber-500 font-black text-xs border border-slate-800 shadow-inner w-10 text-center outline-none focus:border-amber-500",
                                     defaultValue: atk.bonus,
                                     onBlur: (e) => {
                                         const novosAtaques = [...characterSheetData.ataques];
                                         novosAtaques[idx].bonus = e.target.value;
                                         updateSheetField('ataques', null, novosAtaques);
                                     }
-                                })
-                            ),
+                                }),
+                                el('button', {
+                                    onClick: () => triggerExternalRoll(20, false, parseInt(atk.bonus) || 0, 'normal', 1),
+                                    className: "text-xs hover:scale-125 transition-transform",
+                                    title: "Rolar Ataque (1d20)"
+                                }, "🎲")
+                            ]),
                             // Dano
-                            el('div', { className: "col-span-3 text-center px-1" }, 
+                            el('div', { className: "col-span-3 text-center px-1 flex items-center justify-center gap-1" }, [
                                 el('input', {
                                     className: "bg-transparent text-blue-400 font-black text-sm drop-shadow-[0_0_8px_rgba(59,130,246,0.3)] text-center outline-none w-full focus:text-white",
                                     defaultValue: atk.dano,
@@ -892,8 +903,25 @@ export function SheetView({
                                         novosAtaques[idx].dano = e.target.value;
                                         updateSheetField('ataques', null, novosAtaques);
                                     }
-                                })
-                            ),
+                                }),
+                                el('button', {
+                                    onClick: () => {
+                                        const formula = (atk.dano || '1d6').toLowerCase().replace(/\s/g, '');
+                                        const match = formula.match(/^(\d+)d(\d+)([+-]\d+)?$/);
+                                        if (match) {
+                                            const qty = parseInt(match[1]) || 1;
+                                            const sides = parseInt(match[2]) || 6;
+                                            const bonus = parseInt(match[3]) || 0;
+                                            triggerExternalRoll(sides, false, bonus, 'normal', qty);
+                                        } else {
+                                            // Fallback simples
+                                            triggerExternalRoll(6, false, 0, 'normal', 1);
+                                        }
+                                    },
+                                    className: "text-xs hover:scale-125 transition-transform text-blue-400",
+                                    title: "Rolar Dano"
+                                }, "💥")
+                            ]),
                             // Tipo
                             el('div', { className: "col-span-3 text-right" }, 
                                 el('input', {
@@ -955,12 +983,21 @@ export function SheetView({
                                 const finalVal = rawVal + skillBonus;
                                 const finalValStr = finalVal >= 0 ? `+${finalVal}` : `${finalVal}`;
 
-                                return el('div', { key: key, className: "flex justify-between items-center text-[11px] border-b border-slate-800/30 py-2.5 hover:bg-white/5 px-2 rounded-lg group transition-colors" },
+                                return el('div', { 
+                                    key: key, 
+                                    className: "flex justify-between items-center text-[11px] border-b border-slate-800/30 py-2.5 hover:bg-white/5 px-2 rounded-lg group transition-colors cursor-pointer",
+                                    onClick: (e) => {
+                                        // Don't roll if clicking the checkbox or input
+                                        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+                                        triggerExternalRoll(20, false, finalVal, 'normal', 1);
+                                    }
+                                },
                                     el('span', { className: "text-slate-400 font-bold uppercase group-hover:text-slate-200 flex items-center gap-2" }, 
                                         el('button', {
                                             className: `w-2 h-2 rounded-full transition-all flex-shrink-0 ${characterSheetData.allowEditing ? 'cursor-pointer hover:scale-150 hover:bg-emerald-400' : 'cursor-default'} ${isProficient ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'border border-slate-700 bg-slate-900/50'}`,
                                             title: characterSheetData.allowEditing ? "Clique para inverter proficiência" : "",
-                                            onClick: () => {
+                                            onClick: (e) => {
+                                                e.stopPropagation(); // Prevents roll when toggling proficiency
                                                 if (!characterSheetData.allowEditing) return;
                                                 const newPericias = JSON.parse(JSON.stringify(characterSheetData.pericias || {}));
                                                 if (typeof newPericias[key] !== 'object' || newPericias[key] === null) {
@@ -985,6 +1022,7 @@ export function SheetView({
                                             key: `input-${key}-${skillBonus}`,
                                             className: "bg-transparent text-amber-400 font-black w-8 text-right outline-none hover:bg-slate-800 focus:bg-slate-800 rounded transition-colors cursor-text",
                                             defaultValue: finalValStr,
+                                            onClick: (e) => e.stopPropagation(), // Prevents roll when clicking input
                                             onBlur: (e) => {
                                                 const newVal = parseInt(e.target.value) || 0;
                                                 const newBaseVal = newVal - skillBonus;
@@ -1383,25 +1421,41 @@ export function SheetView({
                     // MENU QUICK ROLL (FLUTUANTE SOBRE O DADO)
                     quickRollOpen && el('div', { key: 'qr-menu', className: "bg-slate-900/95 backdrop-blur-2xl border-2 border-purple-500/40 p-5 rounded-[2.5rem] shadow-2xl animate-slide-up mb-2 flex flex-col gap-4 min-w-[300px]" }, [
                         // Modos e Modificador
-                        el('div', { key: 'top-opts', className: "flex items-center justify-between border-b border-slate-800 pb-3" }, [
-                            el('div', { key: 'modes', className: "flex gap-2" }, [
-                                el('button', {
-                                    onClick: () => setLocalRollMode('normal'),
-                                    className: `px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${localRollMode === 'normal' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-500 hover:text-slate-300'}`
-                                }, "Normal"),
-                                el('button', {
-                                    onClick: () => setLocalRollMode('vantagem'),
-                                    className: `px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${localRollMode === 'vantagem' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-500 hover:text-amber-500'}`
-                                }, "Vant."),
-                                el('button', {
-                                    onClick: () => setLocalRollMode('desvantagem'),
-                                    className: `px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${localRollMode === 'desvantagem' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-500 hover:text-red-500'}`
-                                }, "Desv."),
+                        el('div', { key: 'top-opts', className: "flex flex-col gap-3 border-b border-slate-800 pb-4" }, [
+                            el('div', { className: "flex items-center justify-between" }, [
+                                el('div', { key: 'modes', className: "flex gap-1" }, [
+                                    el('button', {
+                                        onClick: () => setLocalRollMode('normal'),
+                                        className: `px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${localRollMode === 'normal' ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(147,51,234,0.4)]' : 'bg-slate-800 text-slate-500 hover:text-slate-300'}`
+                                    }, "Normal"),
+                                    el('button', {
+                                        onClick: () => setLocalRollMode('vantagem'),
+                                        className: `px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${localRollMode === 'vantagem' ? 'bg-amber-600 text-white shadow-[0_0_10px_rgba(217,119,6,0.4)]' : 'bg-slate-800 text-slate-500 hover:text-amber-500'}`
+                                    }, "Vant."),
+                                    el('button', {
+                                        onClick: () => setLocalRollMode('desvantagem'),
+                                        className: `px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${localRollMode === 'desvantagem' ? 'bg-red-600 text-white shadow-[0_0_10px_rgba(220,38,38,0.4)]' : 'bg-slate-800 text-slate-500 hover:text-red-500'}`
+                                    }, "Desv."),
+                                ]),
+                                el('div', { key: 'mod', className: "flex items-center bg-slate-950 rounded-xl border border-slate-800 p-1" }, [
+                                    el('button', { onClick: () => setLocalModifier(m => m - 1), className: "px-2 text-white font-bold hover:text-red-400" }, "-"),
+                                    el('div', { className: "flex flex-col items-center px-1" }, [
+                                        el('span', { className: "text-[7px] text-slate-600 font-black uppercase leading-none" }, "Bônus"),
+                                        el('span', { className: "text-xs font-black text-amber-500 leading-tight" }, localModifier >= 0 ? `+${localModifier}` : localModifier),
+                                    ]),
+                                    el('button', { onClick: () => setLocalModifier(m => m + 1), className: "px-2 text-white font-bold hover:text-green-400" }, "+")
+                                ])
                             ]),
-                            el('div', { key: 'mod', className: "flex items-center bg-slate-950 rounded-xl border border-slate-800 p-1" }, [
-                                el('button', { onClick: () => setLocalModifier(m => m - 1), className: "px-2 text-white font-bold" }, "-"),
-                                el('span', { className: "w-8 text-center text-xs font-black text-amber-500" }, localModifier >= 0 ? `+${localModifier}` : localModifier),
-                                el('button', { onClick: () => setLocalModifier(m => m + 1), className: "px-2 text-white font-bold" }, "+")
+                            // Seletor de Quantidade
+                            el('div', { key: 'qty-row', className: "flex items-center justify-between bg-slate-950/50 p-2 rounded-xl border border-slate-800/50" }, [
+                                el('span', { className: "text-[8px] font-black text-slate-500 uppercase tracking-widest" }, "Quantidade:"),
+                                el('div', { className: "flex gap-1" },
+                                    [1, 2, 3, 4, 5, 6].map(n => el('button', {
+                                        key: n,
+                                        onClick: () => setLocalQuantity(n),
+                                        className: `w-7 h-7 rounded-lg font-black text-[10px] transition-all border ${localQuantity === n ? 'bg-amber-500 border-amber-400 text-slate-900 shadow-[0_0_8px_rgba(245,158,11,0.3)]' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'}`
+                                    }, n))
+                                )
                             ])
                         ]),
                         // Grid de Dados
@@ -1410,7 +1464,7 @@ export function SheetView({
                                 el('button', {
                                     key: sides,
                                     onClick: () => {
-                                        triggerExternalRoll(sides, false, localModifier, localRollMode);
+                                        triggerExternalRoll(sides, false, localModifier, localRollMode, localQuantity);
                                         setQuickRollOpen(false);
                                     },
                                     className: "h-12 bg-slate-800 hover:bg-amber-600 text-white font-black text-xs rounded-xl border border-slate-700 hover:border-amber-400 transition-all flex flex-col items-center justify-center group"
