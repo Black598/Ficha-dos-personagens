@@ -1594,7 +1594,8 @@ function App() {
     },
     onBack: () => setIsShopOpen(false),
     isMaster: view === 'master',
-    characterName: characterName
+    characterName: characterName,
+    askGemini: askGemini
   });
 
   const DiceOverlay = view !== 'login' && el(DiceRoller, {
