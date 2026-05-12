@@ -11,6 +11,7 @@ import { RawDataEditor } from './components/RawDataEditor.js'
 import { TalentTooltip } from './components/TalentTooltip.js'
 import { AudioManager } from './AudioManager.js'
 import { LibraryView } from './components/LibraryView.js'
+import { BattlemapView } from './components/BattlemapView.js'
 import { BARGAIN_EFFECTS } from './data/bargainEffects.js'
 import { DevilsBargain } from './components/DevilsBargain.js'
 import { getRandomLoot, LOOT_RARITY } from './data/LootTables.js'
@@ -194,12 +195,18 @@ function App() {
       categories: BARGAIN_EFFECTS,
       activeBargains: []
     },
+    battlemap: {
+      activeMapId: null,
+      maps: [],
+      tokens: []
+    },
     announcementTarget: 'all',
     handoutTarget: 'all',
     groupNotes: [],
     activeLoot: null // { gold, items, approved: false, timestamp }
   });
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [isBattlemapOpen, setIsBattlemapOpen] = useState(false);
   const [isBargainOpen, setIsBargainOpen] = useState(false);
   const [lastTriggerSound, setLastTriggerSound] = useState(null);
   const [showHandout, setShowHandout] = useState(true);
@@ -1441,6 +1448,18 @@ function App() {
     onBack: () => setIsLibraryOpen(false)
   });
 
+  // --- COMPONENTE DE MAPA DE BATALHA (OVERLAY GLOBAL) ---
+  const BattlemapOverlay = isBattlemapOpen && el(BattlemapView, {
+    key: 'battlemap-overlay-global',
+    mode: view === 'master' ? 'master' : 'player',
+    battlemapData: sessionState.battlemap || {},
+    monsters: sessionState.monsters || [],
+    allCharacters,
+    characterName,
+    updateSessionState,
+    onBack: () => setIsBattlemapOpen(false)
+  });
+
   const LetterOverlay = showLetter && el('div', {
     key: 'letter-notif',
     onClick: () => {
@@ -1511,7 +1530,8 @@ function App() {
     BargainOverlay,
     LetterOverlay,
     LootOverlay,
-    WeatherOverlay
+    WeatherOverlay,
+    BattlemapOverlay
   ]);
 
   // Se estivermos na visão do mestre, renderizamos a MasterView
@@ -1546,6 +1566,7 @@ function App() {
         clearLoot,
         generateNPC,
         setIsLibraryOpen,
+        setIsBattlemapOpen,
         setIsBargainOpen,
         allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name),
         chatMessages,
@@ -1635,6 +1656,7 @@ function App() {
         isNewCharacter,
         sessionState,
         setIsLibraryOpen,
+        setIsBattlemapOpen,
         setIsBargainOpen,
         sendChatMessage,
         chatMessages: chatMessages.filter(m => 
@@ -1664,7 +1686,8 @@ function App() {
         tabletopMode: true,
         externalRoll
       }),
-      AllOverlays
+      AllOverlays,
+      BattlemapOverlay
     ]);
   }
 

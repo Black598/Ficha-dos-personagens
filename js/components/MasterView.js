@@ -35,6 +35,7 @@ export function MasterView({
     rollDice,
     triggerExternalRoll,
     setIsLibraryOpen,
+    setIsBattlemapOpen,
     setIsBargainOpen,
     allPlayers,
     chatMessages,
@@ -131,6 +132,11 @@ export function MasterView({
                     onClick: () => setIsLibraryOpen(true),
                     className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-amber-600 transition-all text-white"
                 }, "📚 Biblioteca"),
+                el('button', {
+                    key: 'btn-battlemap',
+                    onClick: () => setIsBattlemapOpen(true),
+                    className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-green-600 transition-all text-white"
+                }, "🗺️ Mapa"),
                 el('button', {
                     key: 'btn-bargain',
                     onClick: () => setIsBargainOpen(true),

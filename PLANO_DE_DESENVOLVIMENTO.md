@@ -24,8 +24,8 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 
 ### 3. ⛈️ Clima e Imersão Atmosférica
 
-- **Status:** Concluído
-- **Features:** Efeitos visuais sincronizados (Chuva, Neve, Fogo, Lua de Sangue, Veneno, Noite) com partículas e filtros CSS.
+- **Status:** Concluído (Expandido)
+- **Features:** 10 efeitos sincronizados — Chuva, Neve, Fogo, **Tempestade** ⚡ (relâmpagos), **Tempestade de Areia**, **Pétalas** 🌸, Névoa, Lua de Sangue, Veneno e Noite. Invisíveis para o Mestre.
 
 ### 4. 👤 Gerador de NPCs (IA)
 
@@ -42,33 +42,54 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 - **Status:** Concluído
 - _Sistemas base de exploração e interação._
 
+### 7. 🐾 Glossário Animal & Bestiário
+
+- **Status:** Concluído
+- **Features:**
+  - **Monstros** 👹: Aba exclusiva do Mestre com CR, PV, CA, Tipo e Habilidades.
+  - **Glossário Animal** 🐾: Aberto para todos os jogadores registrarem animais descobertos na campanha.
+  - Modal de detalhe com stats completos; deleção exclusiva do Mestre.
+
 ---
 
 ## 🚀 Próximas Implementações (Pendentes)
 
-### 1. 🛒 Loja do Mestre (Trading System)
+### 1. 🧙‍♂️ Assistente de Criação de Personagem (Charactermancer)
+
+- **Conceito:** Um menu guiado para acelerar a criação de novos personagens.
+- **Features:** 
+  - Seleção de Classe e Raça com preenchimento automático de talentos e características na ficha.
+  - Progressão travada por nível (libera habilidades conforme upa).
+  - Múltipla escolha para equipamento inicial (ex: "Pacote de Explorador" ou "Espada Longa") com opção de converter em ouro.
+  - Opção de mesclar habilidades baseadas em APIs/Wikis com habilidades customizadas (homebrew).
+
+### 2. 🛒 Loja do Mestre (Trading System)
 
 - **Conceito:** Um mercado interativo onde o mestre coloca itens à venda.
 - **Features:** Vitrine do Mestre, Compra Automática (dedução de PO) e Venda de Itens.
 
-### 2. 🐾 Glossário Animal (Bestiário)
-
-- **Conceito:** Uma enciclopédia de criaturas integrada à Biblioteca.
-- **Features:** Cards com arte, HP, CA e habilidades rápidas.
-
 ### 3. 🔊 Soundboard Sincronizado
 
-- **Conceito:** Controle refinado de áudio ambiente e efeitos sonoros para todos.
+- **Conceito:** Controle refinado de áudio ambiente e efeitos sonoros para todos os jogadores.
 
 ### 4. 🧪 Alquimia e Crafting
 
 - **Conceito:** Sistema de combinação de itens para criar poções e upgrades.
 
-### 5. 🗺️ Mapa do Mundo Interativo
+### 5. 🗺️ Mapa de Batalha (VTT) Integrado [EM ANDAMENTO]
+
+- **Conceito:** Um Virtual Tabletop completo estilo Roll20.
+- **Features:** 
+  - ✅ **Fase 1:** Pan, Zoom e renderização de Grid e Fundo em alta resolução.
+  - ✅ **Fase 2:** Sistema de Tokens Drag & Drop, sincronização em tempo real e Snap-to-grid.
+  - 🔄 **Fase 3:** Sistema de Auras em tokens, efeitos de ataques no mapa e marcadores visuais.
+  - ⏳ **Fase 4:** Gestão Multi-Mapas e Fog of War.
+
+### 6. 🗺️ Mapa do Mundo Interativo
 
 - **Conceito:** Visão global com marcadores e pins de interesse.
 
 ---
 
 **Última atualização:** 12/05/2026
-**Próximo passo:** Iniciar a **??**.
+**Próximo passo:** Iniciar o **🧙‍♂️ Assistente de Criação** ou a **🛒 Loja do Mestre**.

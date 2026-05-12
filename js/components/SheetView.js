@@ -34,7 +34,8 @@ export function SheetView({
     groupNotes,
     shareNote,
     deleteNote,
-    setIsLibraryOpen
+    setIsLibraryOpen,
+    setIsBattlemapOpen
 }) {
     const charData = characterSheetData; // Alias para compatibilidade com código legado
 
@@ -594,6 +595,10 @@ export function SheetView({
                 ]),
                 el('div', { className: "flex gap-3" },
                     el('button', {
+                        onClick: () => setIsBattlemapOpen(true),
+                        className: "bg-green-600/10 hover:bg-green-600 text-green-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-green-600/30 px-4 py-2 rounded-xl transition-all"
+                    }, "🗺️ Mapa"),
+                    el('button', {
                         onClick: onToggleTree,
                         className: "bg-purple-600/10 hover:bg-purple-600 text-purple-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-purple-600/30 px-4 py-2 rounded-xl transition-all"
                     }, "⭐ Talentos"),
@@ -946,6 +951,10 @@ export function SheetView({
                                 const baseValue = attrMod + (isProficient ? currentProf : 0) + skillBonus;
                                 const baseValueStr = baseValue >= 0 ? `+${baseValue}` : `${baseValue}`;
 
+                                const rawVal = parseInt(value) || 0;
+                                const finalVal = rawVal + skillBonus;
+                                const finalValStr = finalVal >= 0 ? `+${finalVal}` : `${finalVal}`;
+
                                 return el('div', { key: key, className: "flex justify-between items-center text-[11px] border-b border-slate-800/30 py-2.5 hover:bg-white/5 px-2 rounded-lg group transition-colors" },
                                     el('span', { className: "text-slate-400 font-bold uppercase group-hover:text-slate-200 flex items-center gap-2" }, 
                                         el('button', {
@@ -967,23 +976,29 @@ export function SheetView({
                                                 updateSheetData({ ...characterSheetData, pericias: newPericias });
                                             }
                                         }),
-                                        key
+                                        key,
+                                        skillBonus !== 0 && el('span', { className: "text-[9px] text-amber-400 ml-1 font-normal lowercase tracking-widest", title: "Bônus de Equipamento" }, `(${skillBonus > 0 ? '+'+skillBonus : skillBonus})`)
                                     ),
                                     el('div', { className: "text-right flex items-center gap-2" },
                                         el('span', { className: "text-[9px] text-slate-600 font-bold hidden group-hover:block transition-all", title: "Valor base puro (Atributo + Proficiência)" }, `[${baseValueStr}]`),
                                         characterSheetData.allowEditing ? el('input', {
+                                            key: `input-${key}-${skillBonus}`,
                                             className: "bg-transparent text-amber-400 font-black w-8 text-right outline-none hover:bg-slate-800 focus:bg-slate-800 rounded transition-colors cursor-text",
-                                            defaultValue: value || '+0',
+                                            defaultValue: finalValStr,
                                             onBlur: (e) => {
+                                                const newVal = parseInt(e.target.value) || 0;
+                                                const newBaseVal = newVal - skillBonus;
+                                                const newBaseValStr = newBaseVal >= 0 ? `+${newBaseVal}` : `${newBaseVal}`;
+
                                                 const newPericias = JSON.parse(JSON.stringify(characterSheetData.pericias || {}));
                                                 if (typeof newPericias[key] !== 'object' || newPericias[key] === null) {
-                                                    newPericias[key] = { val: e.target.value, prof: isProficient };
+                                                    newPericias[key] = { val: newBaseValStr, prof: isProficient };
                                                 } else {
-                                                    newPericias[key].val = e.target.value;
+                                                    newPericias[key].val = newBaseValStr;
                                                 }
                                                 updateSheetData({ ...characterSheetData, pericias: newPericias });
                                             }
-                                        }) : el('span', { className: "text-amber-400 font-black w-6 text-right inline-block" }, value || '+0')
+                                        }) : el('span', { className: "text-amber-400 font-black w-6 text-right inline-block" }, finalValStr)
                                     )
                                 );
                             });
