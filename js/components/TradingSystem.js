@@ -10,6 +10,8 @@ export function TradingSystem({ sheetData, sessionState, updateSessionState, onU
     const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
     const vendorType = sessionState.vendorType || 'Geral';
+    const shopContext = sessionState.shopContext || '';
+    const priceMultiplier = sessionState.priceMultiplier || 1;
     const shopItems = sessionState.shopInventory || [];
 
     const RARITY_COLORS = {
@@ -25,9 +27,12 @@ export function TradingSystem({ sheetData, sessionState, updateSessionState, onU
         setIsGeneratingAI(true);
         try {
             const prompt = `Gere um item de RPG único para vender em uma loja do tipo "${vendorType}". 
+            Contexto Econômico Local: ${shopContext || 'Normal'}.
+            Modificador de Preço Atual: ${priceMultiplier}x.
+
             Retorne APENAS um JSON puro (sem markdown) com os campos: 
-            name, price (número apropriado para o tipo e raridade), icon (um emoji), description (máximo 100 caracteres), rarity (Comum, Incomum, Raro, Épico ou Lendário).
-            Considere o tipo de vendedor para o tema do item.`;
+            name, price (número apropriado JÁ MULTIPLICADO pelo modificador ${priceMultiplier}), icon (um emoji), description (máximo 100 caracteres), rarity (Comum, Incomum, Raro, Épico ou Lendário).
+            Considere o contexto econômico para o tema e o preço do item.`;
             
             const response = await askGemini(prompt);
             const jsonStr = response.replace(/```json|```/g, '').trim();
@@ -35,7 +40,7 @@ export function TradingSystem({ sheetData, sessionState, updateSessionState, onU
             
             setNewItem({
                 name: data.name || "Item Misterioso",
-                price: data.price || 50,
+                price: data.price || Math.floor(50 * priceMultiplier),
                 icon: data.icon || "📦",
                 description: data.description || "Um item gerado pelo oráculo.",
                 rarity: data.rarity || "Comum"
@@ -104,9 +109,9 @@ export function TradingSystem({ sheetData, sessionState, updateSessionState, onU
 
     const renderMasterPanel = () => {
         return el('div', { className: "space-y-8" }, [
-            // Configuração do Vendedor
-            el('div', { className: "flex flex-col md:flex-row gap-6 items-end bg-slate-900/50 p-6 rounded-[2.5rem] border border-slate-800" }, [
-                el('div', { className: "flex-1 space-y-2" }, [
+            // Configuração do Vendedor e Economia
+            el('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-6 items-end bg-slate-900/50 p-8 rounded-[2.5rem] border border-slate-800" }, [
+                el('div', { className: "space-y-2" }, [
                     el('p', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest" }, "Tipo de Vendedor"),
                     el('select', {
                         value: vendorType,
@@ -116,9 +121,29 @@ export function TradingSystem({ sheetData, sessionState, updateSessionState, onU
                         'Geral', 'Armeiro (Armas)', 'Armoreiro (Armaduras)', 'Alquimista (Poções)', 'Escriba (Pergaminhos)', 'Joalheiro (Acessórios)', 'Exótico (Itens Especiais)'
                     ].map(t => el('option', { key: t, value: t }, t)))
                 ]),
-                el('div', { className: "flex-1 py-3 px-6 bg-amber-600/10 rounded-xl border border-amber-500/20" }, [
-                    el('p', { className: "text-[10px] font-black text-amber-500 uppercase" }, "Dica do Oráculo"),
-                    el('p', { className: "text-[11px] text-slate-400 italic" }, `O botão ✨ gerará itens focados em: ${vendorType}`)
+                el('div', { className: "space-y-2" }, [
+                    el('p', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest" }, "Contexto da Economia"),
+                    el('input', {
+                        placeholder: "Ex: Cidade em guerra, Inflação alta...",
+                        value: shopContext,
+                        onChange: e => updateSessionState({ shopContext: e.target.value }),
+                        className: "w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-amber-500/50"
+                    })
+                ]),
+                el('div', { className: "space-y-2" }, [
+                    el('p', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest" }, "Multiplicador de Preço"),
+                    el('div', { className: "flex items-center gap-4 bg-slate-950 border border-slate-800 rounded-xl px-4 py-1" }, [
+                        el('input', {
+                            type: 'range',
+                            min: 0.1,
+                            max: 5,
+                            step: 0.1,
+                            value: priceMultiplier,
+                            onChange: e => updateSessionState({ priceMultiplier: parseFloat(e.target.value) }),
+                            className: "flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                        }),
+                        el('span', { className: "text-amber-500 font-bold text-xs min-w-[3rem] text-right" }, `${priceMultiplier}x`)
+                    ])
                 ])
             ]),
 
@@ -196,13 +221,17 @@ export function TradingSystem({ sheetData, sessionState, updateSessionState, onU
     const renderPlayerPanel = () => {
         const gold = parseInt(sheetData?.outros?.['PO'] || 0);
         return el('div', { className: "space-y-10" }, [
-            el('div', { className: "flex justify-center" }, [
+            el('div', { className: "flex flex-col items-center gap-6" }, [
                 el('div', { className: "bg-slate-900/80 border border-amber-500/30 px-10 py-4 rounded-full flex items-center gap-4 shadow-2xl" }, [
                     el('span', { className: "text-2xl" }, "💰"),
                     el('div', {}, [
                         el('p', { className: "text-[8px] font-black text-amber-500/60 uppercase tracking-widest" }, "Seu Dinheiro"),
                         el('p', { className: "text-xl font-black text-white" }, `${gold} Moedas de Ouro`)
                     ])
+                ]),
+                shopContext && el('div', { className: "bg-amber-600/10 border border-amber-500/20 px-6 py-2 rounded-2xl flex items-center gap-3 animate-pulse" }, [
+                    el('span', { className: "text-xs" }, "📢"),
+                    el('p', { className: "text-[10px] text-amber-500 font-bold uppercase tracking-wider" }, `Mercado: ${shopContext} (${priceMultiplier}x)` )
                 ])
             ]),
 
