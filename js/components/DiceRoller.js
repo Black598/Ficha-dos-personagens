@@ -1,4 +1,4 @@
-﻿export function DiceRoller({ rollDice, recentRolls, characterName, view, isRollingModalOpen, setRollingModalOpen, tabletopMode = false, externalRoll = null }) {
+export function DiceRoller({ rollDice, recentRolls, characterName, view, isRollingModalOpen, setRollingModalOpen, tabletopMode = false, externalRoll = null, isBattlemapOpen = false }) {
     // localQuantity: how many dice to roll at once (NdX)
     const [localQuantity, setLocalQuantity] = React.useState(1);
     const el = React.createElement;
@@ -469,13 +469,36 @@
             ])
         ]),
 
-        // 2. TABLETOP VERSION
-        (tabletopMode && !isRollingModalOpen) && el('div', { 
-            key: 'tabletop', 
-            className: `fixed inset-0 z-[250] pointer-events-none flex flex-col items-center justify-center -translate-y-20 transition-all duration-1000 ${tabletopActive ? 'opacity-100' : 'opacity-0'}` 
-        }, [
-            el('div', { key: 'canvas', ref: canvasContainerRef, className: "w-[600px] h-[400px] relative z-10" }),
-            el('div', { key: 'label', ref: diceLabelRef, className: "dice-label text-purple-400 font-bold tracking-widest text-lg uppercase h-8 mt-4" })
+        // 2. TABLETOP VERSION (Dice Buttons + 3D Canvas)
+        tabletopMode && el(React.Fragment, { key: 'tabletop-fragment' }, [
+            // 3D Canvas Layer
+            !isRollingModalOpen && el('div', { 
+                key: 'tabletop-canvas', 
+                className: `fixed inset-0 z-[250] pointer-events-none flex flex-col items-center justify-center -translate-y-20 transition-all duration-1000 ${tabletopActive ? 'opacity-100' : 'opacity-0'}` 
+            }, [
+                el('div', { key: 'canvas', ref: canvasContainerRef, className: "w-[600px] h-[400px] relative z-10" }),
+                el('div', { key: 'label', ref: diceLabelRef, className: "dice-label text-purple-400 font-bold tracking-widest text-lg uppercase h-8 mt-4" })
+            ]),
+
+            // Quick Bar (Dice Buttons at the bottom) - Apenas se o mapa estiver aberto
+            isBattlemapOpen && el('div', { 
+                key: 'quick-bar', 
+                className: "fixed bottom-6 left-1/2 -translate-x-1/2 z-[300] flex gap-2 p-2 bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl pointer-events-auto"
+            }, [
+                [4, 6, 8, 10, 12, 20].map(s => el('button', {
+                    key: s,
+                    onClick: () => { if (window._dmRollTrigger) window._dmRollTrigger(s, localSecret, localModifier, localRollMode, localQuantity); },
+                    className: "w-12 h-12 flex flex-col items-center justify-center bg-slate-800 hover:bg-amber-600 border border-slate-700 hover:border-amber-400 rounded-xl text-white transition-all active:scale-90"
+                }, [
+                    el('span', { className: "text-[8px] text-slate-400 font-black uppercase" }, `d${s}`),
+                    el('span', { className: "text-lg font-black" }, s)
+                ])),
+                el('div', { className: "w-px bg-slate-700 mx-1" }),
+                el('button', {
+                    onClick: () => setRollingModalOpen(true),
+                    className: "px-4 h-12 flex items-center justify-center bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all"
+                }, "🎲+")
+            ])
         ]),
 
         // 3. BALLOONS

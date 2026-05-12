@@ -1454,6 +1454,7 @@ function App() {
     mode: view === 'master' ? 'master' : 'player',
     battlemapData: sessionState.battlemap || {},
     monsters: sessionState.monsters || [],
+    libraryData: sessionState.library || {},
     allCharacters,
     characterName,
     updateSessionState,
@@ -1582,17 +1583,6 @@ function App() {
         hasNewMessage,
         setHasNewMessage
       }),
-      el(DiceRoller, {
-        key: 'dice-roller-master',
-        rollDice,
-        recentRolls,
-        characterName,
-        view,
-        isRollingModalOpen,
-        setRollingModalOpen,
-        tabletopMode: true,
-        externalRoll
-      }),
       AllOverlays
     ]);
   }
@@ -1674,20 +1664,7 @@ function App() {
         onClose: () => setEditableSheetData(null)
       }),
 
-      // 3. O Rolo de Dados (Tabletop Player)
-      el(DiceRoller, {
-        key: 'dice-roller-sheet',
-        rollDice,
-        recentRolls,
-        characterName,
-        view,
-        isRollingModalOpen,
-        setRollingModalOpen,
-        tabletopMode: true,
-        externalRoll
-      }),
-      AllOverlays,
-      BattlemapOverlay
+      AllOverlays
     ]);
   }
 
@@ -1716,9 +1693,6 @@ function App() {
         }
       }),
 
-      // 2. O Rolo de Dados
-      el(DiceRoller, { key: 'dice-roller-character', rollDice, recentRolls, characterName, view }),
-
       // 3. O TOOLTIP COM POSICIONAMENTO INTELIGENTE - EXTRAÍDO
       el(TalentTooltip, { key: 'talent-tooltip', tooltip }),
 
@@ -1742,7 +1716,21 @@ function App() {
       createNewCampaign,
       importCampaign
     }),
-    AllOverlays
+    AllOverlays,
+    
+    // ROLO DE DADOS GLOBAL (Persistente para evitar bugs de 3D)
+    view !== 'login' && el(DiceRoller, {
+        key: 'dice-roller-global',
+        rollDice,
+        recentRolls,
+        characterName,
+        view,
+        isRollingModalOpen,
+        setRollingModalOpen,
+        tabletopMode: true,
+        externalRoll,
+        isBattlemapOpen
+    })
   ]);
 }
 

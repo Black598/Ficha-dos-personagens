@@ -82,17 +82,19 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 - **Features:**
   - ✅ **Fase 1:** Pan, Zoom e renderização de Grid e Fundo em alta resolução.
   - ✅ **Fase 2:** Sistema de Tokens Drag & Drop, sincronização em tempo real e Snap-to-grid.
-  - 🔄 **Fase 3:** Sistema de Auras em tokens, efeitos de ataques no mapa e marcadores visuais.
-  - ⏳ **Fase 4:** Gestão Multi-Mapas e Fog of War.
-  - ⏳ **Fase 5:** Sistema de Auras em tokens, efeitos de ataques no mapa e marcadores visuais.
-  - ⏳ **Fase 6:** Gestão Multi-Mapas e Fog of War.
-  - ⏳ **Fase 7:** Ajuste nos Tokens, os jogadores não podem alterar os tokens que eles criam.
+  - ✅ **Fase 3:** Sistema de Auras em tokens, efeitos de ataques no mapa e marcadores visuais.
+  - ✅ **Fase 4:** Gestão Multi-Mapas, Fog of War (Névoa de Guerra) e Sistema de Props.
+  - ✅ **Fase 7:** Ajuste nos Tokens: jogadores podem alterar seus próprios tokens e os que criarem (imagem/aura/status).
 
-### 6. 🗺️ Mapa do Mundo Interativo
+### 6. 🗺️ Mapa do Mundo Interativo [PRÓXIMO]
 
 - **Conceito:** Visão global com marcadores e pins de interesse.
+- **Features:**
+  - 🔄 **Fase 1:** Renderização de Mapa Mundi com Pan/Zoom independente do mapa de batalha.
+  - ⏳ **Fase 2:** Sistema de Pins de Localidade com descrição e notas de lore.
+  - ⏳ **Fase 3:** Sistema de "Fast Travel" (clicar no pin abre o mapa de batalha daquela região).
 
 ---
 
 **Última atualização:** 12/05/2026
-**Próximo passo:** Iniciar o **🧙‍♂️ Assistente de Criação** ou a **🛒 Loja do Mestre**.
+**Próximo passo:** Iniciar o **Mapa do Mundo Interativo**.

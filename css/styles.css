@@ -84,6 +84,32 @@ input[type="text"], input[type="email"], input[type="password"], textarea {
 }
 .animate-bag { animation: bag-open 0.3s ease-out; }
 
+/* --- BATTLEMAP ANIMATIONS --- */
+@keyframes ping-strong {
+  0% { transform: scale(0.2) translate(-50%, -50%); opacity: 1; border-width: 8px; }
+  100% { transform: scale(2.5) translate(-50%, -50%); opacity: 0; border-width: 1px; }
+}
+.animate-ping-strong {
+  animation: ping-strong 1s ease-out infinite;
+  transform-origin: 0 0;
+}
+
+@keyframes bounce-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.animate-bounce-soft {
+  animation: bounce-soft 2s ease-in-out infinite;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.2; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.4; transform: translate(-50%, -50%) scale(1.05); }
+}
+.animate-pulse-soft {
+  animation: pulse-soft 3s ease-in-out infinite;
+}
+
 /* --- CADERNO DE AVENTURAS --- */
 .journal-modal {
   background: rgba(15, 23, 42, 0.95);
