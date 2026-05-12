@@ -130,7 +130,8 @@ export function DevilsBargain({ mode, bargainData, updateSessionState, onBack, a
                                 className: "flex-grow bg-slate-950 border border-slate-800 rounded-xl p-3 text-[10px] font-black uppercase text-white"
                             }, [
                                 el('option', { key: 'opt-r', value: 'rounds' }, 'Rodadas'),
-                                el('option', { key: 'opt-d', value: 'days' }, 'Dias')
+                                el('option', { key: 'opt-d', value: 'days' }, 'Dias'),
+                                el('option', { key: 'opt-p', value: 'permanent' }, 'Permanente')
                             ])
                         ])
                     ])
@@ -182,8 +183,8 @@ export function DevilsBargain({ mode, bargainData, updateSessionState, onBack, a
                 ]),
                 el('p', { key: 'b-text', className: "text-slate-300 italic mb-10 text-xs leading-relaxed" }, `"${b.text}"`),
                 el('div', { key: 'b-footer', className: "flex justify-between items-center" }, [
-                    el('span', { key: 'b-dur-badge', className: `px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest ${b.unit === 'rounds' ? 'bg-blue-600/20 text-blue-400' : 'bg-emerald-600/20 text-emerald-400'}` }, 
-                        `${b.duration} ${b.unit === 'rounds' ? 'Rounds' : 'Dias'}`
+                    el('span', { key: 'b-dur-badge', className: `px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest ${b.unit === 'permanent' ? 'bg-purple-600/20 text-purple-400' : (b.unit === 'rounds' ? 'bg-blue-600/20 text-blue-400' : 'bg-emerald-600/20 text-emerald-400')}` }, 
+                        b.unit === 'permanent' ? '♾️ Permanente' : `${b.duration} ${b.unit === 'rounds' ? 'Rounds' : 'Dias'}`
                     ),
                     el('div', { key: 'b-controls', className: "flex gap-1" }, [
                         el('button', {
@@ -229,7 +230,9 @@ export function DevilsBargain({ mode, bargainData, updateSessionState, onBack, a
                     playerBargains.map(b => el('div', { key: b.id, className: "bg-slate-950 border border-red-900/40 p-6 rounded-2xl" }, [
                         el('p', { key: 'pb-text', className: "text-amber-100 italic mb-4" }, `"${b.text}"`),
                         el('div', { key: 'pb-footer', className: "flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-500" }, [
-                            el('span', { key: 'pb-dur' }, `Duração: ${b.duration} ${b.unit === 'rounds' ? 'Rodadas' : 'Dias'}`),
+                            el('span', { key: 'pb-dur' }, 
+                                b.unit === 'permanent' ? 'Duração: Permanente ♾️' : `Duração: ${b.duration} ${b.unit === 'rounds' ? 'Rodadas' : 'Dias'}`
+                            ),
                             el('span', { key: 'pb-status', className: "text-red-500" }, "DÍVIDA ATIVA")
                         ])
                     ]))

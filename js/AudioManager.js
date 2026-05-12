@@ -14,7 +14,8 @@ const SFX = {
     bag: () => playChestSound(),
     coins: () => playCoinsSound(),
     page: () => playNoise(0.05, 0.4), // Som de papel virando
-    levelUp: () => playFanfare()
+    levelUp: () => playFanfare(),
+    chest_open: () => playChestSound()
 };
 
 function initCtx() {

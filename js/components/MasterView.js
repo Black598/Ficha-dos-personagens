@@ -1,7 +1,4 @@
-const { useState, useEffect } = React;
-const el = React.createElement;
 import { safeParseJSON, parseImageUrl } from '../utils.js';
-
 import { SoulGrimoire } from './SoulGrimoire.js';
 import { OracleMural } from './OracleMural.js';
 import { MasterControls } from './MasterControls.js';
@@ -9,6 +6,10 @@ import { MonsterManager } from './MonsterManager.js';
 import { ConditionModal } from './ConditionModal.js';
 import { MasterTutorialPopup } from './MasterTutorialPopup.js';
 import { MasterVault } from './MasterVault.js';
+import { LootManager } from './LootManager.js';
+
+const { useState, useEffect } = React;
+const el = React.createElement;
 
 export function MasterView({ 
     allCharacters, 
@@ -40,7 +41,10 @@ export function MasterView({
     sendChatMessage,
     hasNewMessage,
     setHasNewMessage,
-    clearRollHistory
+    clearRollHistory,
+    generateLoot,
+    approveLoot,
+    clearLoot
 }) {
     const [showSettings, setShowSettings] = useState(false);
     const [showTutorial, setShowTutorial] = useState(() => localStorage.getItem('has_seen_master_tutorial') !== 'true');
@@ -148,6 +152,16 @@ export function MasterView({
             el('div', { key: 'master-left-col', className: "lg:col-span-8 space-y-12" }, [
                 el(OracleMural, { key: 'oracle-mural', sessionState, updateSessionState, allPlayers }),
                 el(MonsterManager, { key: 'monster-manager', sessionState, updateSessionState, geminiApiKey }),
+                el(LootManager, { 
+                    key: 'loot-manager', 
+                    sessionState, 
+                    generateLoot, 
+                    approveLoot, 
+                    clearLoot, 
+                    askGemini,
+                    allPlayers,
+                    updateSessionState
+                }),
                 (() => {
                     const pendingDeletions = allCharacters.filter(c => c.pendingDeletion === true);
                     if (pendingDeletions.length === 0) return null;

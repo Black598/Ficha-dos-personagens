@@ -1,12 +1,13 @@
-const { useState, useEffect } = React;
-
-
 import { DiceRoller } from './DiceRoller.js';
 import { AudioManager } from '../AudioManager.js';
 import { CharacterSetupModal } from './CharacterSetupModal.js';
 import { TalentTooltip } from './TalentTooltip.js';
 import { PlayerTutorialPopup } from './PlayerTutorialPopup.js';
 import { safeParseJSON, parseImageUrl } from '../utils.js';
+import { VisualInventory } from './VisualInventory.js';
+
+const { useState, useEffect } = React;
+const el = React.createElement;
 
 export function SheetView({
     characterName,
@@ -29,7 +30,10 @@ export function SheetView({
     setIsBargainOpen,
     sendChatMessage,
     chatMessages,
-    onRequestDelete
+    onRequestDelete,
+    groupNotes,
+    shareNote,
+    deleteNote
 }) {
     const charData = characterSheetData; // Alias para compatibilidade com código legado
 
@@ -38,9 +42,38 @@ export function SheetView({
     const [bagEffect, setBagEffect] = useState(''); // Efeito local da mochila
     const [showSetupModal, setShowSetupModal] = useState(!!isNewCharacter); // Abre auto para novos
     const [isChatOpen, setIsChatOpen] = useState(false);
+    const [journalTab, setJournalTab] = useState('private'); // 'private' ou 'group'
+    const [showJournal, setShowJournal] = useState(false);
+    const [journalPage, setJournalPage] = useState(1);
+    const [pageAnimation, setPageAnimation] = useState('');
     const [chatInput, setChatInput] = useState('');
     const [hiddenRollRequests, setHiddenRollRequests] = useState({});
     const [showTutorial, setShowTutorial] = useState(() => localStorage.getItem('has_seen_player_tutorial') !== 'true');
+    const [useVisualInventory, setUseVisualInventory] = useState(true);
+
+    // --- CÁLCULO DE BÔNUS DE INVENTÁRIO ---
+    const getInventoryBonuses = () => {
+        const items = (characterSheetData.outros?.['Equipamento'] || "").split(',').map(s => s.trim());
+        const bonuses = {
+            CA: 0, Iniciativa: 0, Deslocamento: 0,
+            FOR: 0, DES: 0, CON: 0, INT: 0, SAB: 0, CAR: 0,
+            skills: {}
+        };
+
+        items.forEach(item => {
+            if (!item.includes('{E}')) return;
+            const matches = [...item.matchAll(/\((.*?):(.*?)\)/g)];
+            matches.forEach(m => {
+                const key = m[1].trim().toUpperCase();
+                const val = parseInt(m[2]) || 0;
+                if (bonuses[key] !== undefined) bonuses[key] += val;
+                else bonuses.skills[key] = (bonuses.skills[key] || 0) + val;
+            });
+        });
+        return bonuses;
+    };
+    const invBonuses = getInventoryBonuses();
+
 
     const triggerEffect = (type) => {
         if (type === 'bag') {
@@ -95,10 +128,6 @@ export function SheetView({
         setLastTempHP(currentTempHP);
     }, [currentTempHP]);
 
-    // Estado do Caderno de Aventuras
-    const [showJournal, setShowJournal] = useState(false);
-    const [journalPage, setJournalPage] = useState(1);
-    const [pageAnimation, setPageAnimation] = useState('');
     const [quickRollOpen, setQuickRollOpen] = useState(false);
     const [localModifier, setLocalModifier] = useState(0);
     const [localRollMode, setLocalRollMode] = useState('normal');
@@ -740,16 +769,17 @@ export function SheetView({
                 // STATUS (Direita - 8 Colunas)
                 el('div', { className: "lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-4" },
                     // CA, Iniciativa, Deslocamento, PV Máximo
-                    [['CA', characterSheetData.recursos?.['CA'], 'text-blue-400', "🛡️"],
-                    ['Iniciativa', fmtNum(characterSheetData.recursos?.['Iniciativa']), 'text-amber-500', "⚡"],
-                    ['Deslocamento', characterSheetData.recursos?.['Deslocamento'], 'text-emerald-400', "👣"],
-                    ['PV Máximo', characterSheetData.recursos?.['PV Máximo'], 'text-green-500', "❤️"]
-                    ].map(([label, val, color, icon]) =>
-                        el('div', { key: label, className: "bg-slate-900 border-2 border-slate-800 p-5 rounded-[2rem] text-center shadow-xl transition-all" },
+                    [['CA', (parseInt(characterSheetData.recursos?.['CA']) || 10) + invBonuses.CA, 'text-blue-400', "🛡️", invBonuses.CA],
+                    ['Iniciativa', fmtNum((parseInt(characterSheetData.recursos?.['Iniciativa']) || 0) + invBonuses.Iniciativa), 'text-amber-500', "⚡", invBonuses.Iniciativa],
+                    ['Deslocamento', characterSheetData.recursos?.['Deslocamento'], 'text-emerald-400', "👣", invBonuses.Deslocamento],
+                    ['PV Máximo', characterSheetData.recursos?.['PV Máximo'], 'text-green-500', "❤️", 0]
+                    ].map(([label, val, color, icon, bonus]) =>
+                        el('div', { key: label, className: "bg-slate-900 border-2 border-slate-800 p-5 rounded-[2rem] text-center shadow-xl transition-all relative group" }, [
                             el('span', { className: `${color} text-xl` }, icon),
                             el('p', { className: "text-[9px] font-black text-slate-500 uppercase mt-1" }, label),
-                            el('p', { className: `text-2xl font-black ${color}` }, val)
-                        )
+                            el('p', { className: `text-2xl font-black ${color}` }, val),
+                            bonus !== 0 && el('span', { className: "absolute top-2 right-4 text-[8px] font-black text-amber-500 animate-pulse" }, `+${bonus}`)
+                        ])
                     ),
                     // PV ATUAL (Grande)
                     el('div', { className: "col-span-2 bg-slate-900 border-2 border-slate-800 p-5 rounded-[2rem] text-center shadow-xl relative overflow-hidden" },
@@ -775,10 +805,10 @@ export function SheetView({
             el('div', { className: "grid grid-cols-3 md:grid-cols-6 gap-4" },
                 ['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'].map(key => {
                     const valueStr = characterSheetData.atributos?.[key] || '10';
-                    const value = parseInt(valueStr) || 10;
+                    const bonus = invBonuses[key] || 0;
+                    const value = (parseInt(valueStr) || 10) + bonus;
                     
                     // Cálculo dinâmico do modificador: (Atributo - 10) / 2 arredondado para baixo.
-                    // Isso evita bugs onde a planilha salva valor desatualizado do modificador.
                     const modNum = Math.floor((value - 10) / 2);
                     const mod = fmtNum(modNum);
 
@@ -909,9 +939,10 @@ export function SheetView({
                                 const isProficient = isNewFormat ? data.prof : false;
 
                                 const attrKey = periciaToAttr[key];
-                                const attrVal = parseInt(characterSheetData.atributos?.[attrKey]) || 10;
+                                const attrVal = (parseInt(characterSheetData.atributos?.[attrKey]) || 10) + (invBonuses[attrKey] || 0);
                                 const attrMod = Math.floor((attrVal - 10) / 2);
-                                const baseValue = attrMod + (isProficient ? currentProf : 0);
+                                const skillBonus = invBonuses.skills[key.toUpperCase()] || 0;
+                                const baseValue = attrMod + (isProficient ? currentProf : 0) + skillBonus;
                                 const baseValueStr = baseValue >= 0 ? `+${baseValue}` : `${baseValue}`;
 
                                 return el('div', { key: key, className: "flex justify-between items-center text-[11px] border-b border-slate-800/30 py-2.5 hover:bg-white/5 px-2 rounded-lg group transition-colors" },
@@ -1076,6 +1107,7 @@ export function SheetView({
                                     el('p', { className: "text-sm font-black text-slate-500 uppercase tracking-widest" }, nome)
                                 ]),
                                 el('input', {
+                                    key: `${sigla}-${characterSheetData.outros?.[sigla] || '0'}`,
                                     type: 'text',
                                     className: "bg-transparent text-3xl font-black text-white text-right w-24 outline-none focus:text-amber-500 transition-colors",
                                     defaultValue: characterSheetData.outros?.[sigla] || '0',
@@ -1100,46 +1132,42 @@ export function SheetView({
                         ]),
 
                         el('div', {
-                            className: `bg-slate-950/40 border-2 border-slate-800 rounded-3xl p-6 flex-grow min-h-[160px] transition-all cursor-text ${isEditingInventory ? 'border-amber-500/50 ring-2 ring-amber-500/10' : 'hover:border-slate-700 hover:bg-slate-950/60'}`,
-                            onClick: () => {
-                                if (!isEditingInventory) {
-                                    AudioManager.play('bag');
-                                    triggerEffect('bag');
-                                    setIsEditingInventory(true);
-                                }
-                            }
+                            className: `bg-slate-950/40 border-2 border-slate-800 rounded-3xl p-6 flex-grow min-h-[160px] transition-all ${isEditingInventory ? 'border-amber-500/50 ring-2 ring-amber-500/10' : 'hover:border-slate-700 hover:bg-slate-950/60'}`
                         },
-                            isEditingInventory ?
-                                // --- MODO EDIÇÃO (TEXTAREA) ---
-                                el('textarea', {
-                                    autoFocus: true,
-                                    className: "w-full h-full bg-transparent text-slate-300 font-medium text-sm outline-none resize-none leading-relaxed",
-                                    placeholder: "Item 1, Item 2, Item 3...",
-                                    defaultValue: characterSheetData.outros?.['Equipamento'] || "",
-                                    onBlur: (e) => {
-                                        setIsEditingInventory(false);
-                                        updateSheetField('outros', 'Equipamento', e.target.value);
-                                    }
+                            useVisualInventory && !isEditingInventory ?
+                                el(VisualInventory, {
+                                    itemsString: characterSheetData.outros?.['Equipamento'] || "",
+                                    onUpdate: (newVal) => updateSheetField('outros', 'Equipamento', newVal),
+                                    onToggleClassic: () => setIsEditingInventory(true)
                                 }) :
-                                // --- MODO VISUALIZAÇÃO (BOLHAS) ---
-                                // ADICIONEI flex E flex-wrap PARA ORGANIZAR AS BOLHAS
-                                el('div', { className: "flex flex-wrap gap-2.5 content-start" }, [
-                                    (characterSheetData.outros?.['Equipamento'] || "").split(',').map((item, idx) => {
-                                        const cleanItem = item.trim();
-                                        // Ignora itens vazios ou apenas traços
-                                        if (!cleanItem || cleanItem === '-') return null;
-
-                                        // ESTILIZAÇÃO DAS BOLHAS PARA ALTO CONTRASTE (ESTILO DADOS/MOEDAS)
-                                        return el('span', {
-                                            key: `item-${idx}-${cleanItem}`,
-                                            className: "bg-amber-600/10 text-amber-400 px-4 py-1.5 rounded-full text-[10px] font-black border border-amber-600/20 shadow-sm transition-all hover:scale-105 hover:bg-amber-600/20 uppercase tracking-tight"
-                                        }, cleanItem);
-                                    }).filter(Boolean), // Remove os itens nulos do array para renderização limpa
-
-                                    // Texto de feedback se estiver vazia (aparece mesmo sem altura colapsada)
-                                    (characterSheetData.outros?.['Equipamento'] || "").split(',').filter(item => item.trim() !== "" && item.trim() !== "-").length === 0 &&
-                                    el('p', { className: "text-slate-700 italic text-sm" }, "Mochila vazia... Clique para adicionar itens.")
-                                ])
+                                (isEditingInventory ?
+                                    // --- MODO EDIÇÃO (TEXTAREA) ---
+                                    el('textarea', {
+                                        autoFocus: true,
+                                        className: "w-full h-40 bg-transparent text-slate-300 font-medium text-sm outline-none resize-none leading-relaxed",
+                                        placeholder: "Item 1, Item 2, Item 3...",
+                                        defaultValue: characterSheetData.outros?.['Equipamento'] || "",
+                                        onBlur: (e) => {
+                                            setIsEditingInventory(false);
+                                            updateSheetField('outros', 'Equipamento', e.target.value);
+                                        }
+                                    }) :
+                                    // --- MODO VISUALIZAÇÃO (BOLHAS) ---
+                                    el('div', { 
+                                        className: "flex flex-wrap gap-2.5 content-start cursor-pointer",
+                                        onClick: () => setIsEditingInventory(true)
+                                    }, [
+                                        (characterSheetData.outros?.['Equipamento'] || "").split(',').map((item, idx) => {
+                                            const cleanItem = item.trim();
+                                            if (!cleanItem || cleanItem === '-') return null;
+                                            return el('span', {
+                                                key: `item-${idx}-${cleanItem}`,
+                                                className: "bg-amber-600/10 text-amber-400 px-4 py-1.5 rounded-full text-[10px] font-black border border-amber-600/20 shadow-sm transition-all hover:scale-105 hover:bg-amber-600/20 uppercase tracking-tight"
+                                            }, cleanItem);
+                                        }).filter(Boolean),
+                                        (characterSheetData.outros?.['Equipamento'] || "").split(',').filter(item => item.trim() !== "" && item.trim() !== "-").length === 0 &&
+                                        el('p', { className: "text-slate-700 italic text-sm" }, "Mochila vazia... Clique para adicionar itens.")
+                                    ]))
                         )
                     ])
                 ])
@@ -1424,6 +1452,25 @@ export function SheetView({
         // --- MODAL: CADERNO DE AVENTURAS ---
         showJournal && el('div', { key: 'journal-overlay', className: "fixed inset-0 journal-modal animate-fade-in" },
             el('div', { key: 'journal-paper', className: "notebook-container" }, [
+                // --- TABS ESTILO MINECRAFT ---
+                el('div', { key: 'notebook-tabs', className: "notebook-tabs" }, [
+                    el('button', {
+                        onClick: () => setJournalTab('private'),
+                        className: `notebook-tab ${journalTab === 'private' ? 'active' : ''}`
+                    }, [
+                        el('span', { className: "text-lg mr-2" }, "🔒"),
+                        "Meu Diário"
+                    ]),
+                    el('button', {
+                        onClick: () => setJournalTab('group'),
+                        className: `notebook-tab ${journalTab === 'group' ? 'active' : ''}`
+                    }, [
+                        el('span', { className: "text-lg mr-2" }, "👥"),
+                        "Notas do Grupo",
+                        groupNotes.length > 0 && el('span', { className: "ml-2 bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full" }, groupNotes.length)
+                    ])
+                ]),
+
                 // Header do Caderno
                 el('div', { key: 'journal-header-wrap', className: "notebook-header" }, [
                     el('button', {
@@ -1432,9 +1479,9 @@ export function SheetView({
                         className: "text-[#fab1a0] hover:text-white transition-colors text-xl"
                     }, "✕"),
                     el('h2', { key: 'journal-title', className: "text-lg font-bold" }, 
-                        journalPage === 1 ? "📜 Minha História" : `📖 Diário de Aventuras - Página ${journalPage}`
+                        journalTab === 'private' ? (journalPage === 1 ? "📜 Minha História" : `📖 Diário de Aventuras - Página ${journalPage}`) : "👥 Memórias do Grupo"
                     ),
-                    el('div', { key: 'journal-pagination', className: "flex gap-4" }, [
+                    journalTab === 'private' ? el('div', { key: 'journal-pagination', className: "flex gap-4" }, [
                         el('button', { 
                             key: 'prev-page',
                             disabled: journalPage === 1,
@@ -1447,27 +1494,63 @@ export function SheetView({
                             onClick: () => changePage(journalPage + 1),
                             className: `px-3 py-1 bg-black/20 rounded-lg ${journalPage === 10 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/40'}`
                         }, "Próxima →")
-                    ])
+                    ]) : el('div', { key: 'empty-spacer' })
                 ]),
 
-                // Conteúdo da Página - AGORA COM A ANIMAÇÃO ISOLADA AQUI
-                el('div', { className: `paper-page ${pageAnimation}` }, 
-                    journalPage === 1 ?
-                        // PÁGINA 1: Background
-                        el('textarea', {
-                            className: "w-full h-full bg-transparent border-none outline-none resize-none scroll-hide",
-                            defaultValue: characterSheetData.outros?.['Background'] || "O herói ainda não registrou sua origem...",
-                            placeholder: "Escreva sua história aqui...",
-                            onBlur: (e) => updateSheetField('outros', 'Background', e.target.value)
-                        }) :
-                        // PÁGINAS 2-10: Anotações
-                        el('textarea', {
-                            key: `journal-page-${journalPage}`,
-                            className: "w-full h-full bg-transparent border-none outline-none resize-none scroll-hide",
-                            defaultValue: characterSheetData.outros?.[`journal_page_${journalPage}`] || "",
-                            placeholder: `Anotações da página ${journalPage}...`,
-                            onBlur: (e) => updateSheetField('outros', `journal_page_${journalPage}`, e.target.value)
-                        })
+                // Conteúdo da Página
+                el('div', { className: `paper-page ${pageAnimation} custom-scrollbar` }, 
+                    journalTab === 'private' ? [
+                        journalPage === 1 ?
+                            el('textarea', {
+                                key: 'bg-text',
+                                className: "w-full h-full bg-transparent border-none outline-none resize-none scroll-hide",
+                                defaultValue: characterSheetData.outros?.['Background'] || "O herói ainda não registrou sua origem...",
+                                onBlur: (e) => updateSheetField('outros', 'Background', e.target.value)
+                            }) :
+                            el('textarea', {
+                                key: `journal-page-${journalPage}`,
+                                className: "w-full h-full bg-transparent border-none outline-none resize-none scroll-hide",
+                                defaultValue: characterSheetData.outros?.[`journal_page_${journalPage}`] || "",
+                                onBlur: (e) => updateSheetField('outros', `journal_page_${journalPage}`, e.target.value)
+                            }),
+                        // BOTÃO COMPARTILHAR
+                        el('button', {
+                            key: 'btn-share',
+                            onClick: () => {
+                                const text = journalPage === 1 ? characterSheetData.outros?.['Background'] : characterSheetData.outros?.[`journal_page_${journalPage}`];
+                                if (text && text.trim()) {
+                                    shareNote(text);
+                                    alert("📜 Nota selada e enviada para o grupo!");
+                                } else {
+                                    alert("Página vazia não pode ser enviada.");
+                                }
+                            },
+                            className: "absolute bottom-6 right-8 bg-[#d35400] text-white px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:bg-[#e67e22] transition-all flex items-center gap-2"
+                        }, [el('span', { className: "text-lg" }, "✉️"), "Compartilhar"])
+                    ] : 
+                    // ABA DE GRUPO
+                    el('div', { className: "space-y-8" }, [
+                        groupNotes.length === 0 ? 
+                            el('div', { className: "flex flex-col items-center justify-center py-20 opacity-40 grayscale" }, [
+                                el('span', { className: "text-6xl mb-4" }, "📭"),
+                                el('p', { className: "font-bold uppercase tracking-widest" }, "Nenhuma nota compartilhada ainda...")
+                            ]) :
+                            groupNotes.map(note => el('div', { key: note.id, className: "bg-white/40 p-6 rounded-3xl border-2 border-[#d35400]/20 shadow-sm relative group/note" }, [
+                                el('div', { className: "flex justify-between items-start mb-3" }, [
+                                    el('div', { className: "flex items-center gap-2" }, [
+                                        el('span', { className: "bg-[#d35400] text-white text-[8px] font-black uppercase px-2 py-1 rounded-lg" }, note.sender),
+                                        note.sender === characterName && el('button', {
+                                            onClick: () => confirm("Deseja apagar esta nota do grupo?") && deleteNote(note.id),
+                                            className: "text-[10px] text-red-500 hover:text-red-700 transition-colors ml-2",
+                                            title: "Apagar minha nota"
+                                        }, "🗑️")
+                                    ]),
+                                    el('span', { className: "text-[9px] text-slate-500 font-bold" }, note.timestamp)
+                                ]),
+                                el('p', { className: "text-sm leading-relaxed" }, note.text),
+                                el('div', { className: "absolute -bottom-2 -right-2 opacity-0 group-hover/note:opacity-100 transition-opacity" }, "📜")
+                            ]))
+                    ])
                 )
             ])
         ),

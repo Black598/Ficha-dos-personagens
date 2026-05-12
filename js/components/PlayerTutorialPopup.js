@@ -58,18 +58,32 @@ export function PlayerTutorialPopup({ onClose }) {
                     )
                 );
             case 'novidades':
-                return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
-                    el('p', null, "Novos recursos para jogadores:"),
-                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl mt-4" }, [
-                        el('h4', { className: "text-purple-400 font-bold mb-1" }, "🖼️ Personalize seu Avatar"),
-                        el('p', null, "Agora você mesmo pode definir sua foto!"),
-                        el('ul', { className: "list-disc pl-5 text-xs space-y-2 mt-2" }, [
-                            el('li', null, "Clique no ícone de usuário (ou na sua foto atual) no cabeçalho da ficha."),
-                            el('li', null, "Cole o link de 'Compartilhar' de uma imagem do seu Google Drive ou qualquer link da internet."),
-                            el('li', null, "Sua foto atualizará instantaneamente para você e para o Mestre!")
+                return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
+                    el('p', null, "O sistema foi atualizado com novos recursos para facilitar sua jornada:"),
+                    
+                    // 1. Jornal e Compartilhamento
+                    el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2" }, "📖 Jornal e Compartilhamento"),
+                        el('p', { className: "text-xs mb-3" }, "O seu diário agora é uma ferramenta social poderosa!"),
+                        el('ul', { className: "list-disc pl-5 text-[11px] space-y-2" }, [
+                            el('li', null, el('strong', { className: "text-white" }, "Abas Minecraft:"), " Alterne entre 'Meu Diário' e 'Notas do Grupo' no topo do caderno."),
+                            el('li', null, el('strong', { className: "text-white" }, "Selar e Enviar:"), " Use o botão 'Compartilhar' em qualquer página para enviar suas anotações para todos."),
+                            el('li', null, el('strong', { className: "text-white" }, "Cartas:"), " Quando alguém compartilha, uma cartinha aparecerá na sua tela. Clique nela para ler!")
                         ])
+                    ]),
+
+                    // 2. Exclusão e Segurança
+                    el('div', { className: "bg-red-900/20 border border-red-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-red-400 font-bold mb-2 flex items-center gap-2" }, "🗑️ Solicitar Exclusão"),
+                        el('p', { className: "text-xs" }, "Precisa remover uma ficha antiga? Use o ícone de lixeira no cabeçalho. Sua ficha sumirá da lista e o Mestre receberá o pedido para apagar permanentemente.")
+                    ]),
+
+                    // 3. Avatar
+                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-purple-400 font-bold mb-1" }, "🖼️ Personalize seu Avatar"),
+                        el('p', { className: "text-xs" }, "Clique na sua foto para colar um link do Google Drive e atualizar sua imagem instantaneamente!")
                     ])
-                );
+                ]);
             default:
                 return null;
         }

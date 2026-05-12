@@ -1,5 +1,6 @@
-const { useState } = React;
 import { AudioManager } from '../AudioManager.js';
+
+const { useState } = React;
 
 export function MasterControls({ sessionState, updateSessionState }) {
     const el = React.createElement;

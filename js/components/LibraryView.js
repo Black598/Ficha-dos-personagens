@@ -1,6 +1,7 @@
+import { parseImageUrl } from '../utils.js';
+
 const { useState } = React;
 const el = React.createElement;
-import { parseImageUrl } from '../utils.js';
 
 export function LibraryView({ mode, libraryData, updateSessionState, onBack }) {
     const [activeTab, setActiveTab] = useState('characters');

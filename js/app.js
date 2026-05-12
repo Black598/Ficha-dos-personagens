@@ -13,6 +13,8 @@ import { AudioManager } from './AudioManager.js'
 import { LibraryView } from './components/LibraryView.js'
 import { BARGAIN_EFFECTS } from './data/bargainEffects.js'
 import { DevilsBargain } from './components/DevilsBargain.js'
+import { getRandomLoot, LOOT_RARITY } from './data/LootTables.js'
+import { LootChest } from './components/LootChest.js'
 
 // 2. INICIALIZAÇÃO FIREBASE
 const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app()
@@ -97,7 +99,9 @@ function App() {
       activeBargains: []
     },
     announcementTarget: 'all',
-    handoutTarget: 'all'
+    handoutTarget: 'all',
+    groupNotes: [],
+    activeLoot: null // { gold, items, approved: false, timestamp }
   });
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isBargainOpen, setIsBargainOpen] = useState(false);
@@ -105,6 +109,8 @@ function App() {
   const [showHandout, setShowHandout] = useState(true);
   const [chatMessages, setChatMessages] = useState([]);
   const [hasNewMessage, setHasNewMessage] = useState(false);
+  const [lastNotifiedNoteId, setLastNotifiedNoteId] = useState(null);
+  const [showLetter, setShowLetter] = useState(false);
 
   // --- FUNÇÕES AUXILIARES ---
   const updateSessionState = async (updates) => {
@@ -126,6 +132,91 @@ function App() {
       });
   };
 
+  const shareNote = async (text, sender) => {
+    const newNote = {
+      id: Date.now(),
+      text,
+      sender,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    const updatedNotes = [...(sessionState.groupNotes || []), newNote];
+    await updateSessionState({ groupNotes: updatedNotes });
+    AudioManager.play('page');
+  };
+
+  const deleteNote = async (noteId) => {
+    const updatedNotes = (sessionState.groupNotes || []).filter(n => n.id !== noteId);
+    await updateSessionState({ groupNotes: updatedNotes });
+  };
+
+  const generateLoot = (level) => {
+    const loot = getRandomLoot(level);
+    updateSessionState({ activeLoot: { ...loot, approved: false } });
+  };
+
+  const approveLoot = () => {
+    if (!sessionState.activeLoot) return;
+    updateSessionState({ activeLoot: { ...sessionState.activeLoot, approved: true } });
+    AudioManager.play('chest_open');
+  };
+
+  const clearLoot = () => {
+    updateSessionState({ activeLoot: null });
+  };
+
+  const claimLootItem = async (item) => {
+    if (!sessionState.activeLoot || !characterName || !characterSheetData) return;
+
+    const currentEquip = characterSheetData.outros?.['Equipamento'] || "";
+    const updatedEquip = currentEquip ? `${currentEquip}, ${item.name}` : item.name;
+    
+    const updatedSheet = {
+      ...characterSheetData,
+      outros: { ...characterSheetData.outros, Equipamento: updatedEquip }
+    };
+
+    // Atualiza estados locais para feedback instantâneo
+    setCharacterSheetData(updatedSheet);
+    const updatedFullData = { ...characterData, sheetData: updatedSheet };
+    setCharacterData(updatedFullData);
+
+    // Salva persistência
+    await saveCharacter(characterName, updatedFullData);
+
+    const updatedLootItems = sessionState.activeLoot.items.filter(i => i.id !== item.id);
+    await updateSessionState({
+      activeLoot: { ...sessionState.activeLoot, items: updatedLootItems }
+    });
+    AudioManager.play('coins');
+  };
+
+  const claimLootGold = async (amount) => {
+    if (!sessionState.activeLoot || !characterName || !characterSheetData || amount <= 0) return;
+
+    const currentGold = parseInt(characterSheetData.outros?.PO || '0');
+    const updatedGold = currentGold + amount;
+
+    const updatedSheet = {
+      ...characterSheetData,
+      outros: { ...characterSheetData.outros, PO: updatedGold.toString() }
+    };
+
+    // Atualiza estados locais para feedback instantâneo
+    setCharacterSheetData(updatedSheet);
+    const updatedFullData = { ...characterData, sheetData: updatedSheet };
+    setCharacterData(updatedFullData);
+
+    // Salva persistência
+    await saveCharacter(characterName, updatedFullData);
+
+    await updateSessionState({
+      activeLoot: { ...sessionState.activeLoot, gold: Math.max(0, sessionState.activeLoot.gold - amount) }
+    });
+    AudioManager.play('coins');
+  };
+
+
+
   // Reset showHandout local state when handout URL changes in session
   useEffect(() => {
     setShowHandout(true);
@@ -138,8 +229,13 @@ function App() {
         console.log("Dia avançou! Ticking down bargains (Days)...");
         const active = sessionState.devilsBargain?.activeBargains || [];
         if (active.length > 0) {
-            const updated = active.map(b => b.unit === 'Dias' || b.unit === 'days' ? { ...b, duration: b.duration - 1 } : b)
-                                 .filter(b => b.duration > 0);
+            const updated = active.map(b => {
+                // Só decrementa se for do tipo 'days' e não for permanente
+                if ((b.unit === 'days' || b.unit === 'Dias') && b.unit !== 'permanent') {
+                    return { ...b, duration: b.duration - 1 };
+                }
+                return b;
+            }).filter(b => b.unit === 'permanent' || b.duration > 0);
             if (JSON.stringify(active) !== JSON.stringify(updated)) {
                 updateSessionState({
                     devilsBargain: {
@@ -199,7 +295,6 @@ function App() {
             const data = doc.data();
             setSessionState(prev => ({ ...prev, ...data }));
             
-            // Gatilho de Som (Shared Soundboard)
             if (data.triggerSound && data.triggerSound.timestamp !== lastTriggerSound?.timestamp) {
                 setLastTriggerSound(data.triggerSound);
                 if (data.triggerSound.type) {
@@ -211,12 +306,25 @@ function App() {
               announcement: '', handout: '', environment: 'none', monsters: [],
               masterNotes: '', day: 1, library: { characters: [], books: [], bestiary: [] },
               devilsBargain: { categories: BARGAIN_EFFECTS, activeBargains: [] },
-              announcementTarget: 'all', handoutTarget: 'all'
+              announcementTarget: 'all', handoutTarget: 'all', groupNotes: []
             });
         }
       });
     return () => unsubSession();
   }, [user, lastTriggerSound, currentAppId]);
+
+  // Efeito para Notificação de Carta
+  useEffect(() => {
+    const notes = sessionState.groupNotes || [];
+    if (notes.length > 0) {
+      const lastNote = notes[notes.length - 1];
+      if (lastNote.id !== lastNotifiedNoteId && lastNote.sender !== characterName) {
+        setLastNotifiedNoteId(lastNote.id);
+        setShowLetter(true);
+        AudioManager.play('paper');
+      }
+    }
+  }, [sessionState.groupNotes, characterName, lastNotifiedNoteId]);
 
   // --- 1.4 ESCUTA CHAT (MENSAGENS PRIVADAS) ---
   useEffect(() => {
@@ -912,11 +1020,12 @@ function App() {
       // 3. Decrementa barganhas (Rounds)
       if (sessionState.devilsBargain?.activeBargains?.length > 0) {
         const updatedBargains = sessionState.devilsBargain.activeBargains.map(b => {
-            if (b.player === targetCharName && b.unit === 'rounds') {
+            // Só decrementa se for o personagem alvo, tipo 'rounds' e não for permanente
+            if (b.player === targetCharName && b.unit === 'rounds' && b.unit !== 'permanent') {
                 return { ...b, duration: b.duration - 1 };
             }
             return b;
-        }).filter(b => b.duration > 0);
+        }).filter(b => b.unit === 'permanent' || b.duration > 0);
 
         if (JSON.stringify(sessionState.devilsBargain.activeBargains) !== JSON.stringify(updatedBargains)) {
             await updateSessionState({
@@ -1128,6 +1237,21 @@ function App() {
     onBack: () => setIsLibraryOpen(false)
   });
 
+  const LetterOverlay = showLetter && el('div', {
+    key: 'letter-notif',
+    onClick: () => {
+      setShowLetter(false);
+      // Aqui poderíamos forçar a abertura do jornal
+      // Mas o SheetView cuida disso ao detectar as notas
+    },
+    className: "fixed top-24 right-8 z-[500] cursor-pointer animate-bounce-in group"
+  }, [
+    el('div', { className: "bg-[#fdf6e3] p-5 rounded-2xl shadow-2xl border-4 border-[#d35400] relative overflow-hidden flex flex-col items-center gap-2 transform transition-transform group-hover:scale-110 active:scale-95" }, [
+        el('span', { className: "text-4xl" }, "✉️"),
+        el('p', { className: "text-[10px] font-black uppercase text-[#d35400] tracking-widest text-center" }, "Nova Carta", el('br'), "do Grupo")
+    ])
+  ]);
+
   const BargainOverlay = isBargainOpen && el(DevilsBargain, {
     key: 'bargain-overlay-global',
     mode: view === 'master' ? 'master' : 'player',
@@ -1165,6 +1289,26 @@ function App() {
     ])
   ]);
 
+  const LootOverlay = (sessionState.activeLoot?.approved && 
+                        (sessionState.activeLoot.target === 'all' || sessionState.activeLoot.target === characterName)) && el(LootChest, {
+    key: 'loot-chest-overlay',
+    loot: sessionState.activeLoot,
+    characterName,
+    onClaimItem: claimLootItem,
+    onClaimGold: claimLootGold,
+    onClose: clearLoot
+  });
+
+
+  const AllOverlays = React.createElement(React.Fragment, null, [
+    AnnouncementOverlay,
+    HandoutOverlay,
+    LibraryOverlay,
+    BargainOverlay,
+    LetterOverlay,
+    LootOverlay
+  ]);
+
   // Se estivermos na visão do mestre, renderizamos a MasterView
   if (view === 'master') {
     return React.createElement(React.Fragment, null, [
@@ -1190,6 +1334,9 @@ function App() {
         deleteCharacter,
         sessionState,
         updateSessionState,
+        generateLoot,
+        approveLoot,
+        clearLoot,
         setIsLibraryOpen,
         setIsBargainOpen,
         allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name),
@@ -1217,10 +1364,7 @@ function App() {
         tabletopMode: true,
         externalRoll
       }),
-      LibraryOverlay,
-      BargainOverlay,
-      AnnouncementOverlay,
-      HandoutOverlay
+      AllOverlays
     ]);
   }
   // Se estivermos na visão da ficha e tivermos os dados da ficha, renderizamos a SheetView
@@ -1234,6 +1378,9 @@ function App() {
         characterImageUrl: characterData?.imageUrl,
         onUpdateImage: (url) => saveCharacter(characterName, { ...characterData, imageUrl: url }),
         onBack: () => { setIsNewCharacter(false); setView('login'); },
+        groupNotes: sessionState.groupNotes || [],
+        shareNote: (text) => shareNote(text, characterName),
+        deleteNote: deleteNote,
         onRequestDelete: async () => {
           if(confirm('Tem certeza que deseja solicitar a exclusão deste personagem?')) {
             await saveCharacter(characterName, { ...characterData, pendingDeletion: true });
@@ -1309,10 +1456,7 @@ function App() {
         tabletopMode: true,
         externalRoll
       }),
-      LibraryOverlay,
-      BargainOverlay,
-      AnnouncementOverlay,
-      HandoutOverlay
+      AllOverlays
     ]);
   }
 
