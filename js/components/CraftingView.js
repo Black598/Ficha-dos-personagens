@@ -10,7 +10,8 @@ export function CraftingView({ sheetData, onUpdateSheet, onBack, askGemini, isMa
     const [isCrafting, setIsCrafting] = useState(false);
     const [isAskingAI, setIsAskingAI] = useState(false);
 
-    const inventoryString = sheetData?.inventario || "";
+    // Tenta pegar de 'outros.Equipamento' (padrão da ficha) ou de 'inventario' (legado/fallback)
+    const inventoryString = sheetData?.outros?.['Equipamento'] || sheetData?.inventario || "";
     const inventoryItems = inventoryString.split(',').map(s => s.trim()).filter(s => s && s !== '-');
 
     // Receitas Padrão
@@ -24,6 +25,10 @@ export function CraftingView({ sheetData, onUpdateSheet, onBack, askGemini, isMa
     ];
 
     const cleanName = (name) => name.replace(/\s*\[.*?\]\s*/g, ' ').replace(/\s*\{E\}\s*/g, ' ').replace(/\s*\(.*?\)\s*/g, ' ').trim();
+    const getIcon = (name) => {
+        const match = name.match(/\[(.*?)\]/);
+        return match ? match[1] : null;
+    };
 
     const handleAddToSlot = (item, index) => {
         const newSlots = [...slots];
@@ -75,7 +80,13 @@ export function CraftingView({ sheetData, onUpdateSheet, onBack, askGemini, isMa
             // Adiciona resultado
             newInventory.push(`[${result.icon}] ${result.name}`);
 
-            onUpdateSheet({ inventario: newInventory.join(', ') });
+            // Decide qual campo atualizar
+            if (sheetData?.outros && sheetData.outros['Equipamento'] !== undefined) {
+                const updatedOutros = { ...sheetData.outros, 'Equipamento': newInventory.join(', ') };
+                onUpdateSheet({ outros: updatedOutros });
+            } else {
+                onUpdateSheet({ inventario: newInventory.join(', ') });
+            }
             
             setSlots([null, null, null]);
             setResult(null);
@@ -152,7 +163,7 @@ export function CraftingView({ sheetData, onUpdateSheet, onBack, askGemini, isMa
                             className: `absolute w-20 h-20 rounded-2xl border-2 flex items-center justify-center transition-all cursor-pointer ${
                                 slot ? 'bg-slate-900 border-white text-3xl shadow-xl' : 'bg-slate-950/40 border-slate-800 border-dashed text-slate-700'
                             }`
-                        }, slot ? cleanName(slot.name)[0].toUpperCase() : '+');
+                        }, slot ? (getIcon(slot.name) || cleanName(slot.name)[0].toUpperCase()) : '+');
                     })
                 ]),
 
@@ -205,7 +216,7 @@ export function CraftingView({ sheetData, onUpdateSheet, onBack, askGemini, isMa
                                 isUsed ? 'opacity-20 border-slate-800' : 'bg-slate-900 border-slate-800 cursor-pointer hover:border-amber-500 hover:scale-105'
                             }`
                         }, [
-                            el('span', { className: "text-2xl" }, name[0].toUpperCase()),
+                            el('span', { className: "text-2xl" }, getIcon(item) || name[0].toUpperCase()),
                             el('div', { className: "absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-slate-950 text-white text-[8px] font-black px-2 py-1 rounded border border-slate-800 pointer-events-none opacity-0 group-hover:opacity-100 whitespace-nowrap z-50 uppercase" }, name)
                         ]);
                     })
