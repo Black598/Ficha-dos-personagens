@@ -44,7 +44,9 @@ export function MasterView({
     clearRollHistory,
     generateLoot,
     approveLoot,
-    clearLoot
+    clearLoot,
+    currentAppId,
+    deleteCampaign
 }) {
     const [showSettings, setShowSettings] = useState(false);
     const [showTutorial, setShowTutorial] = useState(() => localStorage.getItem('has_seen_master_tutorial') !== 'true');
@@ -643,6 +645,39 @@ export function MasterView({
             onClose: () => setShowVault(false),
             geminiApiKey: geminiApiKey,
             setGeminiApiKey: setGeminiApiKey
-        })
+        }),
+
+        // --- 7. CONFIGURAÇÕES DA CAMPANHA ---
+        showSettings && el('div', {
+            key: 'settings-modal',
+            className: "fixed inset-0 z-[300] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-6 animate-fade-in"
+        }, [
+            el('div', { className: "bg-slate-900 border-2 border-slate-800 rounded-[3rem] p-10 max-w-lg w-full shadow-3xl" }, [
+                el('div', { className: "flex justify-between items-center mb-10" }, [
+                    el('h2', { className: "text-2xl font-black uppercase italic tracking-tighter text-white" }, "⚙️ Configurações"),
+                    el('button', { onClick: () => setShowSettings(false), className: "text-slate-500 hover:text-white text-3xl" }, "×")
+                ]),
+
+                el('div', { className: "space-y-8" }, [
+                    el('div', { className: "bg-slate-950/50 p-6 rounded-2xl border border-slate-800" }, [
+                        el('p', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2" }, "ID da Campanha Atual"),
+                        el('p', { className: "text-xs font-mono text-amber-500" }, currentAppId)
+                    ]),
+
+                    el('div', { className: "border-t border-slate-800 pt-8" }, [
+                        el('h3', { className: "text-red-500 font-black uppercase text-[10px] tracking-widest mb-4" }, "☢️ Zona de Perigo"),
+                        el('button', {
+                            onClick: () => deleteCampaign(currentAppId),
+                            className: "w-full bg-red-900/20 hover:bg-red-600 text-red-500 hover:text-white font-black py-4 rounded-2xl uppercase text-[10px] tracking-widest transition-all border border-red-500/30"
+                        }, "🗑️ Apagar Campanha Permanentemente")
+                    ]),
+
+                    el('button', {
+                        onClick: () => setShowSettings(false),
+                        className: "w-full bg-slate-800 hover:bg-slate-700 text-slate-400 font-black py-4 rounded-2xl uppercase text-[10px] tracking-widest transition-all"
+                    }, "Voltar")
+                ])
+            ])
+        ])
     ]);
 }

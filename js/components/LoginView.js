@@ -12,7 +12,8 @@ export function LoginView({
     campaigns = [],
     currentAppId,
     setCurrentAppId,
-    createNewCampaign
+    createNewCampaign,
+    importCampaign
 }) {
     const el = React.createElement;
     const { useState } = React;
@@ -42,9 +43,17 @@ export function LoginView({
                             },
                             className: "bg-slate-950/50 text-amber-500 text-xs md:text-sm uppercase font-bold tracking-[0.2em] border border-slate-800 rounded-lg p-2 focus:outline-none focus:border-amber-500 cursor-pointer hover:bg-slate-900 transition-all"
                         }, [
-                            ...campaigns.map(camp => el('option', { key: camp.id, value: camp.id }, camp.name)),
+                             ...campaigns.map(camp => el('option', { key: camp.id, value: camp.id }, camp.name)),
                             el('option', { key: 'new', value: 'new', className: "text-emerald-400" }, "+ CRIAR NOVA SALA/CAMPANHA")
-                        ])
+                        ]),
+                        el('button', {
+                            onClick: () => {
+                                const id = prompt("Digite o ID da campanha para importar (Ex: rpg-nome-da-sala):");
+                                if (id) importCampaign(id);
+                            },
+                            className: "bg-slate-900 border border-slate-800 p-2 rounded-lg text-[10px] text-slate-500 hover:text-white transition-all",
+                            title: "Importar Campanha via ID"
+                        }, "📥")
                     )
                 ),
                 el('button', {

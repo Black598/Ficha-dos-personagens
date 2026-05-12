@@ -52,19 +52,25 @@ function App() {
   const [campaigns, setCampaigns] = useState([{ id: DEFAULT_APP_ID, name: 'Dungeon Delvers (Original)' }]);
 
   // Buscar lista de campanhas globais do Firebase
-  useEffect(() => {
-    const unsub = db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
-      .onSnapshot((doc) => {
-        if (doc.exists && doc.data().list) {
-          setCampaigns(doc.data().list);
-        } else {
-          // Inicializa se não existir
-          db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
-            .set({ list: [{ id: DEFAULT_APP_ID, name: 'Dungeon Delvers (Original)' }] }, { merge: true });
-        }
-      });
-    return () => unsub();
-  }, []);
+    useEffect(() => {
+        const unsub = db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
+            .onSnapshot((doc) => {
+                if (doc.exists && doc.data().list) {
+                    setCampaigns(doc.data().list);
+                } else {
+                    // Inicializa se não existir
+                    const initialList = [{ id: DEFAULT_APP_ID, name: 'Dungeon Delvers (Original)' }];
+                    db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
+                        .set({ list: initialList }, { merge: true });
+                    setCampaigns(initialList);
+                }
+            }, (err) => {
+                console.error("Erro ao carregar lista de campanhas:", err);
+                // Fallback para a padrão se falhar
+                setCampaigns([{ id: DEFAULT_APP_ID, name: 'Dungeon Delvers (Original)' }]);
+            });
+        return () => unsub();
+    }, [user]);
 
   // Salvar a campanha atual no localStorage
   useEffect(() => {
@@ -73,10 +79,100 @@ function App() {
 
   const createNewCampaign = async (name) => {
     const newId = 'rpg-' + name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    const newList = [...campaigns, { id: newId, name: name }];
+    
+    // Busca a lista mais recente do Firebase para não sobrescrever nada por erro de sincronia local
+    const doc = await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list').get();
+    let currentList = [];
+    if (doc.exists && doc.data().list) {
+        currentList = doc.data().list;
+    } else {
+        currentList = [{ id: DEFAULT_APP_ID, name: 'Dungeon Delvers (Original)' }];
+    }
+
+    // Verifica se já existe
+    if (currentList.some(c => c.id === newId)) {
+        alert("Já existe uma campanha com este ID ou nome similar.");
+        setCurrentAppId(newId); // Apenas entra nela
+        return;
+    }
+
+    const newList = [...currentList, { id: newId, name: name }];
     await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
       .set({ list: newList }, { merge: true });
+    
     setCurrentAppId(newId);
+  };
+
+  const importCampaign = async (campaignId) => {
+    if (!campaignId.startsWith('rpg-')) {
+        alert("ID de campanha inválido. Deve começar com 'rpg-'");
+        return;
+    }
+
+    const doc = await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list').get();
+    let currentList = (doc.exists && doc.data().list) ? doc.data().list : [];
+
+    if (currentList.some(c => c.id === campaignId)) {
+        alert("Esta campanha já está na lista.");
+        setCurrentAppId(campaignId);
+        return;
+    }
+
+    // Tenta verificar se a campanha realmente existe no Firebase (checa se tem algum dado nela)
+    const charSnap = await db.collection('artifacts').doc(campaignId).collection('public').doc('data').collection('characters').limit(1).get();
+    
+    if (charSnap.empty) {
+        if (!confirm("Não encontramos personagens nesta campanha. Deseja importá-la mesmo assim?")) return;
+    }
+
+    const newList = [...currentList, { id: campaignId, name: campaignId.replace('rpg-', '').toUpperCase() }];
+    await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
+      .set({ list: newList }, { merge: true });
+
+    setCurrentAppId(campaignId);
+    alert("Campanha importada com sucesso!");
+  };
+
+  const deleteCampaign = async (campaignId) => {
+    if (campaignId === DEFAULT_APP_ID) {
+      alert("Não é possível apagar a campanha original.");
+      return;
+    }
+    if (!confirm("⚠️ ATENÇÃO: Tem certeza que deseja apagar permanentemente esta campanha? Todos os personagens e dados desta sala serão perdidos. Esta ação não pode ser desfeita.")) return;
+    
+    try {
+        // 1. Tenta limpar personagens (lixo no firebase)
+        const charSnap = await db.collection('artifacts').doc(campaignId).collection('public').doc('data').collection('characters').get();
+        const batch = db.batch();
+        charSnap.forEach(doc => batch.delete(doc.ref));
+        
+        // 2. Limpa mensagens
+        const msgSnap = await db.collection('artifacts').doc(campaignId).collection('public').doc('data').collection('messages').get();
+        msgSnap.forEach(doc => batch.delete(doc.ref));
+        
+        // 3. Limpa sessão
+        batch.delete(db.collection('artifacts').doc(campaignId).collection('public').doc('data').collection('global').doc('session'));
+        
+        await batch.commit();
+
+        // 4. Remove da lista global
+        const newList = campaigns.filter(c => c.id !== campaignId);
+        await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
+            .set({ list: newList }, { merge: true });
+        
+        // Se a campanha apagada era a atual, volta para a original
+        if (currentAppId === campaignId) {
+            setCurrentAppId(DEFAULT_APP_ID);
+            setView('login');
+        }
+        alert("Campanha e dados removidos com sucesso.");
+    } catch (e) {
+        console.error("Erro ao deletar campanha:", e);
+        alert("Erro ao remover dados, mas a campanha será removida da lista.");
+        const newList = campaigns.filter(c => c.id !== campaignId);
+        await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
+            .set({ list: newList }, { merge: true });
+    }
   };
 
   const lastHPs = useRef({}); // Rastreador de HP para mortes automáticas (Ref evita re-renders)
@@ -288,14 +384,17 @@ function App() {
   // --- 1.3 ESCUTA ESTADO DA SESSÃO ---
   useEffect(() => {
     if (!user) return;
+    let active = true;
     const unsubSession = db.collection('artifacts').doc(currentAppId)
       .collection('public').doc('data').collection('global').doc('session')
       .onSnapshot((doc) => {
+        if (!active) return;
         if (doc.exists) {
             const data = doc.data();
             setSessionState(prev => ({ ...prev, ...data }));
             
-            if (data.triggerSound && data.triggerSound.timestamp !== lastTriggerSound?.timestamp) {
+            // Somente dispara som se for novo timestamp e NÃO for o mestre que acabou de disparar (opcional)
+            if (data.triggerSound && (!lastTriggerSound || data.triggerSound.timestamp !== lastTriggerSound.timestamp)) {
                 setLastTriggerSound(data.triggerSound);
                 if (data.triggerSound.type) {
                     AudioManager.play(data.triggerSound.type);
@@ -310,8 +409,11 @@ function App() {
             });
         }
       });
-    return () => unsubSession();
-  }, [user, lastTriggerSound, currentAppId]);
+    return () => {
+        active = false;
+        unsubSession();
+    };
+  }, [user, currentAppId]); // Removido lastTriggerSound daqui
 
   // Efeito para Notificação de Carta
   useEffect(() => {
@@ -355,61 +457,61 @@ function App() {
   // --- 2. CARREGAMENTO DE DADOS (PLANILHA + FIREBASE) ---
   useEffect(() => {
     if (!user) return;
+    setLoading(true);
+    let active = true;
+    let unsubSnapshot = null;
 
     const initAppData = async () => {
       let googlePlayers = [];
       try {
         if (currentAppId === DEFAULT_APP_ID) {
-           googlePlayers = await loadPlayerList(); // Pega a lista da Planilha Mestre apenas na campanha original
+           googlePlayers = await loadPlayerList(); 
         }
       } catch (e) { console.error("Erro planilha:", e); }
+      
+      if (!active) return;
 
-      const unsub = db.collection('artifacts').doc(currentAppId)
+      unsubSnapshot = db.collection('artifacts').doc(currentAppId)
         .collection('public').doc('data')
         .collection('characters')
         .onSnapshot((snap) => {
+          if (!active) return;
           const firebaseData = {};
           snap.forEach(doc => {
-            // Guardamos os dados do Firebase usando o ID em minúsculo
             firebaseData[doc.id.toLowerCase()] = doc.data();
           });
 
-          // MESCLAGEM REAL:
-          // Criamos a lista final garantindo que os dados do Firebase existam
           const mergedList = googlePlayers
             .map(p => {
               const id = (p.Personagem || p.name || "").toLowerCase().trim();
               const fData = firebaseData[id] || {};
-              return {
-                ...p,
-                ...fData,
-                name: p.Personagem || p.name
-              };
+              return { ...p, ...fData, name: p.Personagem || p.name };
             })
-            .filter(p => !p.deleted); // Oculta personagens marcados como excluídos
+            .filter(p => !p.deleted);
 
-          // Adiciona personagens que estão APENAS no Firebase (novos heróis)
           const googlePlayerIds = googlePlayers.map(p => (p.Personagem || p.name || "").toLowerCase().trim());
           Object.keys(firebaseData).forEach(id => {
               if (!googlePlayerIds.includes(id) && id !== 'mestre' && id !== 'sessao' && id !== 'globais') {
                   if (!firebaseData[id].deleted) {
-                     mergedList.push({
-                        ...firebaseData[id],
-                        name: firebaseData[id].name || id
-                     });
+                     mergedList.push({ ...firebaseData[id], name: firebaseData[id].name || id });
                   }
               }
           });
 
           setAllCharacters(mergedList);
           setLoading(false);
+        }, (err) => {
+            console.error("Erro Snapshot:", err);
+            if (active) setLoading(false);
         });
-
-      return () => unsub();
     };
 
     initAppData();
-  }, [user, currentAppId])
+    return () => {
+        active = false;
+        if (unsubSnapshot) unsubSnapshot();
+    };
+  }, [user, currentAppId]);
 
   // --- 3. CARREGAMENTO DE DADOS (FIREBASE) ---
   useEffect(() => {
@@ -1334,6 +1436,8 @@ function App() {
         deleteCharacter,
         sessionState,
         updateSessionState,
+        currentAppId,
+        deleteCampaign,
         generateLoot,
         approveLoot,
         clearLoot,
@@ -1511,7 +1615,8 @@ function App() {
       campaigns,
       currentAppId,
       setCurrentAppId,
-      createNewCampaign
+      createNewCampaign,
+      importCampaign
     }),
     LibraryOverlay,
     BargainOverlay,

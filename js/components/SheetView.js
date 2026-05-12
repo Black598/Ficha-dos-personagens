@@ -33,7 +33,8 @@ export function SheetView({
     onRequestDelete,
     groupNotes,
     shareNote,
-    deleteNote
+    deleteNote,
+    setIsLibraryOpen
 }) {
     const charData = characterSheetData; // Alias para compatibilidade com código legado
 
