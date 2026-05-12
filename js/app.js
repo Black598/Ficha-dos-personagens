@@ -1579,6 +1579,19 @@ function App() {
     isMaster: view === 'master'
   });
 
+  const DiceOverlay = view !== 'login' && el(DiceRoller, {
+    key: 'global-dice-roller',
+    rollDice: (sides, result, label, secret) => rollDice(sides, result, label, secret),
+    recentRolls,
+    characterName: view === 'master' ? 'Mestre' : characterName,
+    view,
+    isRollingModalOpen,
+    setRollingModalOpen,
+    tabletopMode: true,
+    externalRoll,
+    isBattlemapOpen: isBattlemapOpen
+  });
+
   const AllOverlays = React.createElement(React.Fragment, null, 
     AnnouncementOverlay,
     HandoutOverlay,
@@ -1589,7 +1602,8 @@ function App() {
     WeatherOverlay,
     BattlemapOverlay,
     WorldMapOverlay,
-    CraftingOverlay
+    CraftingOverlay,
+    DiceOverlay
   );
 
   // Se estivermos na visão do mestre, renderizamos a MasterView
@@ -1779,21 +1793,7 @@ function App() {
       createNewCampaign,
       importCampaign
     }),
-    AllOverlays,
-    
-    // ROLO DE DADOS GLOBAL (Persistente para evitar bugs de 3D)
-    view !== 'login' && el(DiceRoller, {
-        key: 'dice-roller-global',
-        rollDice,
-        recentRolls,
-        characterName,
-        view,
-        isRollingModalOpen,
-        setRollingModalOpen,
-        tabletopMode: true,
-        externalRoll,
-        isBattlemapOpen
-    })
+    AllOverlays
   ]);
 }
 

@@ -1524,11 +1524,7 @@ export function SheetView({
                         }, "🚀 Level Up!")
                     ])
                 ]),
-                // --- GERENCIADOR DE BALÕES (Fica invisível, apenas cuidando dos dados) ---
-                el(DiceRoller, {
-                    recentRolls,
-                    characterName
-                })
+                // --- GERENCIADOR DE BALÕES (Removido daqui e movido para global em App) ---
             ])
         ),
 

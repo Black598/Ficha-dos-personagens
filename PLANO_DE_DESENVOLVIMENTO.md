@@ -97,7 +97,7 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 
 ## 🚀 Próximas Implementações (Pendentes)
 
-### 1. 🧙‍♂️ Assistente de Criação de Personagem (Charactermancer)
+### 1. 🧙‍♂️ Assistente de Criação de Personagemz (Charactermancer)
 
 - **Conceito:** Um menu guiado para acelerar a criação de novos personagens.
 - **Features:**
