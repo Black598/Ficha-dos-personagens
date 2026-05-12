@@ -107,9 +107,24 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - Opção de mesclar habilidades baseadas em APIs/Wikis com habilidades customizadas (homebrew).
 
 ### 2. 🛒 Loja do Mestre (Trading System)
-
 - **Conceito:** Um mercado interativo onde o mestre coloca itens à venda.
 - **Features:** Vitrine do Mestre, Compra Automática (dedução de PO) e Venda de Itens.
+
+### 3. 🌫️ Névoa de Guerra Dinâmica (Dynamic Fog of War)
+- **Conceito:** Revelação automática do mapa baseada na posição e visão dos tokens.
+- **Features:** Linha de visão (LoS) que respeita paredes, sombras dinâmicas e controle de raio de luz (tochas/visão no escuro).
+
+### 🎲 4. Personalização de Dados (Dice Skins)
+- **Conceito:** Menu de cosméticos para o rolador 3D.
+- **Features:** Escolha de materiais (Metal, Cristal, Magma), cores customizadas e efeitos de trilha (partículas) ao rolar.
+
+### 🕒 5. Relógio de Sessão (In-Game Time)
+- **Conceito:** Rastreador de tempo cronológico dentro do mundo.
+- **Features:** Botões para avançar 10m/1h/Descanso, sincronia com iluminação do mapa (dia/noite) e controle de duração de efeitos.
+
+### 🔊 6. Soundpad dos Jogadores (Player Soundboard)
+- **Conceito:** Uma interface onde os jogadores podem carregar ou linkar seus próprios efeitos sonoros.
+- **Features:** Botões de som personalizados para cada jogador (ex: grito de guerra, som de magia), controle de volume individual e biblioteca de sons compartilhada.
 
 ---
 

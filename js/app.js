@@ -216,7 +216,7 @@ function App() {
   const [showHandout, setShowHandout] = useState(true);
   const [chatMessages, setChatMessages] = useState([]);
   const [hasNewMessage, setHasNewMessage] = useState(false);
-  const [lastNotifiedNoteId, setLastNotifiedNoteId] = useState(null);
+  const [lastNotifiedNoteId, setLastNotifiedNoteId] = useState(() => localStorage.getItem(`last_note_${currentAppId}`));
   const [showLetter, setShowLetter] = useState(false);
 
   // --- FUNÇÕES AUXILIARES ---
@@ -459,18 +459,19 @@ function App() {
     }
   }, [sessionState.ambientMusic]);
 
-  // Efeito para Notificação de Carta
+  // Efeito para Notificação de Carta (Notas Compartilhadas)
   useEffect(() => {
     const notes = sessionState.groupNotes || [];
-    if (notes.length > 0) {
+    if (notes.length > 0 && view === 'sheet') {
       const lastNote = notes[notes.length - 1];
-      if (lastNote.id !== lastNotifiedNoteId && lastNote.sender !== characterName) {
-        setLastNotifiedNoteId(lastNote.id);
+      if (lastNote.id.toString() !== lastNotifiedNoteId && lastNote.sender !== characterName) {
+        setLastNotifiedNoteId(lastNote.id.toString());
+        localStorage.setItem(`last_note_${currentAppId}`, lastNote.id.toString());
         setShowLetter(true);
         AudioManager.play('paper');
       }
     }
-  }, [sessionState.groupNotes, characterName, lastNotifiedNoteId]);
+  }, [sessionState.groupNotes, characterName, lastNotifiedNoteId, view, currentAppId]);
 
   // --- 1.4 ESCUTA CHAT (MENSAGENS PRIVADAS) ---
   useEffect(() => {
