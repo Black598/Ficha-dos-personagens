@@ -446,6 +446,16 @@ function App() {
         unsubSession();
     };
   }, [user, currentAppId]); // Removido lastTriggerSound daqui
+  
+  // --- 1.4 SINCRONIZAÇÃO DE MÚSICA AMBIENTE ---
+  useEffect(() => {
+    const ambient = sessionState.ambientMusic;
+    if (ambient && ambient.url) {
+        AudioManager.playAmbient(ambient.url, 'global', ambient.volume || 0.5);
+    } else {
+        AudioManager.stopAmbient('global');
+    }
+  }, [sessionState.ambientMusic]);
 
   // Efeito para Notificação de Carta
   useEffect(() => {
@@ -1480,14 +1490,16 @@ function App() {
     key: 'letter-notif',
     onClick: () => {
       setShowLetter(false);
-      // Aqui poderíamos forçar a abertura do jornal
-      // Mas o SheetView cuida disso ao detectar as notas
     },
     className: "fixed top-24 right-8 z-[500] cursor-pointer animate-bounce-in group"
   }, [
-    el('div', { className: "bg-[#fdf6e3] p-5 rounded-2xl shadow-2xl border-4 border-[#d35400] relative overflow-hidden flex flex-col items-center gap-2 transform transition-transform group-hover:scale-110 active:scale-95" }, [
-        el('span', { className: "text-4xl" }, "✉️"),
-        el('p', { className: "text-[10px] font-black uppercase text-[#d35400] tracking-widest text-center" }, "Nova Carta", el('br'), "do Grupo")
+    el('div', { key: 'letter-box', className: "bg-[#fdf6e3] p-5 rounded-2xl shadow-2xl border-4 border-[#d35400] relative overflow-hidden flex flex-col items-center gap-2 transform transition-transform group-hover:scale-110 active:scale-95" }, [
+        el('span', { key: 'icon', className: "text-4xl" }, "✉️"),
+        el('p', { key: 'text', className: "text-[10px] font-black uppercase text-[#d35400] tracking-widest text-center" }, [
+            el('span', { key: 't1' }, "Nova Carta"),
+            el('br', { key: 'br' }),
+            el('span', { key: 't2' }, "do Grupo")
+        ])
     ])
   ]);
 

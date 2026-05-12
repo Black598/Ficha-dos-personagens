@@ -6,9 +6,10 @@ export function OracleMural({ sessionState, updateSessionState, allPlayers = [] 
     const el = React.createElement;
 
     const renderTargetSelector = (currentValue, fieldName, themeColor) => {
-        return el('div', { className: "flex items-center gap-2" }, [
-            el('span', { className: `text-[8px] font-black uppercase text-${themeColor}-500/70` }, "🎯 Para:"),
+        return el('div', { key: `target-${fieldName}`, className: "flex items-center gap-2" }, [
+            el('span', { key: 'label', className: `text-[8px] font-black uppercase text-${themeColor}-500/70` }, "🎯 Para:"),
             el('select', {
+                key: 'select',
                 value: currentValue || 'all',
                 onChange: (e) => updateSessionState({ [fieldName]: e.target.value }),
                 className: `bg-slate-950 border border-${themeColor}-500/20 rounded-lg px-2 py-1 text-[9px] font-black text-${themeColor}-400 outline-none focus:border-${themeColor}-500/50 transition-all cursor-pointer`
@@ -26,10 +27,11 @@ export function OracleMural({ sessionState, updateSessionState, allPlayers = [] 
         ]),
         el('div', { key: 'content-grid', className: "grid grid-cols-1 md:grid-cols-2 gap-6" }, [
             el('div', { key: 'announcement-section', className: "space-y-3" }, [
-                el('div', { className: "flex justify-between items-center px-2" }, [
-                    el('div', { className: "flex items-center gap-2" }, [
+                el('div', { key: 'header', className: "flex justify-between items-center px-2" }, [
+                    el('div', { key: 'title-box', className: "flex items-center gap-2" }, [
                         el('label', { key: 'label', className: "text-[9px] font-black text-slate-500 uppercase" }, "Aviso/Narração Pública"),
                         sessionState?.announcement && el('button', {
+                            key: 'clear-btn',
                             onClick: () => updateSessionState({ announcement: '' }),
                             className: "text-[8px] text-red-500 font-bold uppercase hover:text-red-400"
                         }, "Limpar")
@@ -45,7 +47,7 @@ export function OracleMural({ sessionState, updateSessionState, allPlayers = [] 
                 })
             ]),
             el('div', { key: 'handout-section', className: "space-y-3" }, [
-                el('div', { className: "flex justify-between items-center" }, [
+                el('div', { key: 'header', className: "flex justify-between items-center" }, [
                     el('label', { key: 'label', className: "text-[9px] font-black text-slate-500 uppercase ml-2" }, "URL de Imagem (Handout)"),
                     renderTargetSelector(sessionState?.handoutTarget, 'handoutTarget', 'blue')
                 ]),

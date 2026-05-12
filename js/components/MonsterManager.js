@@ -78,7 +78,7 @@ export function MonsterManager({ sessionState, updateSessionState, geminiApiKey 
     return el('div', { key: 'monster-manager-root', className: "space-y-6" }, [
         el('div', { key: 'header', className: "flex items-center justify-between" }, [
             el('h2', { key: 'title', className: "text-sm font-black uppercase tracking-[0.3em] text-red-500 flex items-center gap-2" }, "⚔️ Ameaças e NPCs"),
-            el('div', { className: "flex gap-2" }, [
+            el('div', { key: 'header-btns', className: "flex gap-2" }, [
                 el('button', {
                     key: 'ai-btn',
                     onClick: async () => {
@@ -289,6 +289,7 @@ export function MonsterManager({ sessionState, updateSessionState, geminiApiKey 
                 // Detalhes / Habilidades
                 el('div', { key: 'details-section', className: "pt-4 border-t border-slate-800/50" }, [
                     el('textarea', {
+                        key: 'details-textarea',
                         className: "w-full bg-slate-950/50 border border-slate-800/50 rounded-xl p-3 text-xs text-slate-400 outline-none focus:border-red-500/50 focus:text-slate-200 resize-y min-h-[80px] custom-scrollbar transition-colors leading-relaxed",
                         placeholder: "Habilidades, ataques, mecânicas e descrição...",
                         value: m.details || '',

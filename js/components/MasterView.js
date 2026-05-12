@@ -199,27 +199,29 @@ export function MasterView({
                     const pendingDeletions = allCharacters.filter(c => c.pendingDeletion === true);
                     if (pendingDeletions.length === 0) return null;
                     return el('div', { key: 'pending-deletions-section', className: "space-y-6" }, [
-                        el('div', { className: "flex justify-between items-end border-b border-red-900/50 pb-4" }, [
-                            el('h2', { className: "text-xs font-black uppercase tracking-[0.4em] text-red-500" }, "🗑️ Solicitações de Exclusão"),
+                        el('div', { key: 'pending-header', className: "flex justify-between items-end border-b border-red-900/50 pb-4" }, [
+                            el('h2', { key: 'title', className: "text-xs font-black uppercase tracking-[0.4em] text-red-500" }, "🗑️ Solicitações de Exclusão"),
                         ]),
-                        el('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-6" }, 
+                        el('div', { key: 'pending-grid', className: "grid grid-cols-1 md:grid-cols-2 gap-6" }, 
                             pendingDeletions.map(char => el('div', { key: char.name, className: "bg-red-950/20 border border-red-900/50 p-6 rounded-[2.5rem] shadow-xl flex items-center justify-between" }, [
-                                el('div', { className: "flex items-center gap-4" }, [
-                                    el('div', { className: "w-12 h-12 rounded-xl bg-slate-950 border border-red-900 flex items-center justify-center overflow-hidden shrink-0 shadow-lg opacity-50" }, [
-                                        char.imageUrl ? el('img', { src: char.imageUrl, className: "w-full h-full object-cover grayscale" }) : el('span', { className: "text-xl grayscale" }, "👤")
+                                el('div', { key: 'char-box', className: "flex items-center gap-4" }, [
+                                    el('div', { key: 'avatar-box', className: "w-12 h-12 rounded-xl bg-slate-950 border border-red-900 flex items-center justify-center overflow-hidden shrink-0 shadow-lg opacity-50" }, [
+                                        char.imageUrl ? el('img', { key: 'img', src: char.imageUrl, className: "w-full h-full object-cover grayscale" }) : el('span', { key: 'icon', className: "text-xl grayscale" }, "👤")
                                     ]),
-                                    el('div', null, [
-                                        el('h3', { className: "text-lg font-black uppercase text-red-400 tracking-tighter" }, char.name),
-                                        el('p', { className: "text-[10px] text-red-500/70 font-bold uppercase tracking-widest" }, "Solicitou Exclusão")
+                                    el('div', { key: 'info-box' }, [
+                                        el('h3', { key: 'name', className: "text-lg font-black uppercase text-red-400 tracking-tighter" }, char.name),
+                                        el('p', { key: 'status', className: "text-[10px] text-red-500/70 font-bold uppercase tracking-widest" }, "Solicitou Exclusão")
                                     ])
                                 ]),
-                                el('div', { className: "flex gap-2" }, [
+                                el('div', { key: 'actions-box', className: "flex gap-2" }, [
                                     el('button', {
+                                        key: 'btn-restore',
                                         onClick: () => saveCharacter(char.name, { ...char, pendingDeletion: false }),
                                         className: "p-2 bg-emerald-900/20 hover:bg-emerald-600 text-emerald-500 hover:text-white rounded-xl border border-emerald-900/50 transition-all text-sm",
                                         title: "Restaurar Ficha"
                                     }, "↩️"),
                                     el('button', {
+                                        key: 'btn-confirm',
                                         onClick: () => deleteCharacter(char.name),
                                         className: "p-2 bg-red-900/20 hover:bg-red-600 text-red-500 hover:text-white rounded-xl border border-red-900/50 transition-all text-sm",
                                         title: "Confirmar Exclusão"
@@ -288,8 +290,8 @@ export function MasterView({
                                             char.imageUrl ? 
                                                 el('img', { src: char.imageUrl, className: "w-full h-full object-cover" }) : 
                                                 el('span', { className: "text-2xl" }, "👤"),
-                                            el('div', { className: "absolute inset-0 bg-purple-600/20 opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center transition-opacity" }, 
-                                                el('span', { className: "text-[8px] font-black text-white uppercase" }, "Mudar")
+                                            el('div', { key: 'overlay', className: "absolute inset-0 bg-purple-600/20 opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center transition-opacity" }, 
+                                                el('span', { key: 'label', className: "text-[8px] font-black text-white uppercase" }, "Mudar")
                                             )
                                         ]),
                                         // CHECKBOX PARA SELEÇÃO EM MASSA
@@ -305,10 +307,10 @@ export function MasterView({
                                         }, selectedChars.includes(char.name) ? el('span', { className: "text-slate-900 font-bold" }, "✓") : null),
                                         el('div', { key: 'name-stack', className: "min-w-0 flex-1" }, [
                                             el('h3', { key: 'char-name', className: "text-xl font-black uppercase text-white tracking-tighter leading-tight" }, char.name),
-                                            el('div', { className: "flex items-center gap-2 mt-1 flex-wrap" }, [
+                                            el('div', { key: 'class-row', className: "flex items-center gap-2 mt-1 flex-wrap" }, [
                                                 el('p', { key: 'char-class', className: "text-[11px] text-purple-400 font-bold uppercase tracking-widest" }, char.sheetData?.info?.['Classe'] || char.Player || 'Aventureiro'),
                                                 el('span', { key: 'passive-perc', className: "text-[10px] font-bold text-slate-400 bg-slate-950 px-2 py-1 rounded-lg flex items-center gap-1.5 border border-slate-800 whitespace-nowrap shadow-inner", title: "Percepção Passiva" }, [
-                                                    "👁️", 
+                                                    el('span', { key: 'eye' }, "👁️"), 
                                                     10 + parseInt(char.sheetData?.pericias?.['Percepção']?.val || char.sheetData?.modificadores?.['SAB'] || 0)
                                                 ])
                                             ])
@@ -498,7 +500,7 @@ export function MasterView({
                                                 onKeyDown: (e) => e.key === 'Enter' && e.target.blur()
                                             }),
                                         ]),
-                                        el('span', { className: "text-slate-700 text-[10px] ml-auto pb-1" }, "⭐")
+                                        el('span', { key: 'icon', className: "text-slate-700 text-[10px] ml-auto pb-1" }, "⭐")
                                     ])
                                 ])
                             ]);
@@ -509,24 +511,27 @@ export function MasterView({
             el('div', { key: 'master-right-col', className: "lg:col-span-4 space-y-12" }, [
                 el(MasterControls, { key: 'master-controls', sessionState, updateSessionState }),
                 el('section', { key: 'initiative-section', className: "bg-slate-900 border-2 border-amber-500/20 rounded-[3rem] overflow-hidden shadow-2xl" }, [
-                    el('div', { className: "bg-amber-900/10 p-6 border-b border-amber-500/20 flex justify-between items-center" }, [
-                        el('h3', { className: "text-xs font-black uppercase text-amber-500 tracking-widest" }, "⚔️ Inic."),
-                        el('button', { onClick: () => updateInitiative([]), className: "text-[9px] text-red-500 uppercase" }, "Limpar")
+                    el('div', { key: 'ini-header', className: "bg-amber-900/10 p-6 border-b border-amber-500/20 flex justify-between items-center" }, [
+                        el('h3', { key: 'title', className: "text-xs font-black uppercase text-amber-500 tracking-widest" }, "⚔️ Inic."),
+                        el('button', { key: 'clear-btn', onClick: () => updateInitiative([]), className: "text-[9px] text-red-500 uppercase" }, "Limpar")
                     ]),
-                    el('div', { className: "p-4 space-y-4" }, [
-                        el('div', { className: "flex gap-2" }, [
+                    el('div', { key: 'ini-content', className: "p-4 space-y-4" }, [
+                        el('div', { key: 'add-row', className: "flex gap-2" }, [
                             el('input', { 
+                                key: 'name',
                                 id: 'ini-name', 
                                 placeholder: 'Nome ou NPC', 
                                 className: "flex-grow bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white outline-none focus:border-amber-500/50" 
                             }),
                             el('input', { 
+                                key: 'val',
                                 id: 'ini-val', 
                                 type: 'number', 
                                 placeholder: '0', 
                                 className: "w-16 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-center text-amber-500 font-bold outline-none focus:border-amber-500/50" 
                             }),
                             el('button', {
+                                key: 'btn',
                                 onClick: () => {
                                     const n = document.getElementById('ini-name').value.trim();
                                     const v = parseInt(document.getElementById('ini-val').value) || 0;
@@ -554,6 +559,7 @@ export function MasterView({
                         }, "🧙 Adicionar Todos os Jogadores"),
 
                         el('div', { 
+                            key: 'ini-list',
                             className: "space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-1",
                             onDragOver: (e) => e.preventDefault()
                         }, 
@@ -573,12 +579,13 @@ export function MasterView({
                                     },
                                     className: `flex items-center justify-between p-3 rounded-2xl border transition-all cursor-move group ${turnState?.activeChar === item.name ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-slate-800 bg-slate-950/50 hover:border-slate-600'}` 
                                 }, [
-                                    el('div', { className: "flex items-center gap-3" }, [
-                                        el('span', { className: "text-slate-700 group-hover:text-amber-500 transition-colors" }, "☰"),
-                                        el('span', { className: `text-xs font-bold uppercase ${turnState?.activeChar === item.name ? 'text-amber-500' : 'text-slate-300'}` }, item.name),
+                                    el('div', { key: 'name-box', className: "flex items-center gap-3" }, [
+                                        el('span', { key: 'drag-icon', className: "text-slate-700 group-hover:text-amber-500 transition-colors" }, "☰"),
+                                        el('span', { key: 'name-label', className: `text-xs font-bold uppercase ${turnState?.activeChar === item.name ? 'text-amber-500' : 'text-slate-300'}` }, item.name),
                                     ]),
-                                    el('div', { className: "flex items-center gap-2" }, [
+                                    el('div', { key: 'val-box', className: "flex items-center gap-2" }, [
                                         el('input', {
+                                            key: 'val-input',
                                             type: 'number',
                                             defaultValue: item.value,
                                             onBlur: (e) => {

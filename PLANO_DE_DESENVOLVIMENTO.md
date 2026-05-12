@@ -68,9 +68,17 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 - **Conceito:** Um mercado interativo onde o mestre coloca itens à venda.
 - **Features:** Vitrine do Mestre, Compra Automática (dedução de PO) e Venda de Itens.
 
-### 3. 🔊 Soundboard Sincronizado
+### 3. 🔊 Soundboard Sincronizado [CONCLUÍDO]
 
 - **Conceito:** Controle refinado de áudio ambiente e efeitos sonoros para todos os jogadores.
+- **Features:**
+  - ✅ **Atmosferas:** Músicas de fundo em loop (Taverna, Floresta, Combate, etc.) com suporte a **YouTube**.
+  - ✅ **Sincronização:** Quando o mestre toca uma música, ela toca para todos em tempo real.
+  - ✅ **Sincronização Audiovisual:** Ao mudar o clima visual (Chuva, Neve), o áudio correspondente toca automaticamente.
+  - ✅ **Criação Dinâmica:** Botão (+) para o mestre adicionar suas próprias atmosferas personalizadas.
+  - ✅ **Menu Hambúrguer SFX:** Biblioteca expandida de efeitos sonoros categorizados (Combate, Criaturas, Ambiente).
+  - ✅ **Controle de Volume:** Slider para ajustar o volume da música ambiente globalmente.
+  - ✅ **Instant SFX:** Sons rápidos para feedback imediato.
 
 ### 4. 🧪 Alquimia e Crafting
 
