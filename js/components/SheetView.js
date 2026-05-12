@@ -37,7 +37,8 @@ export function SheetView({
     setIsLibraryOpen,
     setIsBattlemapOpen,
     setIsWorldMapOpen,
-    onOpenCrafting
+    onOpenCrafting,
+    onOpenShop
 }) {
     const charData = characterSheetData; // Alias para compatibilidade com código legado
 
@@ -1501,6 +1502,18 @@ export function SheetView({
                             className: "w-14 h-14 bg-slate-800 hover:bg-emerald-900 text-emerald-400 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl",
                             title: "Alquimia e Crafting"
                         }, "⚗️"),
+
+                        // Botão Loja
+                        el('button', {
+                            onClick: () => {
+                                if (sessionState.isShopEnabled) onOpenShop();
+                                else AudioManager.play('error');
+                            },
+                            className: `w-14 h-14 rounded-full flex items-center justify-center transition-all border shadow-xl ${
+                                sessionState.isShopEnabled ? 'bg-slate-800 hover:bg-amber-900 text-amber-500 hover:text-white border-slate-700' : 'bg-slate-900 text-slate-700 border-slate-800 cursor-not-allowed opacity-50'
+                            }`,
+                            title: sessionState.isShopEnabled ? "Mercado e Trocas" : "A loja está fechada no momento"
+                        }, "🛒"),
 
                         // Botão Descanso
                         el('button', {

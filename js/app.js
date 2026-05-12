@@ -18,6 +18,7 @@ import { getRandomLoot, LOOT_RARITY } from './data/LootTables.js'
 import { LootChest } from './components/LootChest.js'
 import { WorldMapView } from './components/WorldMapView.js'
 import { CraftingView } from './components/CraftingView.js'
+import { TradingSystem } from './components/TradingSystem.js'
 
 // 2. INICIALIZAÇÃO FIREBASE
 const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app()
@@ -50,6 +51,7 @@ function App() {
   const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
   const [externalRoll, setExternalRoll] = useState(null); // Gatilho para rolagens 3D sem modal
   const [isCraftingOpen, setIsCraftingOpen] = useState(false);
+  const [isShopOpen, setIsShopOpen] = useState(false);
 
   // --- ESTADOS DE CAMPANHAS / SALAS ---
   const [currentAppId, setCurrentAppId] = useState(localStorage.getItem('selected_rpg') || DEFAULT_APP_ID);
@@ -1580,6 +1582,21 @@ function App() {
     isMaster: view === 'master'
   });
 
+  const ShopOverlay = isShopOpen && (view === 'master' || sessionState.isShopEnabled) && el(TradingSystem, {
+    key: 'shop-overlay',
+    sheetData: characterSheetData,
+    sessionState: sessionState,
+    updateSessionState: updateSessionState,
+    onUpdateSheet: (newData) => {
+        Object.keys(newData).forEach(key => {
+            updateSheetField(key, null, newData[key]);
+        });
+    },
+    onBack: () => setIsShopOpen(false),
+    isMaster: view === 'master',
+    characterName: characterName
+  });
+
   const DiceOverlay = view !== 'login' && el(DiceRoller, {
     key: 'global-dice-roller',
     rollDice: (sides, result, label, secret) => rollDice(sides, result, label, secret),
@@ -1604,6 +1621,7 @@ function App() {
     BattlemapOverlay,
     WorldMapOverlay,
     CraftingOverlay,
+    ShopOverlay,
     DiceOverlay
   );
 
@@ -1634,6 +1652,7 @@ function App() {
         updateSessionState,
         currentAppId,
         deleteCampaign,
+        onOpenShop: () => setIsShopOpen(true),
         generateLoot,
         approveLoot,
         clearLoot,
@@ -1726,6 +1745,7 @@ function App() {
         setIsBattlemapOpen,
         setIsWorldMapOpen,
         setIsBargainOpen,
+        onOpenShop: () => setIsShopOpen(true),
         sendChatMessage,
         chatMessages: chatMessages.filter(m => 
           m.sender === characterName || 

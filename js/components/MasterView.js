@@ -50,7 +50,8 @@ export function MasterView({
     generateNPC,
     updateMasterPassword,
     currentAppId,
-    deleteCampaign
+    deleteCampaign,
+    onOpenShop
 }) {
     const [showSettings, setShowSettings] = useState(false);
     const [showTutorial, setShowTutorial] = useState(() => localStorage.getItem('has_seen_master_tutorial') !== 'true');
@@ -148,8 +149,27 @@ export function MasterView({
                 el('button', {
                     key: 'btn-bargain',
                     onClick: () => setIsBargainOpen(true),
-                    className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-red-600 transition-all text-white"
-                }, "👺 Barganha"),
+                    className: "bg-red-950/20 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-red-600/30 hover:bg-red-600 transition-all text-red-500 hover:text-white"
+                }, "👿 Barganha"),
+                el('button', {
+                    key: 'btn-shop',
+                    onClick: onOpenShop,
+                    className: `px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                        sessionState.isShopEnabled ? 'bg-amber-900/40 border-amber-600/50 text-amber-500 hover:bg-amber-600 hover:text-white' : 'bg-slate-800 border-slate-700 text-slate-500 hover:bg-slate-700'
+                    }`
+                }, "🛒 Loja"),
+                el('button', {
+                    key: 'btn-shop-toggle',
+                    onClick: () => {
+                        const newState = !sessionState.isShopEnabled;
+                        updateSessionState({ isShopEnabled: newState });
+                        AudioManager.play(newState ? 'click' : 'error');
+                    },
+                    className: `p-2 rounded-xl border transition-all ${
+                        sessionState.isShopEnabled ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-400' : 'bg-red-900/20 border-red-500/50 text-red-500'
+                    }`,
+                    title: sessionState.isShopEnabled ? "Loja Ativa (Jogadores podem ver)" : "Loja Inativa"
+                }, sessionState.isShopEnabled ? "🔓" : "🔒"),
 
                 el('button', {
                     key: 'btn-chat',
