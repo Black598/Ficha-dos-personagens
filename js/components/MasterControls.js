@@ -20,9 +20,14 @@ export function MasterControls({ sessionState, updateSessionState }) {
         { id: 'none', icon: '☀️', label: 'Normal' },
         { id: 'rain', icon: '🌧️', label: 'Chuva' },
         { id: 'fog', icon: '🌫️', label: 'Névoa' },
+        { id: 'snow', icon: '❄️', label: 'Neve' },
         { id: 'storm', icon: '🌩️', label: 'Tempestade' },
+        { id: 'fire', icon: '🔥', label: 'Fogo' },
+        { id: 'sandstorm', icon: '🏜️', label: 'Areia' },
+        { id: 'petals', icon: '🌸', label: 'Pétalas' },
         { id: 'night', icon: '🌙', label: 'Noite' },
-        { id: 'cave', icon: '🦇', label: 'Caverna' }
+        { id: 'blood-moon', icon: '🌑', label: 'Lua Sangue' },
+        { id: 'poison', icon: '☣️', label: 'Veneno' }
     ];
 
     // Helper function for triggering sound, as implied by the new structure

@@ -7,65 +7,56 @@ Este documento organiza o progresso e as próximas funcionalidades do sistema.
 ## ✅ Concluídos
 As funcionalidades abaixo já foram implementadas e estão operacionais.
 
-### 1. 📖 Player Journal (Compartilhável)
-*   **Status:** Concluído
-*   **Conceito:** Diário social com notificações de "Carta" e abas estilo Minecraft.
-
-### 2. 🎒 Inventário Visual (Grid/Slots) & Equipamentos
-*   **Status:** Concluído
-*   **Conceito:** Organização visual estilo RPG clássico (Diablo/Resident Evil).
-*   **Features:**
-    *   Grid de 24 slots com detecção automática de ícones/emojis.
-    *   Sistema de personalização de ícones por item.
-    *   **Sistema de Equipamento:** Jogadores podem equipar/desequipar itens.
-    *   **Bônus Automáticos:** Itens equipados podem somar bônus em CA, Atributos, Iniciativa e Perícias diretamente na ficha.
-
-### 3. 💰 Sistema de Loot Automático
-*   **Status:** Concluído
-*   **Conceito:** Agilizar a distribuição de recompensas.
-*   **Features:**
-    *   Gerador Aleatório por nível.
-    *   Distribuição interativa (Jogadores pegam o que querem).
-    *   Integração com IA (Gemini) para criação de itens únicos.
-
-### 4. 👹 Barganha do Diabo
+### 1. 🎒 Inventário Visual (Grid/Slots) & Equipamentos
 *   **Status:** Concluído (Refinado)
-*   **Features:**
-    *   Sorteio de efeitos por intensidade.
-    *   Gerenciamento de dívidas ativas.
-    *   Suporte a **Duração Permanente** e correção de bugs de sumiço.
+*   **Features:** Grid 24 slots, ícones automáticos, sistema de equipar, bônus dinâmicos e **Adição Direta de Itens** (sem texto).
+
+### 2. ⚔️ Combate Avançado & Iniciativa
+*   **Status:** Concluído
+*   **Features:** 
+    *   **Iniciativa Drag & Drop:** Reordene combatentes arrastando.
+    *   **Edição Direta:** Altere valores na lista.
+    *   **Ações em Massa:** Selecione múltiplos heróis para aplicar Dano, Cura ou XP de uma vez.
+    *   **Adição Rápida:** Botão para carregar todos os jogadores na iniciativa.
+
+### 3. ⛈️ Clima e Imersão Atmosférica
+*   **Status:** Concluído
+*   **Features:** Efeitos visuais sincronizados (Chuva, Neve, Fogo, Lua de Sangue, Veneno, Noite) com partículas e filtros CSS.
+
+### 4. 👤 Gerador de NPCs (IA)
+*   **Status:** Concluído
+*   **Features:** Integração com Gemini para gerar NPCs completos (Nome, Background, Segredos e Stats) com um clique.
+
+### 5. 🏰 Gestão de Campanhas & Importação
+*   **Status:** Concluído
+*   **Features:** Criação de salas, exclusão atômica de dados e importação via ID para recuperação de salas.
+
+### 6. 💰 Loot, Barganhas e Biblioteca
+*   **Status:** Concluído
+*   *Sistemas base de exploração e interação.*
 
 ---
 
 ## 🚀 Próximas Implementações (Pendentes)
-Prioridade definida conforme discussão.
 
 ### 1. 🛒 Loja do Mestre (Trading System)
 *   **Conceito:** Um mercado interativo onde o mestre coloca itens à venda.
-*   **Features:**
-    *   **Vitrine do Mestre:** O mestre define itens disponíveis e preço em PO.
-    *   **Compra Automática:** Sistema verifica ouro, deduz valor e adiciona item instantaneamente.
-    *   **Venda de Itens:** Jogadores podem vender itens de volta para o mestre.
+*   **Features:** Vitrine do Mestre, Compra Automática (dedução de PO) e Venda de Itens.
 
 ### 2. 🐾 Glossário Animal (Bestiário)
 *   **Conceito:** Uma enciclopédia de criaturas integrada à Biblioteca.
-*   **Features:**
-    *   **Estilo Biblioteca:** Cards com arte e descrição.
-    *   **Dados de Criatura:** HP, CA e habilidades rápidas para consulta.
+*   **Features:** Cards com arte, HP, CA e habilidades rápidas.
 
-### 3. 🔊 Soundboard Imersivo
-*   **Conceito:** Áudio sincronizado em tempo real.
-*   **Features:**
-    *   **Ambientes:** Loops de Taverna, Floresta, Combate.
-    *   **Sincronização:** Quando o mestre aperta o play, toca para todos.
+### 3. 🔊 Soundboard Sincronizado
+*   **Conceito:** Controle refinado de áudio ambiente e efeitos sonoros para todos.
 
-### 4. 🗺️ Mapa do Mundo Interativo
-*   **Conceito:** Visão global com zoom e marcadores.
-*   **Features:**
-    *   **Upload de Mapas:** Mestre importa qualquer imagem de mapa.
-    *   **Pins:** Nomes de locais e pontos de interesse dinâmicos.
+### 4. 🧪 Alquimia e Crafting
+*   **Conceito:** Sistema de combinação de itens para criar poções e upgrades.
+
+### 5. 🗺️ Mapa do Mundo Interativo
+*   **Conceito:** Visão global com marcadores e pins de interesse.
 
 ---
 
 **Última atualização:** 12/05/2026
-**Próximo passo sugerido:** Iniciar a **Loja do Mestre** ou o **Glossário Animal**.
+**Próximo passo:** Iniciar a **Loja do Mestre**.

@@ -206,13 +206,125 @@ input[type="text"], input[type="email"], input[type="password"], textarea {
     z-index: 10;
 }
 
-/* --- AMBIENTE E CLIMA --- */
-@keyframes lightning {
-  0%, 95%, 98%, 100% { background-color: transparent; }
-  96% { background-color: rgba(255, 255, 255, 0.4); }
-  97% { background-color: rgba(251, 191, 36, 0.5); }
+/* --- AMBIENTE E CLIMA AVANÇADO --- */
+.environment-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1000;
+    overflow: hidden;
 }
-.animate-lightning { animation: lightning 8s infinite; }
+
+/* Chuva */
+.rain-container {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+}
+.drop {
+    position: absolute;
+    width: 2px;
+    height: 150px;
+    background: linear-gradient(transparent, rgba(255, 255, 255, 0.4));
+    animation: rain-fall var(--duration) linear infinite;
+}
+@keyframes rain-fall {
+    from { transform: translateY(-200px); }
+    to { transform: translateY(110vh); }
+}
+
+/* Neve */
+.snowflake {
+    position: absolute;
+    color: #fff;
+    font-size: 1em;
+    user-select: none;
+    pointer-events: none;
+    animation: snow-fall var(--duration) linear infinite;
+    opacity: 0.8;
+}
+@keyframes snow-fall {
+    0% { transform: translateY(-10px) rotate(0deg); }
+    100% { transform: translateY(110vh) rotate(360deg); }
+}
+
+/* Névoa */
+.mist {
+    position: absolute;
+    width: 200%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+    filter: blur(50px);
+    animation: mist-move 20s linear infinite;
+}
+@keyframes mist-move {
+    from { transform: translateX(-50%); }
+    to { transform: translateX(0%); }
+}
+
+/* Fogo / Fuligem */
+.ember {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: #ff4d00;
+    border-radius: 50%;
+    filter: blur(1px);
+    box-shadow: 0 0 10px #ff4d00;
+    animation: ember-rise var(--duration) ease-out infinite;
+}
+@keyframes ember-rise {
+    0% { transform: translateY(110vh) translateX(0); opacity: 1; }
+    100% { transform: translateY(-10vh) translateX(var(--drift)); opacity: 0; }
+}
+
+/* Trovão / Relâmpago */
+@keyframes lightning-flash {
+    0%, 95%, 98%, 100% { background: transparent; }
+    96% { background: rgba(255, 255, 255, 0.4); }
+    97% { background: rgba(255, 255, 255, 0.1); }
+    99% { background: rgba(255, 255, 255, 0.3); }
+}
+.lightning-effect {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    animation: lightning-flash 10s infinite;
+}
+
+/* Pétalas */
+.petal {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #ffb7c5;
+    border-radius: 10px 0 10px 10px;
+    animation: petal-fall var(--duration) linear infinite;
+}
+@keyframes petal-fall {
+    0% { transform: translateY(-10vh) rotate(0deg) translateX(0); }
+    100% { transform: translateY(110vh) rotate(720deg) translateX(100px); }
+}
+
+/* Tempestade de Areia */
+.sand {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: #d2b48c;
+    animation: sand-move var(--duration) linear infinite;
+}
+@keyframes sand-move {
+    from { transform: translateX(-10vw) translateY(var(--y)) rotate(0deg); }
+    to { transform: translateX(110vw) translateY(calc(var(--y) + 50px)) rotate(360deg); }
+}
+
+/* Noite / Filtros - Suavizados */
+.env-night { filter: brightness(0.7) contrast(1.1) hue-rotate(200deg); }
+.env-blood-moon { filter: brightness(0.8) sepia(0.5) hue-rotate(-50deg) saturate(1.5); }
+.env-poison { filter: brightness(0.9) hue-rotate(40deg) saturate(1.2); }
+.env-sandstorm { filter: sepia(0.5) saturate(1.5) contrast(0.8); }
 
 @keyframes twinkle {
   0%, 100% { opacity: 0.2; transform: scale(1); }

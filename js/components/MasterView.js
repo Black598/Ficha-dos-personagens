@@ -45,6 +45,7 @@ export function MasterView({
     generateLoot,
     approveLoot,
     clearLoot,
+    generateNPC,
     currentAppId,
     deleteCampaign
 }) {
@@ -63,6 +64,8 @@ export function MasterView({
     const [localModifier, setLocalModifier] = useState(0);
     const [localRollMode, setLocalRollMode] = useState('normal');
     const [showCondModalFor, setShowCondModalFor] = useState(null);
+    const [selectedChars, setSelectedChars] = useState([]);
+    const [draggedIndex, setDraggedIndex] = useState(null);
 
     const handleQuickRoll = (sides) => {
         if (triggerExternalRoll) {
@@ -142,6 +145,20 @@ export function MasterView({
                     "💬 Mensagens",
                     hasNewMessage && el('span', { key: 'notif', className: "absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full" })
                 ]),
+                el('button', {
+                    key: 'btn-npc',
+                    onClick: async () => {
+                        const theme = prompt("Tema do NPC (ex: Taverneiro suspeito, Guarda corrupto):", "Cidadão comum");
+                        if (!theme) return;
+                        try {
+                            const npc = await generateNPC(theme);
+                            const text = `👤 **NPC GERADO**\n**Nome:** ${npc.name} (${npc.race} ${npc.class})\n**Aparência:** ${npc.personality}\n**Segredo:** ${npc.secret}\n**Stats:** HP:${npc.stats?.HP} CA:${npc.stats?.CA}`;
+                            sendChatMessage(text, 'Mestre');
+                            alert(`NPC Gerado: ${npc.name}\nDados enviados para o Chat!`);
+                        } catch (e) { alert("Erro ao gerar NPC: " + e.message); }
+                    },
+                    className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-purple-600 transition-all text-white"
+                }, "👤 Gerar NPC"),
                 el('button', { 
                     key: 'btn-exit',
                     onClick: onBack, 
@@ -261,6 +278,17 @@ export function MasterView({
                                                 el('span', { className: "text-[8px] font-black text-white uppercase" }, "Mudar")
                                             )
                                         ]),
+                                        // CHECKBOX PARA SELEÇÃO EM MASSA
+                                        el('button', {
+                                            key: 'bulk-select',
+                                            onClick: (e) => {
+                                                e.stopPropagation();
+                                                setSelectedChars(prev => 
+                                                    prev.includes(char.name) ? prev.filter(n => n !== char.name) : [...prev, char.name]
+                                                );
+                                            },
+                                            className: `absolute -top-2 -left-2 w-7 h-7 rounded-xl border-2 z-10 flex items-center justify-center transition-all ${selectedChars.includes(char.name) ? 'bg-amber-500 border-amber-400 scale-110 shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'bg-slate-950 border-slate-700 hover:border-slate-500'}`
+                                        }, selectedChars.includes(char.name) ? el('span', { className: "text-slate-900 font-bold" }, "✓") : null),
                                         el('div', { key: 'name-stack', className: "min-w-0 flex-1" }, [
                                             el('h3', { key: 'char-name', className: "text-xl font-black uppercase text-white tracking-tighter leading-tight" }, char.name),
                                             el('div', { className: "flex items-center gap-2 mt-1 flex-wrap" }, [
@@ -473,21 +501,91 @@ export function MasterView({
                     ]),
                     el('div', { className: "p-4 space-y-4" }, [
                         el('div', { className: "flex gap-2" }, [
-                            el('input', { id: 'ini-name', placeholder: 'Nome', className: "flex-grow bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs" }),
-                            el('input', { id: 'ini-val', type: 'number', placeholder: 'V', className: "w-12 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-center" }),
+                            el('input', { 
+                                id: 'ini-name', 
+                                placeholder: 'Nome ou NPC', 
+                                className: "flex-grow bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white outline-none focus:border-amber-500/50" 
+                            }),
+                            el('input', { 
+                                id: 'ini-val', 
+                                type: 'number', 
+                                placeholder: '0', 
+                                className: "w-16 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-center text-amber-500 font-bold outline-none focus:border-amber-500/50" 
+                            }),
                             el('button', {
                                 onClick: () => {
-                                    const n = document.getElementById('ini-name').value;
+                                    const n = document.getElementById('ini-name').value.trim();
                                     const v = parseInt(document.getElementById('ini-val').value) || 0;
-                                    if(n) { updateInitiative([...(turnState?.initiativeOrder || []), { id: Date.now(), name: n, value: v }].sort((a,b)=>b.value-a.value)); }
-                                }, className: "bg-amber-600 px-4 rounded-xl font-black"
+                                    if(n) { 
+                                        updateInitiative([...(turnState?.initiativeOrder || []), { id: Date.now(), name: n, value: v }].sort((a,b)=>b.value-a.value)); 
+                                        document.getElementById('ini-name').value = '';
+                                        document.getElementById('ini-val').value = '';
+                                    }
+                                }, 
+                                className: "bg-amber-600 hover:bg-amber-500 px-4 rounded-xl font-black text-white transition-all shadow-lg"
                             }, "+")
                         ]),
-                        el('div', { className: "space-y-2 max-h-[250px] overflow-y-auto" }, 
+                        el('button', {
+                            onClick: () => {
+                                const players = allCharacters
+                                    .filter(c => c.name.toLowerCase() !== 'mestre' && !c.pendingDeletion)
+                                    .map(c => ({ id: Date.now() + Math.random(), name: c.name, value: 0 }));
+                                
+                                const current = turnState?.initiativeOrder || [];
+                                // Evita duplicatas
+                                const filteredPlayers = players.filter(p => !current.some(c => c.name === p.name));
+                                updateInitiative([...current, ...filteredPlayers]);
+                            },
+                            className: "w-full bg-slate-800 hover:bg-slate-700 text-[9px] font-black uppercase tracking-widest py-2 rounded-xl border border-slate-700 transition-all mb-2"
+                        }, "🧙 Adicionar Todos os Jogadores"),
+
+                        el('div', { 
+                            className: "space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-1",
+                            onDragOver: (e) => e.preventDefault()
+                        }, 
                             (turnState?.initiativeOrder || []).map((item, idx) => 
-                                el('div', { key: item.id, className: `flex items-center justify-between p-4 rounded-2xl border ${turnState?.activeChar === item.name ? 'border-amber-500 bg-amber-500/10' : 'border-slate-800 bg-slate-950'}` }, [
-                                    el('span', { className: "text-xs font-bold uppercase" }, item.name),
-                                    el('span', { className: "text-amber-500 font-black" }, item.value)
+                                el('div', { 
+                                    key: item.id,
+                                    draggable: true,
+                                    onDragStart: () => setDraggedIndex(idx),
+                                    onDragOver: (e) => e.preventDefault(),
+                                    onDrop: () => {
+                                        if (draggedIndex === null || draggedIndex === idx) return;
+                                        const newOrder = [...turnState.initiativeOrder];
+                                        const draggedItem = newOrder.splice(draggedIndex, 1)[0];
+                                        newOrder.splice(idx, 0, draggedItem);
+                                        updateInitiative(newOrder);
+                                        setDraggedIndex(null);
+                                    },
+                                    className: `flex items-center justify-between p-3 rounded-2xl border transition-all cursor-move group ${turnState?.activeChar === item.name ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-slate-800 bg-slate-950/50 hover:border-slate-600'}` 
+                                }, [
+                                    el('div', { className: "flex items-center gap-3" }, [
+                                        el('span', { className: "text-slate-700 group-hover:text-amber-500 transition-colors" }, "☰"),
+                                        el('span', { className: `text-xs font-bold uppercase ${turnState?.activeChar === item.name ? 'text-amber-500' : 'text-slate-300'}` }, item.name),
+                                    ]),
+                                    el('div', { className: "flex items-center gap-2" }, [
+                                        el('input', {
+                                            type: 'number',
+                                            defaultValue: item.value,
+                                            onBlur: (e) => {
+                                                const newVal = parseInt(e.target.value) || 0;
+                                                if (newVal !== item.value) {
+                                                    const newOrder = [...turnState.initiativeOrder];
+                                                    newOrder[idx].value = newVal;
+                                                    // Re-ordena se o valor mudar? Talvez melhor não, para permitir drag manual livre.
+                                                    updateInitiative(newOrder);
+                                                }
+                                            },
+                                            className: "w-10 bg-slate-900 border border-slate-800 rounded-lg text-[10px] font-black text-center text-amber-500 focus:border-amber-500 outline-none"
+                                        }),
+                                        el('button', {
+                                            onClick: () => {
+                                                const newOrder = (turnState?.initiativeOrder || []).filter((_, i) => i !== idx);
+                                                updateInitiative(newOrder);
+                                            },
+                                            className: "text-slate-700 hover:text-red-500 transition-colors text-xs px-1"
+                                        }, "×")
+                                    ])
                                 ])
                             )
                         )
@@ -677,6 +775,57 @@ export function MasterView({
                         className: "w-full bg-slate-800 hover:bg-slate-700 text-slate-400 font-black py-4 rounded-2xl uppercase text-[10px] tracking-widest transition-all"
                     }, "Voltar")
                 ])
+            ]),
+        ]),
+
+        // --- BARRA DE AÇÕES EM MASSA ---
+        selectedChars.length > 0 && el('div', {
+            key: 'bulk-actions-bar',
+            className: "fixed bottom-10 left-1/2 -translate-x-1/2 z-[400] bg-slate-900/95 backdrop-blur-xl border border-amber-500/50 p-4 rounded-[2rem] shadow-3xl animate-slide-up flex flex-wrap items-center justify-center gap-6"
+        }, [
+            el('div', { className: "px-4 border-r border-slate-800 flex flex-col items-center" }, [
+                el('span', { className: "text-[8px] font-black text-slate-500 uppercase tracking-widest" }, "Selecionados"),
+                el('span', { className: "text-lg font-black text-amber-500" }, `${selectedChars.length} Heróis`)
+            ]),
+            el('div', { className: "flex gap-2" }, [
+                el('button', {
+                    onClick: () => {
+                        const val = prompt("Valor de DANO para aplicar a todos selecionados:");
+                        if (val) {
+                            const damage = parseInt(val);
+                            selectedChars.forEach(name => updateCharacterHP(name, -damage));
+                            AudioManager.play('damage');
+                            setSelectedChars([]);
+                        }
+                    },
+                    className: "bg-red-950 border border-red-500/30 px-4 py-2 rounded-xl text-[10px] font-black uppercase text-red-400 hover:bg-red-600 hover:text-white transition-all"
+                }, "💥 Dano em Massa"),
+                el('button', {
+                    onClick: () => {
+                        const val = prompt("Valor de CURA para aplicar a todos selecionados:");
+                        if (val) {
+                            const heal = parseInt(val);
+                            selectedChars.forEach(name => updateCharacterHP(name, heal));
+                            AudioManager.play('heal');
+                            setSelectedChars([]);
+                        }
+                    },
+                    className: "bg-emerald-950 border border-emerald-500/30 px-4 py-2 rounded-xl text-[10px] font-black uppercase text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all"
+                }, "✨ Cura em Massa"),
+                el('button', {
+                    onClick: () => {
+                        const val = prompt("Quanto de XP para todos?");
+                        if (val) {
+                            selectedChars.forEach(name => updateCharacterXP(name, val));
+                            setSelectedChars([]);
+                        }
+                    },
+                    className: "bg-purple-950 border border-purple-500/30 px-4 py-2 rounded-xl text-[10px] font-black uppercase text-purple-400 hover:bg-purple-600 hover:text-white transition-all"
+                }, "💎 Dar XP"),
+                el('button', {
+                    onClick: () => setSelectedChars([]),
+                    className: "bg-slate-800 px-4 py-2 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:bg-slate-700 transition-all"
+                }, "Cancelar")
             ])
         ])
     ]);

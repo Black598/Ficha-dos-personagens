@@ -60,6 +60,33 @@ export function VisualInventory({ itemsString, onUpdate, onToggleClassic }) {
         AudioManager.play('sparkle');
     };
 
+    const handleSetCustomIcon = (index, currentName) => {
+        const icon = prompt("Digite um Emoji ou ícone para o item:", parseItem(currentName).customIcon || '');
+        if (icon === null) return;
+
+        let cleanName = currentName.replace(/\s*\[.*?\]\s*/g, ' ').trim();
+        const newName = icon.trim() ? `[${icon.trim()}] ${cleanName}` : cleanName;
+
+        const newItems = [...items];
+        newItems[index] = newName;
+        onUpdate(newItems.join(', '));
+        setSelectedItem({ ...selectedItem, name: newName });
+        AudioManager.play('click');
+    };
+
+    const handleAddItem = () => {
+        if (items.length >= totalSlots) {
+            alert("Mochila cheia!");
+            return;
+        }
+        const name = prompt("Nome do novo item:");
+        if (!name) return;
+
+        const newItems = [...items, name.trim()];
+        onUpdate(newItems.join(', '));
+        AudioManager.play('bag');
+    };
+
     const parseItem = (fullName) => {
         const isEquipped = fullName.includes('{E}');
         // Remove metadados do nome de exibição
@@ -213,10 +240,16 @@ export function VisualInventory({ itemsString, onUpdate, onToggleClassic }) {
             el('p', { className: "text-[9px] text-slate-500 font-bold uppercase tracking-widest" }, 
                 `Ocupado: ${items.length} / ${totalSlots} slots`
             ),
-            el('button', {
-                onClick: onToggleClassic,
-                className: "text-amber-500/50 hover:text-amber-500 text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"
-            }, [el('span', null, "⌨️"), "Editar como Texto"])
+            el('div', { className: "flex gap-4" }, [
+                el('button', {
+                    onClick: handleAddItem,
+                    className: "bg-emerald-600 hover:bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all shadow-lg flex items-center gap-2"
+                }, [el('span', null, "➕"), "Adicionar Item"]),
+                el('button', {
+                    onClick: onToggleClassic,
+                    className: "text-amber-500/50 hover:text-amber-500 text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"
+                }, [el('span', null, "⌨️"), "Editar como Texto"])
+            ])
         ])
     ]);
 }

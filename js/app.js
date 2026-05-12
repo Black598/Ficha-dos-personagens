@@ -250,6 +250,29 @@ function App() {
     updateSessionState({ activeLoot: { ...loot, approved: false } });
   };
 
+  const generateNPC = async (theme = "fantasia medieval") => {
+    try {
+      const prompt = `Gere um NPC de RPG de mesa para o tema: ${theme}. 
+      Retorne APENAS um JSON com os seguintes campos:
+      - name: Nome do NPC
+      - race: Raça
+      - class: Classe ou Ocupação
+      - appearance: Descrição física curta
+      - personality: Traços de personalidade
+      - secret: Um segredo ou motivação oculta
+      - stats: { HP, CA, Atributos: { FOR, DES, CON, INT, SAB, CAR } }
+      Use valores apropriados para um NPC desafiador mas justo.`;
+
+      const response = await askGemini(prompt);
+      // Remove possíveis blocos de código markdown do JSON
+      const jsonStr = response.replace(/```json|```/g, '').trim();
+      return JSON.parse(jsonStr);
+    } catch (e) {
+      console.error("Erro ao gerar NPC:", e);
+      throw e;
+    }
+  };
+
   const approveLoot = () => {
     if (!sessionState.activeLoot) return;
     updateSessionState({ activeLoot: { ...sessionState.activeLoot, approved: true } });
@@ -1330,6 +1353,85 @@ function App() {
 
 
 
+  // --- SISTEMA DE CLIMA E AMBIENTE (OVERLAY GLOBAL) ---
+  const WeatherOverlay = (() => {
+    const env = sessionState.environment || 'none';
+    if (env === 'none' || view === 'master') return null;
+
+    const particles = [];
+    if (env === 'rain') {
+        for(let i=0; i<50; i++) {
+            particles.push(el('div', { 
+                key: `drop-${i}`, 
+                className: "drop", 
+                style: { left: `${Math.random()*100}%`, top: `-${Math.random()*100}px`, '--duration': `${0.5 + Math.random()*0.5}s` } 
+            }));
+        }
+    } else if (env === 'snow') {
+        for(let i=0; i<30; i++) {
+            particles.push(el('div', { 
+                key: `snow-${i}`, 
+                className: "snowflake", 
+                style: { left: `${Math.random()*100}%`, '--duration': `${3 + Math.random()*5}s`, fontSize: `${10 + Math.random()*20}px` } 
+            }, '❄'));
+        }
+    } else if (env === 'mist') {
+        for(let i=0; i<5; i++) {
+            particles.push(el('div', { key: `mist-${i}`, className: "mist", style: { top: `${Math.random()*100}%`, opacity: 0.3 } }));
+        }
+    } else if (env === 'fire') {
+        for(let i=0; i<40; i++) {
+            particles.push(el('div', { 
+                key: `ember-${i}`, 
+                className: "ember", 
+                style: { left: `${Math.random()*100}%`, '--duration': `${2 + Math.random()*3}s`, '--drift': `${Math.random()*100 - 50}px` } 
+            }));
+        }
+    } else if (env === 'storm') {
+        particles.push(el('div', { key: 'lightning', className: "lightning-effect" }));
+        for(let i=0; i<60; i++) {
+            particles.push(el('div', { 
+                key: `drop-${i}`, 
+                className: "drop", 
+                style: { left: `${Math.random()*100}%`, top: `-${Math.random()*100}px`, '--duration': `${0.3 + Math.random()*0.3}s` } 
+            }));
+        }
+    } else if (env === 'petals') {
+        for(let i=0; i<20; i++) {
+            particles.push(el('div', { 
+                key: `petal-${i}`, 
+                className: "petal", 
+                style: { left: `${Math.random()*100}%`, '--duration': `${5 + Math.random()*5}s` } 
+            }));
+        }
+    } else if (env === 'sandstorm') {
+        for(let i=0; i<100; i++) {
+            particles.push(el('div', { 
+                key: `sand-${i}`, 
+                className: "sand", 
+                style: { 
+                    top: `${Math.random()*100}vh`,
+                    '--y': `${(Math.random() - 0.5) * 60}px`,
+                    '--duration': `${(0.4 + Math.random() * 0.8).toFixed(2)}s`,
+                    animationDelay: `${(Math.random() * 1).toFixed(2)}s`,
+                    opacity: 0.6 + Math.random() * 0.4,
+                    width: `${1 + Math.round(Math.random() * 3)}px`,
+                    height: `${1 + Math.round(Math.random() * 3)}px`
+                } 
+            }));
+        }
+    }
+
+    return el('div', { key: 'env-overlay', className: "environment-overlay" }, particles);
+  })();
+
+  const envClass = (view !== 'master') ? (
+                   (sessionState.environment === 'night') ? 'env-night' : 
+                   (sessionState.environment === 'blood-moon') ? 'env-blood-moon' :
+                   (sessionState.environment === 'poison') ? 'env-poison' : 
+                   (sessionState.environment === 'sandstorm') ? 'env-sandstorm' : ''
+  ) : '';
+
   // --- COMPONENTE DE BIBLIOTECA (OVERLAY GLOBAL) ---
   const LibraryOverlay = isLibraryOpen && el(LibraryView, {
     key: 'library-overlay-global',
@@ -1408,12 +1510,13 @@ function App() {
     LibraryOverlay,
     BargainOverlay,
     LetterOverlay,
-    LootOverlay
+    LootOverlay,
+    WeatherOverlay
   ]);
 
   // Se estivermos na visão do mestre, renderizamos a MasterView
   if (view === 'master') {
-    return React.createElement(React.Fragment, null, [
+    return el('div', { key: 'master-wrapper', className: envClass }, [
       el(MasterView, {
         key: 'master-view-node',
         allCharacters, rollHistory, onBack: () => setView('login'),
@@ -1441,6 +1544,7 @@ function App() {
         generateLoot,
         approveLoot,
         clearLoot,
+        generateNPC,
         setIsLibraryOpen,
         setIsBargainOpen,
         allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name),
@@ -1473,7 +1577,7 @@ function App() {
   }
   // Se estivermos na visão da ficha e tivermos os dados da ficha, renderizamos a SheetView
   if (view === 'sheet' && characterSheetData) {
-    return React.createElement(React.Fragment, null, [
+    return el('div', { key: 'sheet-wrapper', className: envClass }, [
       // 1. A Ficha de Personagem
       el(SheetView, {
         key: 'sheet-view',
@@ -1566,7 +1670,7 @@ function App() {
 
   // Se estivermos na visão da árvore de talentos, renderizamos a TreeView
   if (view === 'character') {
-    return React.createElement(React.Fragment, null,
+    return el('div', { key: 'character-wrapper', className: envClass }, [
       // 1. Árvore de Talentos
       el(TreeView, {
         TALENT_TREES, characterData, characterName, characterSheetData,
@@ -1595,14 +1699,11 @@ function App() {
       // 3. O TOOLTIP COM POSICIONAMENTO INTELIGENTE - EXTRAÍDO
       el(TalentTooltip, { key: 'talent-tooltip', tooltip }),
 
-      LibraryOverlay,
-      BargainOverlay,
-      AnnouncementOverlay,
-      HandoutOverlay
-    );
+      AllOverlays
+    ]);
   }
 
-  return el(React.Fragment, null, [
+  return el('div', { key: 'login-wrapper', className: envClass }, [
     el(LoginView, {
       key: 'login-view',
       allCharacters, 
@@ -1618,10 +1719,7 @@ function App() {
       createNewCampaign,
       importCampaign
     }),
-    LibraryOverlay,
-    BargainOverlay,
-    AnnouncementOverlay,
-    HandoutOverlay
+    AllOverlays
   ]);
 }
 
