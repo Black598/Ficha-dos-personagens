@@ -12,9 +12,10 @@ export function MasterTutorialPopup({ onClose }) {
 
     const tabs = [
         { id: 'geral', label: '📖 Geral', icon: '👑' },
+        { id: 'vtt', label: '🗺️ VTT & Mapas', icon: '📍' },
+        { id: 'soundboard', label: '🔊 Som & Clima', icon: '🎼' },
         { id: 'herois', label: '🏰 Heróis', icon: '🛡️' },
         { id: 'monstros', label: '🐉 Monstros', icon: '🐙' },
-        { id: 'sessao', label: '🎭 Sessão', icon: '📜' },
         { id: 'gemini', label: '🤖 Oráculo (Gemini)', icon: '✨' },
         { id: 'novidades', label: '🔥 Novidades', icon: '⭐' }
     ];
@@ -24,86 +25,77 @@ export function MasterTutorialPopup({ onClose }) {
             case 'geral':
                 return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
                     el('p', null, "Bem-vindo à ", el('strong', { className: "text-purple-400" }, "Sala do Mestre"), "! Este é o seu painel de controle absoluto para a campanha."),
-                    el('p', null, "Aqui você pode monitorar e editar todos os heróis da sessão, controlar turnos de combate em tempo real, gerenciar condições e PV, enviar mensagens globais e utilizar a biblioteca de regras."),
-                    el('p', null, "A sala sincroniza em tempo real com todos os jogadores. O que você alterar aqui refletirá imediatamente nas fichas deles."),
+                    el('p', null, "Aqui você pode monitorar heróis, controlar turnos, gerenciar o VTT, trocar atmosferas sonoras e utilizar a IA para enriquecer sua narrativa."),
                     el('div', { className: "bg-amber-900/30 border border-amber-500/50 p-4 rounded-xl mt-4" },
                         el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "📌 Botões do Topo"),
                         el('ul', { className: "list-disc pl-5 space-y-1" },
-                            el('li', null, el('strong', { className: "text-white" }, "⚙️ Configurações:"), " Para alterar API Keys e outras configurações globais."),
-                            el('li', null, el('strong', { className: "text-white" }, "📚 Biblioteca:"), " Permite criar ou consultar NPCs, anotações e regras."),
-                            el('li', null, el('strong', { className: "text-white" }, "👺 Barganha:"), " Permite oferecer barganhas diabólicas que afetam permanentemente os jogadores."),
-                            el('li', null, el('strong', { className: "text-white" }, "💬 Mensagens:"), " Chat exclusivo entre o Mestre e jogadores (ou global).")
+                            el('li', null, el('strong', { className: "text-white" }, "⚙️ Configurações:"), " API Keys e configurações globais."),
+                            el('li', null, el('strong', { className: "text-white" }, "📚 Biblioteca:"), " Consulte ou crie NPCs, anotações e regras."),
+                            el('li', null, el('strong', { className: "text-white" }, "👺 Barganha:"), " Ofereça pactos diabólicos aos jogadores."),
+                            el('li', null, el('strong', { className: "text-white" }, "💬 Mensagens:"), " Chat e avisos globais.")
                         )
+                    )
+                );
+            case 'vtt':
+                return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
+                    el('p', null, "O sistema de ", el('strong', { className: "text-blue-400" }, "Virtual Tabletop (VTT)"), " permite gerenciar o combate visual."),
+                    el('ul', { className: "list-disc pl-5 space-y-3" },
+                        el('li', null, el('strong', { className: "text-white" }, "Mapas:"), " Use o painel de Mapas para carregar cenários. O sistema suporta zoom e pan sincronizado."),
+                        el('li', null, el('strong', { className: "text-white" }, "Tokens:"), " Arraste monstros do seu gerenciador diretamente para o mapa. Clique duas vezes no token para editar PV e Aura."),
+                        el('li', null, el('strong', { className: "text-white" }, "Névoa:"), " Você tem controle total sobre o que os jogadores veem. Revele áreas conforme eles exploram.")
+                    )
+                );
+            case 'soundboard':
+                return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
+                    el('p', null, "Controle a imersão com o ", el('strong', { className: "text-emerald-400" }, "Soundboard Sincronizado"), "."),
+                    el('ul', { className: "list-disc pl-5 space-y-3" },
+                        el('li', null, el('strong', { className: "text-white" }, "Atmosferas:"), " Clique em um ambiente (Chuva, Taverna) para ativar o som e o efeito visual simultaneamente para todos."),
+                        el('li', null, el('strong', { className: "text-white" }, "YouTube:"), " Adicione links de qualquer música do YouTube para tocar em loop como trilha sonora."),
+                        el('li', null, el('strong', { className: "text-white" }, "SFX:"), " Use o menu lateral (hambúrguer) para disparar efeitos sonoros rápidos (espadas, feitiços, rugidos).")
                     )
                 );
             case 'herois':
                 return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
-                    el('p', null, "No painel ", el('strong', { className: "text-purple-400" }, "Heróis no Reino"), ", você vê todos os jogadores conectados na campanha."),
+                    el('p', null, "No painel ", el('strong', { className: "text-purple-400" }, "Heróis no Reino"), ", você vê todos os jogadores conectados."),
                     el('ul', { className: "list-disc pl-5 space-y-3" },
-                        el('li', null, el('strong', { className: "text-amber-400" }, "Controle de Turnos:"), " Clique em 'Dar Vez' para que o painel do jogador pisque e ele saiba que é a vez dele de agir."),
-                        el('li', null, el('strong', { className: "text-emerald-400" }, "Cadeado (🔒):"), " Você pode travar a ficha de um jogador para impedir que ele altere os próprios PVs e status sem a sua permissão."),
-                        el('li', null, el('strong', { className: "text-purple-400" }, "Acesso Direto (📜):"), " Abre a ficha completa do jogador para edições ou conferências."),
-                        el('li', null, el('strong', { className: "text-red-400" }, "Condições:"), " Adicione status (Envenenado, Caído, etc) que contam os turnos automaticamente."),
-                        el('li', null, el('strong', { className: "text-blue-400" }, "XP e PV:"), " Ajuste diretamente do painel sem precisar abrir a ficha inteira.")
+                        el('li', null, el('strong', { className: "text-amber-400" }, "Iniciativa:"), " Arraste os nomes na lista lateral para mudar a ordem de combate."),
+                        el('li', null, el('strong', { className: "text-emerald-400" }, "Ações em Massa:"), " Selecione vários jogadores e aplique Dano, Cura ou XP de uma só vez."),
+                        el('li', null, el('strong', { className: "text-red-400" }, "Condições:"), " Adicione status que expiram automaticamente com o passar dos turnos.")
                     )
                 );
             case 'monstros':
                 return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
-                    el('p', null, "O ", el('strong', { className: "text-red-400" }, "Gerenciador de Ameaças"), " permite criar monstros e NPCs combatentes de forma ágil."),
-                    el('p', null, "Ao criar um monstro, você define nome, PV, Classe de Armadura e Rolagens (Ataques ou Magias)."),
-                    el('div', { className: "bg-red-900/20 border border-red-500/30 p-4 rounded-xl mt-4" },
-                        el('h4', { className: "text-red-400 font-bold mb-2 flex items-center gap-2" }, "⚔️ Rolagem Automática"),
-                        el('p', null, "Quando você clica no botão de ataque do monstro, a rolagem é feita ", el('strong', { className: "text-white" }, "secretamente"), " e não aparece no histórico dos jogadores, apenas no seu painel de rolagens! Ideal para surpresas e jogadas narrativas.")
-                    )
-                );
-            case 'sessao':
-                return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
-                    el('p', null, "No painel de ", el('strong', { className: "text-emerald-400" }, "Controles de Sessão"), ", você afeta o ambiente de todos os jogadores:"),
-                    el('ul', { className: "list-disc pl-5 space-y-3" },
-                        el('li', null, el('strong', { className: "text-white" }, "Anúncio Global:"), " Escreva algo aqui e um banner gigante e brilhante aparecerá na tela de todos os jogadores simultaneamente. Excelente para narrativas dramáticas."),
-                        el('li', null, el('strong', { className: "text-white" }, "Handout (Imagem):"), " Cole uma URL de imagem para exibir um mapa, um enigma ou um retrato de NPC diretamente na tela dos jogadores."),
-                        el('li', null, el('strong', { className: "text-white" }, "Música / Ambiente:"), " Troque a música de fundo. A música tocará automaticamente para os jogadores que tiverem habilitado o áudio na ficha deles."),
-                        el('li', null, el('strong', { className: "text-white" }, "Passagem de Tempo:"), " Clicar em 'Avançar Dia' reduz a contagem de barganhas diabólicas e outras condições diárias ativas.")
-                    )
+                    el('p', null, "O ", el('strong', { className: "text-red-400" }, "Gerenciador de Ameaças"), " permite criar monstros de forma ágil."),
+                    el('p', null, "Use o botão ", el('strong', { className: "text-amber-400" }, "✨ IA"), " para descrever um monstro e deixar o Gemini gerar todos os status (PV, CA, Habilidades) automaticamente."),
+                    el('p', { className: "text-xs text-slate-500 italic mt-2" }, "Dica: Monstros criados aparecem no Grimório de Almas e podem ser arrastados para o mapa de batalha.")
                 );
             case 'gemini':
                 return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
-                    el('p', null, "O ", el('strong', { className: "text-amber-400" }, "Oráculo (Gemini AI)"), " é o seu assistente de inteligência artificial integrado. Você pode usá-lo para gerar nomes de NPCs, criar regras de combate, descrever cenários ou arbitrar regras do seu RPG."),
+                    el('p', null, "O ", el('strong', { className: "text-amber-400" }, "Oráculo (Gemini AI)"), " é o seu assistente. Use-o para gerar nomes, criar regras de combate ou descrever cenários."),
                     el('div', { className: "bg-slate-900 border border-slate-700 p-4 rounded-xl mt-4" },
-                        el('h4', { className: "text-white font-bold mb-2" }, "Como configurar a API do Google Gemini:"),
-                        el('ol', { className: "list-decimal pl-5 space-y-2 text-slate-400" },
-                            el('li', null, "Acesse o portal do Google AI Studio em: ", el('a', { href: "https://aistudio.google.com/app/apikey", target: "_blank", className: "text-blue-400 hover:underline" }, "aistudio.google.com")),
-                            el('li', null, "Faça login com a sua conta do Google."),
-                            el('li', null, "Clique no botão ", el('strong', { className: "text-white" }, "Create API key"), " (Criar Chave de API)."),
-                            el('li', null, "Selecione um projeto (ou crie um novo se o Google pedir) e clique para gerar a chave."),
-                            el('li', null, "Copie a chave de texto longa que será gerada (começa com 'AIza...')."),
-                            el('li', null, "Volte aqui na Sala do Mestre, clique em ", el('strong', { className: "text-white" }, "⚙️ Configurações"), " no topo da tela."),
-                            el('li', null, "Cole a chave no campo do Gemini e clique em Salvar.")
-                        )
-                    ),
-                    el('p', { className: "text-xs text-amber-500/80 italic mt-2" }, "Nota: A chave fica salva apenas no seu navegador local, garantindo sua privacidade.")
+                        el('h4', { className: "text-white font-bold mb-2" }, "Configuração:"),
+                        el('p', { className: "text-xs text-slate-400" }, "Insira sua API Key nas Configurações (⚙️). A chave fica salva localmente no seu navegador.")
+                    )
                 );
             case 'novidades':
-                return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
-                    el('p', null, "As últimas atualizações focaram em ", el('strong', { className: "text-purple-400" }, "automação e organização"), ":"),
-                    el('div', { className: "grid grid-cols-1 gap-4 mt-4" }, [
-                        el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
-                            el('h4', { className: "text-purple-400 font-bold mb-1" }, "🖼️ Avatares e Google Drive"),
-                            el('p', null, "Agora você pode colar links de 'Compartilhar' do Google Drive diretamente nos campos de imagem. O sistema converte automaticamente para o formato visual!"),
-                            el('p', { className: "text-xs text-slate-500 mt-2" }, "• Clique na foto do jogador no seu painel para mudar o avatar dele.\n• As fotos aparecem agora na tela de seleção de personagens e no cabeçalho das fichas.")
-                        ]),
-                        el('div', { className: "bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl" }, [
-                            el('h4', { className: "text-emerald-400 font-bold mb-1" }, "🧹 Limpeza de Dados"),
-                            el('p', null, "Adicionamos botões 'Limpar' em locais estratégicos para manter sua mesa organizada:"),
-                            el('ul', { className: "list-disc pl-5 text-xs space-y-1 mt-2 text-slate-400" }, [
-                                el('li', null, "Histórico de Rolagens (no seu painel lateral)."),
-                                el('li', null, "Mural de Avisos e Handouts."),
-                                el('li', null, "Notas Privadas do Mestre."),
-                                el('li', null, "Ordem de Iniciativa.")
-                            ])
-                        ])
+                return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
+                    el('p', null, "As últimas atualizações transformaram a Sala do Mestre em um estúdio completo:"),
+                    
+                    el('div', { className: "bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-emerald-400 font-bold mb-2" }, "🎼 Sincronização Audiovisual"),
+                        el('p', { className: "text-xs" }, "Mudar o clima para 'Chuva' agora ativa automaticamente o som de chuva e o efeito visual na tela dos jogadores.")
+                    ]),
+
+                    el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-blue-400 font-bold mb-2" }, "📍 VTT Profissional"),
+                        el('p', { className: "text-xs" }, "Tokens agora sincronizam HP, nomes e auras em tempo real entre Mestre e Jogadores.")
+                    ]),
+
+                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-purple-400 font-bold mb-2" }, "👹 Gerador de Monstros IA"),
+                        el('p', { className: "text-xs" }, "Crie encontros épicos apenas descrevendo o monstro. A IA cuida do balanceamento e das habilidades.")
                     ])
-                );
+                ]);
             default:
                 return null;
         }

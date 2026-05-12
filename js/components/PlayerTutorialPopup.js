@@ -12,8 +12,9 @@ export function PlayerTutorialPopup({ onClose }) {
 
     const tabs = [
         { id: 'geral', label: '📖 Geral', icon: '🛡️' },
+        { id: 'vtt', label: '🗺️ Mapa/VTT', icon: '📍' },
+        { id: 'alquimia', label: '🧪 Alquimia', icon: '⚗️' },
         { id: 'combate', label: '⚔️ Combate', icon: '🎲' },
-        { id: 'evolucao', label: '🌟 Evolução', icon: '✨' },
         { id: 'social', label: '💬 Social', icon: '📜' },
         { id: 'novidades', label: '🔥 Novidades', icon: '⭐' }
     ];
@@ -33,55 +34,58 @@ export function PlayerTutorialPopup({ onClose }) {
                         )
                     )
                 );
+            case 'vtt':
+                return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
+                    el('p', null, "Agora o sistema conta com um ", el('strong', { className: "text-blue-400" }, "Mapa de Batalha (VTT)"), " integrado."),
+                    el('ul', { className: "list-disc pl-5 space-y-3" },
+                        el('li', null, el('strong', { className: "text-white" }, "Visualização:"), " Quando o Mestre abrir o mapa, ele aparecerá na sua tela. Você pode dar Zoom (scroll) e arrastar o mapa (botão direito)."),
+                        el('li', null, el('strong', { className: "text-white" }, "Seu Token:"), " Você pode mover o seu personagem pelo mapa arrastando-o. O movimento é sincronizado para todos!"),
+                        el('li', null, el('strong', { className: "text-white" }, "Névoa de Guerra:"), " Áreas escuras escondem segredos. Apenas o que o seu token 'vê' será revelado.")
+                    )
+                );
+            case 'alquimia':
+                return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
+                    el('p', null, "O laboratório de ", el('strong', { className: "text-emerald-400" }, "Alquimia e Crafting"), " permite criar itens poderosos."),
+                    el('ul', { className: "list-disc pl-5 space-y-3" },
+                        el('li', null, el('strong', { className: "text-white" }, "Acesso:"), " Clique no ícone de caldeirão (⚗️) no menu inferior."),
+                        el('li', null, el('strong', { className: "text-white" }, "Criação:"), " Arraste ingredientes da mochila para os slots e tente descobrir novas receitas."),
+                        el('li', null, el('strong', { className: "text-purple-400" }, "✨ O Guia:"), " Em dúvida? Use o botão da IA para pedir sugestões místicas do que criar com seus materiais.")
+                    )
+                );
             case 'combate':
                 return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
                     el('p', null, "O sistema possui um ", el('strong', { className: "text-purple-400" }, "Rolador de Dados 3D"), " integrado."),
                     el('ul', { className: "list-disc pl-5 space-y-3" },
-                        el('li', null, el('strong', { className: "text-amber-400" }, "Testar Atributos/Perícias:"), " Basta clicar no valor de qualquer atributo ou perícia para rolar um D20 automaticamente com os seus bônus."),
-                        el('li', null, el('strong', { className: "text-emerald-400" }, "Vantagem e Desvantagem:"), " Clique no ícone de dado no topo para abrir o painel completo e escolher o modo de rolagem."),
-                        el('li', null, el('strong', { className: "text-purple-400" }, "Ataques:"), " Na aba de equipamentos, seus ataques também podem ser rolados com um clique.")
+                        el('li', null, el('strong', { className: "text-amber-400" }, "Testar Atributos/Perícias:"), " Basta clicar no valor de qualquer atributo ou perícia para rolar um D20 automaticamente."),
+                        el('li', null, el('strong', { className: "text-emerald-400" }, "Vantagem e Desvantagem:"), " Clique no ícone de dado no topo para abrir o painel completo e escolher o modo de rolagem.")
                     )
-                );
-            case 'evolucao':
-                return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
-                    el('p', null, "Ao ganhar XP e subir de nível, você poderá desbloquear ", el('strong', { className: "text-emerald-400" }, "Talentos"), "."),
-                    el('p', null, "Clique no botão '⭐ Talentos' para abrir sua árvore de habilidades. Cada talento desbloqueado pode conceder bônus passivos ou novas habilidades ativas."),
-                    el('p', { className: "text-xs text-slate-500 italic" }, "Nota: Algumas mudanças de nível podem exigir que o Mestre aprove ou edite dados específicos da sua ficha.")
                 );
             case 'social':
                 return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
                     el('p', null, "Comunicação e Narrativa:"),
                     el('ul', { className: "list-disc pl-5 space-y-3" },
-                        el('li', null, el('strong', { className: "text-white" }, "Chat:"), " Use o chat lateral para falar com o grupo ou enviar mensagens privadas ao Mestre."),
-                        el('li', null, el('strong', { className: "text-white" }, "Mural:"), " Fique atento aos banners e handouts (imagens) que o Mestre pode enviar para a sua tela."),
-                        el('li', null, el('strong', { className: "text-white" }, "Biblioteca:"), " Acesse a biblioteca compartilhada para ler anotações do mundo ou regras da campanha.")
+                        el('li', null, el('strong', { className: "text-white" }, "Jornal:"), " Use o caderno (📖) para suas notas privadas ou para compartilhar descobertas com o grupo."),
+                        el('li', null, el('strong', { className: "text-white" }, "Som e Clima:"), " Fique atento! O som ambiente e os efeitos visuais (chuva, neve) mudam conforme a narrativa do Mestre."),
+                        el('li', null, el('strong', { className: "text-white" }, "Cartas:"), " Notas compartilhadas aparecem como envelopes na sua tela. Clique para ler!")
                     )
                 );
             case 'novidades':
                 return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
-                    el('p', null, "O sistema foi atualizado com novos recursos para facilitar sua jornada:"),
+                    el('p', null, "O sistema foi atualizado com recursos de última geração:"),
                     
-                    // 1. Jornal e Compartilhamento
+                    el('div', { className: "bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-emerald-400 font-bold mb-2" }, "🔊 Soundboard Sincronizado"),
+                        el('p', { className: "text-xs" }, "Músicas e ambientes agora tocam via YouTube direto na sua ficha, totalmente sincronizados com o clima visual da cena.")
+                    ]),
+
                     el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2" }, "📖 Jornal e Compartilhamento"),
-                        el('p', { className: "text-xs mb-3" }, "O seu diário agora é uma ferramenta social poderosa!"),
-                        el('ul', { className: "list-disc pl-5 text-[11px] space-y-2" }, [
-                            el('li', null, el('strong', { className: "text-white" }, "Abas Minecraft:"), " Alterne entre 'Meu Diário' e 'Notas do Grupo' no topo do caderno."),
-                            el('li', null, el('strong', { className: "text-white" }, "Selar e Enviar:"), " Use o botão 'Compartilhar' em qualquer página para enviar suas anotações para todos."),
-                            el('li', null, el('strong', { className: "text-white" }, "Cartas:"), " Quando alguém compartilha, uma cartinha aparecerá na sua tela. Clique nela para ler!")
-                        ])
+                        el('h4', { className: "text-blue-400 font-bold mb-2" }, "🗺️ VTT Evoluído"),
+                        el('p', { className: "text-xs" }, "Mapas de alta definição, tokens com HP visível e sistema de névoa dinâmico para exploração imersiva.")
                     ]),
 
-                    // 2. Exclusão e Segurança
-                    el('div', { className: "bg-red-900/20 border border-red-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-red-400 font-bold mb-2 flex items-center gap-2" }, "🗑️ Solicitar Exclusão"),
-                        el('p', { className: "text-xs" }, "Precisa remover uma ficha antiga? Use o ícone de lixeira no cabeçalho. Sua ficha sumirá da lista e o Mestre receberá o pedido para apagar permanentemente.")
-                    ]),
-
-                    // 3. Avatar
-                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-purple-400 font-bold mb-1" }, "🖼️ Personalize seu Avatar"),
-                        el('p', { className: "text-xs" }, "Clique na sua foto para colar um link do Google Drive e atualizar sua imagem instantaneamente!")
+                    el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-amber-400 font-bold mb-2" }, "⚗️ Sistema de Crafting"),
+                        el('p', { className: "text-xs" }, "Transforme lixo em tesouro! Use a forja e o caldeirão para aprimorar seus itens com ajuda da IA.")
                     ])
                 ]);
             default:

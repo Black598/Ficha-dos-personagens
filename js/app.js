@@ -17,6 +17,7 @@ import { DevilsBargain } from './components/DevilsBargain.js'
 import { getRandomLoot, LOOT_RARITY } from './data/LootTables.js'
 import { LootChest } from './components/LootChest.js'
 import { WorldMapView } from './components/WorldMapView.js'
+import { CraftingView } from './components/CraftingView.js'
 
 // 2. INICIALIZAÇÃO FIREBASE
 const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app()
@@ -48,6 +49,7 @@ function App() {
   const [souls, setSouls] = useState([]); // Grimório de Almas
   const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
   const [externalRoll, setExternalRoll] = useState(null); // Gatilho para rolagens 3D sem modal
+  const [isCraftingOpen, setIsCraftingOpen] = useState(false);
 
   // --- ESTADOS DE CAMPANHAS / SALAS ---
   const [currentAppId, setCurrentAppId] = useState(localStorage.getItem('selected_rpg') || DEFAULT_APP_ID);
@@ -1564,6 +1566,19 @@ function App() {
     }
   });
 
+  const CraftingOverlay = isCraftingOpen && el(CraftingView, {
+    key: 'crafting-overlay',
+    sheetData: characterSheetData,
+    onUpdateSheet: (newData) => {
+        Object.keys(newData).forEach(key => {
+            updateSheetField(key, null, newData[key]);
+        });
+    },
+    onBack: () => setIsCraftingOpen(false),
+    askGemini: askGemini,
+    isMaster: view === 'master'
+  });
+
   const AllOverlays = React.createElement(React.Fragment, null, 
     AnnouncementOverlay,
     HandoutOverlay,
@@ -1573,7 +1588,8 @@ function App() {
     LootOverlay,
     WeatherOverlay,
     BattlemapOverlay,
-    WorldMapOverlay
+    WorldMapOverlay,
+    CraftingOverlay
   );
 
   // Se estivermos na visão do mestre, renderizamos a MasterView
@@ -1645,6 +1661,7 @@ function App() {
         groupNotes: sessionState.groupNotes || [],
         shareNote: (text) => shareNote(text, characterName),
         deleteNote: deleteNote,
+        onOpenCrafting: () => setIsCraftingOpen(true),
         onRequestDelete: async () => {
           if(confirm('Tem certeza que deseja solicitar a exclusão deste personagem?')) {
             await saveCharacter(characterName, { ...characterData, pendingDeletion: true });

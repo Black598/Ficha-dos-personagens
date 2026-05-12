@@ -36,7 +36,8 @@ export function SheetView({
     deleteNote,
     setIsLibraryOpen,
     setIsBattlemapOpen,
-    setIsWorldMapOpen
+    setIsWorldMapOpen,
+    onOpenCrafting
 }) {
     const charData = characterSheetData; // Alias para compatibilidade com código legado
 
@@ -1493,6 +1494,13 @@ export function SheetView({
                             onClick: openJournal,
                             className: "w-14 h-14 bg-slate-800 hover:bg-orange-900 text-orange-400 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl"
                         }, "📖"),
+
+                        // Botão Alquimia/Crafting
+                        el('button', {
+                            onClick: onOpenCrafting,
+                            className: "w-14 h-14 bg-slate-800 hover:bg-emerald-900 text-emerald-400 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl",
+                            title: "Alquimia e Crafting"
+                        }, "⚗️"),
 
                         // Botão Descanso
                         el('button', {
