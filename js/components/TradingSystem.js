@@ -5,7 +5,7 @@ const { useState, useEffect } = React;
 export function TradingSystem({ sheetData, sessionState, updateSessionState, onUpdateSheet, onBack, isMaster, characterName, askGemini }) {
     const el = React.createElement;
     const [selectedTab, setSelectedTab] = useState('buy'); // 'buy' or 'sell' (for players)
-    const [newItem, setNewItem] = useState({ name: '', price: 0, icon: '📦', description: '', rarity: 'Comum' });
+    const [newItem, setNewItem] = useState({ name: '', price: 0, icon: '📦', description: '', rarity: 'Comum', stats: '' });
     const [isProcessing, setIsProcessing] = useState(false);
     const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
@@ -31,8 +31,12 @@ export function TradingSystem({ sheetData, sessionState, updateSessionState, onU
             Modificador de Preço Atual: ${priceMultiplier}x.
 
             Retorne APENAS um JSON puro (sem markdown) com os campos: 
-            name, price (número apropriado JÁ MULTIPLICADO pelo modificador ${priceMultiplier}), icon (um emoji), description (máximo 100 caracteres), rarity (Comum, Incomum, Raro, Épico ou Lendário).
-            Considere o contexto econômico para o tema e o preço do item.`;
+            name, 
+            price (número JÁ MULTIPLICADO por ${priceMultiplier}), 
+            icon (um emoji), 
+            description (flavor text imersivo para o jogador), 
+            stats (dados técnicos apenas para o mestre, ex: CA:+2, Dano:1d8 fôgo, etc),
+            rarity (Comum, Incomum, Raro, Épico ou Lendário).`;
             
             const response = await askGemini(prompt);
             const jsonStr = response.replace(/```json|```/g, '').trim();
@@ -43,6 +47,7 @@ export function TradingSystem({ sheetData, sessionState, updateSessionState, onU
                 price: data.price || Math.floor(50 * priceMultiplier),
                 icon: data.icon || "📦",
                 description: data.description || "Um item gerado pelo oráculo.",
+                stats: data.stats || "",
                 rarity: data.rarity || "Comum"
             });
             AudioManager.play('sparkle');
@@ -61,7 +66,7 @@ export function TradingSystem({ sheetData, sessionState, updateSessionState, onU
         }
         const updatedShop = [...shopItems, { ...newItem, id: Date.now() }];
         await updateSessionState({ shopInventory: updatedShop });
-        setNewItem({ name: '', price: 0, icon: '📦', description: '', rarity: 'Comum' });
+        setNewItem({ name: '', price: 0, icon: '📦', description: '', rarity: 'Comum', stats: '' });
         AudioManager.play('click');
     };
 
@@ -86,7 +91,9 @@ export function TradingSystem({ sheetData, sessionState, updateSessionState, onU
         try {
             const newGold = playerGold - item.price;
             const currentInv = sheetData?.outros?.['Equipamento'] || "";
-            const itemString = `[${item.icon}] ${item.name}`;
+            // Inclui status técnicos se existirem para o jogador ver na ficha
+            const statsSuffix = item.stats ? ` {${item.stats}}` : "";
+            const itemString = `[${item.icon}] ${item.name}${statsSuffix}`;
             const newInv = currentInv ? `${currentInv}, ${itemString}` : itemString;
 
             await onUpdateSheet({ 
@@ -98,7 +105,7 @@ export function TradingSystem({ sheetData, sessionState, updateSessionState, onU
             });
 
             AudioManager.play('coins');
-            alert(`Você comprou ${item.name}!`);
+            alert(`Compra realizada!\nItem: ${item.name}\nAtributos Revelados: ${item.stats || 'Nenhum'}`);
         } catch (e) {
             console.error(e);
             alert("Erro ao processar compra.");
@@ -187,12 +194,20 @@ export function TradingSystem({ sheetData, sessionState, updateSessionState, onU
                         }, "OK")
                     ])
                 ]),
-                el('textarea', {
-                    placeholder: "Descrição...",
-                    value: newItem.description,
-                    onChange: e => setNewItem({ ...newItem, description: e.target.value }),
-                    className: "w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-amber-500/50 h-20 resize-none"
-                })
+                el('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" }, [
+                    el('textarea', {
+                        placeholder: "Descrição (Para o Jogador)...",
+                        value: newItem.description,
+                        onChange: e => setNewItem({ ...newItem, description: e.target.value }),
+                        className: "w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-amber-500/50 h-20 resize-none"
+                    }),
+                    el('textarea', {
+                        placeholder: "Atributos Técnicos (Apenas para o Mestre)...",
+                        value: newItem.stats,
+                        onChange: e => setNewItem({ ...newItem, stats: e.target.value }),
+                        className: "w-full bg-slate-950 border border-purple-900/30 rounded-xl px-4 py-3 text-xs text-purple-400 outline-none focus:border-purple-500/50 h-20 resize-none shadow-inner"
+                    })
+                ])
             ]),
 
             // Vitrine de Gestão
@@ -211,7 +226,11 @@ export function TradingSystem({ sheetData, sessionState, updateSessionState, onU
                                 el('p', { className: "text-amber-500 font-bold text-xs" }, `${item.price} PO`)
                             ])
                         ]),
-                        el('p', { className: "text-[10px] text-slate-500 italic line-clamp-2" }, item.description)
+                        el('p', { className: "text-[10px] text-slate-500 italic line-clamp-2 border-b border-slate-900 pb-2" }, item.description),
+                        item.stats && el('div', { className: "bg-purple-950/20 p-2 rounded-lg border border-purple-900/30" }, [
+                            el('p', { className: "text-[8px] font-black text-purple-500 uppercase tracking-widest mb-1" }, "📊 Atributos Secretos"),
+                            el('p', { className: "text-[10px] text-purple-300 font-mono" }, item.stats)
+                        ])
                     ]))
                 )
             ])

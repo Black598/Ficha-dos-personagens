@@ -93,11 +93,24 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Integração de Inventário:** Itens são consumidos e o resultado é adicionado automaticamente.
   - ✅ **Feedback Visual:** Animações e cores específicas para cada modo de criação.
 
+### 12. 🛒 Loja do Mestre (Trading System)
+
+- **Status:** Concluído (Avançado)
+- **Features:**
+  - ✅ **Vitrine do Mestre:** Interface para colocar itens à venda com nome, ícone e descrição.
+  - ✅ **Geração por IA (Gemini):** Botão ✨ para gerar itens únicos baseados no contexto da loja.
+  - ✅ **Especialização de Vendedores:** Categorias como Armeiro, Alquimista, Joalheiro, etc.
+  - ✅ **Economia Dinâmica:** Modificadores de preço e contexto narrativo (inflação, escassez, descontos).
+  - ✅ **Sistema de Raridades:** Cores e categorias (Comum a Lendário) integradas.
+  - ✅ **Atributos Secretos:** Status técnicos visíveis apenas para o mestre antes da compra.
+  - ✅ **Compra Automática:** Dedução de PO e adição ao inventário com revelação automática de status.
+  - ✅ **Controle Master:** Botão de cadeado 🔓/🔒 para abrir/fechar a loja para jogadores em tempo real.
+
 ---
 
 ## 🚀 Próximas Implementações (Pendentes)
 
-### 1. 🧙‍♂️ Assistente de Criação de Personagemz (Charactermancer)
+### 1. 🧙‍♂️ Assistente de Criação de Personagem (Charactermancer)
 
 - **Conceito:** Um menu guiado para acelerar a criação de novos personagens.
 - **Features:**
@@ -106,27 +119,23 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - Múltipla escolha para equipamento inicial (ex: "Pacote de Explorador" ou "Espada Longa") com opção de converter em ouro.
   - Opção de mesclar habilidades baseadas em APIs/Wikis com habilidades customizadas (homebrew).
 
-### 2. 🛒 Loja do Mestre (Trading System)
-- **Conceito:** Um mercado interativo onde o mestre coloca itens à venda.
-- **Features:** Vitrine do Mestre, Compra Automática (dedução de PO) e Venda de Itens.
-
-### 3. 🌫️ Névoa de Guerra Dinâmica (Dynamic Fog of War)
+### 2. 🌫️ Névoa de Guerra Dinâmica (Dynamic Fog of War)
 - **Conceito:** Revelação automática do mapa baseada na posição e visão dos tokens.
 - **Features:** Linha de visão (LoS) que respeita paredes, sombras dinâmicas e controle de raio de luz (tochas/visão no escuro).
 
-### 🎲 4. Personalização de Dados (Dice Skins)
+### 🎲 3. Personalização de Dados (Dice Skins)
 - **Conceito:** Menu de cosméticos para o rolador 3D.
 - **Features:** Escolha de materiais (Metal, Cristal, Magma), cores customizadas e efeitos de trilha (partículas) ao rolar.
 
-### 🕒 5. Relógio de Sessão (In-Game Time)
+### 🕒 4. Relógio de Sessão (In-Game Time)
 - **Conceito:** Rastreador de tempo cronológico dentro do mundo.
 - **Features:** Botões para avançar 10m/1h/Descanso, sincronia com iluminação do mapa (dia/noite) e controle de duração de efeitos.
 
-### 🔊 6. Soundpad dos Jogadores (Player Soundboard)
+### 🔊 5. Soundpad dos Jogadores (Player Soundboard)
 - **Conceito:** Uma interface onde os jogadores podem carregar ou linkar seus próprios efeitos sonoros.
 - **Features:** Botões de som personalizados para cada jogador (ex: grito de guerra, som de magia), controle de volume individual e biblioteca de sons compartilhada.
 
 ---
 
-**Última atualização:** 12/05/2026
+**Última atualização:** 13/05/2026
 **Próximo passo:** Iniciar o Sistema de **🧙‍♂️ Assistente de Criação de Personagem (Charactermancer)**.
