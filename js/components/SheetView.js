@@ -24,6 +24,7 @@ export function SheetView({
     turnState,
     isNewCharacter,
     sessionState,
+    updateSessionState,
     handleDescansoLongo,
     setEditableSheetData,
     triggerExternalRoll,
