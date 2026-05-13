@@ -52,6 +52,7 @@ function App() {
   const [externalRoll, setExternalRoll] = useState(null); // Gatilho para rolagens 3D sem modal
   const [isCraftingOpen, setIsCraftingOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
+  const [lastGlobalSFX, setLastGlobalSFX] = useState(null);
 
   // --- ESTADOS DE CAMPANHAS / SALAS ---
   const [currentAppId, setCurrentAppId] = useState(localStorage.getItem('selected_rpg') || DEFAULT_APP_ID);
@@ -436,6 +437,7 @@ function App() {
                     AudioManager.play(data.triggerSound.type);
                 }
             }
+
         } else {
             setSessionState({
               announcement: '', handout: '', environment: 'none', monsters: [],
@@ -451,7 +453,7 @@ function App() {
     };
   }, [user, currentAppId]); // Removido lastTriggerSound daqui
   
-  // --- 1.4 SINCRONIZAÇÃO DE MÚSICA AMBIENTE ---
+  // --- 1.4 SINCRONIZAÇÃO DE MÚSICA AMBIENTE E SOUNDPAD GLOBAL ---
   useEffect(() => {
     const ambient = sessionState.ambientMusic;
     if (ambient && ambient.url) {
@@ -460,6 +462,16 @@ function App() {
         AudioManager.stopAmbient('global');
     }
   }, [sessionState.ambientMusic]);
+
+  useEffect(() => {
+    const sfx = sessionState.globalSFX;
+    if (sfx && sfx.url && (!lastGlobalSFX || sfx.timestamp !== lastGlobalSFX.timestamp)) {
+        setLastGlobalSFX(sfx);
+        const audio = new Audio(sfx.url);
+        audio.volume = 0.8;
+        audio.play().catch(e => console.error("Erro ao tocar SFX global:", e));
+    }
+  }, [sessionState.globalSFX, lastGlobalSFX]);
 
   // Efeito para Notificação de Carta (Notas Compartilhadas)
   useEffect(() => {

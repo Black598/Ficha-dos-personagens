@@ -106,6 +106,14 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Compra Automática:** Dedução de PO e adição ao inventário com revelação automática de status.
   - ✅ **Controle Master:** Botão de cadeado 🔓/🔒 para abrir/fechar a loja para jogadores em tempo real.
 
+### 13. 🔊 Soundpad dos Jogadores (Player Soundboard)
+- **Status:** Concluído
+- **Features:** 
+  - Interface customizável para os jogadores carregarem áudios de até 20 segundos.
+  - Suporte para upload de arquivo (MP3/WAV) ou links.
+  - Áudios disparados por um jogador são sincronizados e tocados para **todos** na sala em tempo real.
+  - O soundpad é salvo individualmente na ficha de cada personagem.
+
 ---
 
 ## 🚀 Próximas Implementações (Pendentes)
@@ -130,10 +138,6 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 ### 🕒 4. Relógio de Sessão (In-Game Time)
 - **Conceito:** Rastreador de tempo cronológico dentro do mundo.
 - **Features:** Botões para avançar 10m/1h/Descanso, sincronia com iluminação do mapa (dia/noite) e controle de duração de efeitos.
-
-### 🔊 5. Soundpad dos Jogadores (Player Soundboard)
-- **Conceito:** Uma interface onde os jogadores podem carregar ou linkar seus próprios efeitos sonoros.
-- **Features:** Botões de som personalizados para cada jogador (ex: grito de guerra, som de magia), controle de volume individual e biblioteca de sons compartilhada.
 
 ---
 
