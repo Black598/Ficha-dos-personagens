@@ -28,6 +28,7 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
     const [isMapLibraryOpen, setIsMapLibraryOpen] = useState(false);
     const [isFogMode, setIsFogMode] = useState(false);
     const [fogBrushType, setFogBrushType] = useState('hide'); // 'hide' ou 'reveal'
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const STATUS_ICONS = {
         'burning': '🔥',
@@ -217,6 +218,113 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
     }, [isDraggingCanvas, draggingToken, dragStart, camera, tokens, battlemapData, activeMap, currentDraw, drawMode, drawColor]);
 
     // Ocultar menu de contexto padrão (clique direito) dentro do mapa
+    // --- AÇÕES DO MAPA ---
+    const handleNextTurn = () => {
+        const currentOrder = turnState?.initiativeOrder || [];
+        if (currentOrder.length === 0) {
+            alert("A iniciativa está vazia. Adicione jogadores na tela do Mestre primeiro.");
+            return;
+        }
+        const activeIndex = currentOrder.findIndex(c => c.name === turnState.activeChar);
+        let nextIndex = activeIndex + 1;
+        if (nextIndex >= currentOrder.length || activeIndex === -1) {
+            nextIndex = 0;
+            updateSessionState({ turnState: { ...turnState, round: (turnState?.round || 1) + 1 } });
+        }
+        if (advanceTurn) advanceTurn(currentOrder[nextIndex].name);
+        else updateSessionState({ turnState: { ...turnState, activeChar: currentOrder[nextIndex].name } });
+    };
+
+    const handleUpdateBackground = () => {
+        const url = prompt("Link da Imagem:", activeMap.imageUrl);
+        if (url !== null) {
+            const parsedUrl = parseImageUrl(url);
+            const newMap = { ...activeMap, id: activeMap.id || 'map_1', imageUrl: parsedUrl, name: 'Mapa Atual' };
+            const newMaps = maps.filter(m => m.id !== newMap.id);
+            newMaps.push(newMap);
+            updateSessionState({ battlemap: { ...battlemapData, activeMapId: newMap.id, maps: newMaps } });
+        }
+    };
+
+    const handleUpdateGrid = () => {
+        const size = prompt("Tamanho do Grid:", activeMap.gridSize || 50);
+        if (size !== null && !isNaN(parseInt(size))) {
+            const newMap = { ...activeMap, gridSize: parseInt(size) };
+            const newMaps = maps.map(m => m.id === newMap.id ? newMap : m);
+            updateSessionState({ battlemap: { ...battlemapData, maps: newMaps } });
+        }
+    };
+
+    const handleAddAllPlayers = () => {
+        const existingNames = tokens.map(t => t.name);
+        const playersToAdd = (allCharacters || []).filter(c => c.name.toLowerCase() !== 'mestre' && !existingNames.includes(c.name));
+        if (playersToAdd.length === 0) return alert("Todos os jogadores já estão no mapa!");
+        const gs = activeMap.gridSize || 50;
+        const newTokens = playersToAdd.map((p, idx) => ({
+            id: `token_player_${p.name}`,
+            type: 'player',
+            name: p.name,
+            imageUrl: p.sheetData?.info?.['Avatar'] || '',
+            x: (idx * gs), y: 0, size: 1
+        }));
+        updateSessionState({ battlemap: { ...battlemapData, tokens: [...tokens, ...newTokens] } });
+    };
+
+    const handleAddMonster = () => {
+        const monsterName = prompt("Nome do Monstro/NPC:");
+        const gs = activeMap.gridSize || 50;
+        if (monsterName) {
+            const m = allAvailableNPCs.find(mon => mon.name.toLowerCase().includes(monsterName.toLowerCase()));
+            if (m) {
+                const newToken = {
+                    id: `token_monster_${m.id || Date.now()}_${Math.random().toString(36).substr(2,5)}`,
+                    type: 'monster', name: m.name, imageUrl: m.imageUrl || '',
+                    x: 0, y: 0, size: 1, createdBy: characterName
+                };
+                updateSessionState({ battlemap: { ...battlemapData, tokens: [...tokens, newToken] } });
+            } else alert("Não encontrado!");
+        }
+    };
+
+    const handleAddNewToken = () => {
+        const name = prompt("Nome do Token:");
+        if (!name) return;
+        const url = prompt("Link da Imagem:");
+        const parsedUrl = url ? parseImageUrl(url) : '';
+        const gs = activeMap.gridSize || 50;
+        const newToken = {
+            id: `token_npc_${Date.now()}_${Math.random().toString(36).substr(2,5)}`,
+            type: 'npc', name: name, imageUrl: parsedUrl, x: 0, y: gs * 2, size: 1, createdBy: characterName
+        };
+        updateSessionState({ battlemap: { ...battlemapData, tokens: [...tokens, newToken] } });
+    };
+
+    const handleAddProp = () => {
+        const propName = prompt("O que deseja adicionar?");
+        if (!propName) return;
+        const url = prompt(`Link da imagem:`);
+        const gs = activeMap.gridSize || 50;
+        const newToken = {
+            id: `prop_${Date.now()}_${Math.random().toString(36).substr(2,5)}`,
+            type: 'prop', name: propName,
+            imageUrl: url || `https://api.dicebear.com/7.x/initials/svg?seed=${propName}&backgroundColor=71717a`,
+            x: 0, y: gs * 3, size: 1, createdBy: characterName
+        };
+        updateSessionState({ battlemap: { ...battlemapData, tokens: [...tokens, newToken] } });
+    };
+
+    const handleClearDrawings = () => {
+        if (confirm("Limpar desenhos?")) updateSessionState({ battlemap: { ...battlemapData, drawings: [] } });
+    };
+
+    const handleClearWalls = () => {
+        if (confirm("Limpar paredes?")) updateSessionState({ battlemap: { ...battlemapData, walls: [] } });
+    };
+
+    const handleClearTokens = () => {
+        if (confirm("Limpar todos os tokens?")) updateSessionState({ battlemap: { ...battlemapData, tokens: [] } });
+    };
+
     const handleContextMenu = (e) => {
         e.preventDefault();
     };
@@ -228,315 +336,137 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
     }, [
         
         // --- HEADER ---
-        el('header', { key: 'map-header', className: "absolute top-0 left-0 w-full z-10 p-6 flex justify-between items-center bg-gradient-to-b from-slate-950 to-transparent pointer-events-none" }, [
-            el('div', { className: "flex items-center gap-6 pointer-events-auto" }, [
+        el('header', { key: 'map-header', className: "absolute top-0 left-0 w-full z-[100] p-4 md:p-6 flex justify-between items-center bg-gradient-to-b from-slate-950 to-transparent pointer-events-none" }, [
+            el('div', { className: "flex items-center gap-4 md:gap-6 pointer-events-auto" }, [
                 el('button', {
                     onClick: onBack,
-                    className: "w-12 h-12 bg-slate-900 border border-slate-700 rounded-2xl flex items-center justify-center text-xl hover:bg-slate-800 hover:border-amber-500/50 transition-all shadow-lg"
+                    className: "w-10 h-10 md:w-12 md:h-12 bg-slate-900 border border-slate-700 rounded-2xl flex items-center justify-center text-lg md:text-xl hover:bg-slate-800 hover:border-amber-500/50 transition-all shadow-lg"
                 }, "⬅️"),
                 el('div', null, [
-                    el('h2', { className: "text-3xl font-black italic uppercase tracking-tighter bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent drop-shadow-lg" }, "🗺️ Campo de Batalha"),
-                    el('p', { className: "text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1 drop-shadow" }, 
-                        activeMap.name || "Nenhum mapa carregado"
+                    el('h2', { className: "text-xl md:text-3xl font-black italic uppercase tracking-tighter bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent drop-shadow-lg" }, "🗺️ Mapa"),
+                    el('p', { className: "text-[8px] md:text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1 drop-shadow" }, 
+                        activeMap.name || "Nenhum mapa"
                     )
                 ])
             ]),
 
-            // Controles Rápidos (Zoom, etc)
-            el('div', { className: "flex gap-2 pointer-events-auto bg-slate-900/80 p-2 rounded-2xl border border-slate-800 backdrop-blur-md" }, [
+            // BOTÃO HAMBURGUER (Mobile Only)
+            el('button', {
+                key: 'mobile-menu-toggle',
+                onClick: () => setIsMobileMenuOpen(true),
+                className: "md:hidden w-10 h-10 bg-slate-900 border border-slate-700 rounded-xl flex items-center justify-center text-xl text-amber-500 pointer-events-auto shadow-lg"
+            }, "☰"),
+
+            // TOOLBAR DESKTOP
+            el('div', { className: "hidden md:flex gap-2 pointer-events-auto bg-slate-900/80 p-2 rounded-2xl border border-slate-800 backdrop-blur-md overflow-x-auto max-w-[70vw] hide-scrollbar" }, [
                 mode === 'master' && el('button', {
-                    onClick: () => {
-                        const currentOrder = turnState?.initiativeOrder || [];
-                        if (currentOrder.length === 0) {
-                            alert("A iniciativa está vazia. Adicione jogadores na tela do Mestre primeiro.");
-                            return;
-                        }
-                        const activeIndex = currentOrder.findIndex(c => c.name === turnState.activeChar);
-                        let nextIndex = activeIndex + 1;
-                        if (nextIndex >= currentOrder.length || activeIndex === -1) {
-                            nextIndex = 0;
-                            // Se cruzou o fim, avança o round
-                            updateSessionState({ turnState: { ...turnState, round: (turnState?.round || 1) + 1 } });
-                        }
-                        
-                        if (advanceTurn) {
-                            advanceTurn(currentOrder[nextIndex].name);
-                        } else {
-                            updateSessionState({ turnState: { ...turnState, activeChar: currentOrder[nextIndex].name } });
-                        }
-                    },
-                    className: "px-4 py-2 hover:bg-emerald-600/20 text-emerald-500 rounded-xl text-xs font-bold uppercase border-r border-slate-700",
-                    title: "Passar a vez no Combate"
-                }, "▶️ Próximo Turno"),
+                    onClick: handleNextTurn,
+                    className: "px-4 py-2 hover:bg-emerald-600/20 text-emerald-500 rounded-xl text-xs font-bold uppercase border-r border-slate-700 whitespace-nowrap",
+                    title: "Passar a vez"
+                }, "▶️ Próximo"),
                 
                 mode === 'master' && el('button', {
-                    onClick: () => {
-                        const url = prompt("Cole o Link (URL) da imagem do Mapa:", activeMap.imageUrl);
-                        if (url !== null) {
-                            const parsedUrl = parseImageUrl(url);
-                            const newMap = { ...activeMap, id: activeMap.id || 'map_1', imageUrl: parsedUrl, name: 'Mapa Atual' };
-                            const newMaps = maps.filter(m => m.id !== newMap.id);
-                            newMaps.push(newMap);
-                            updateSessionState({ 
-                                battlemap: { 
-                                    ...battlemapData, 
-                                    activeMapId: newMap.id, 
-                                    maps: newMaps 
-                                } 
-                            });
-                        }
-                    },
-                    className: "px-4 py-2 hover:bg-amber-600/20 text-amber-500 rounded-xl text-xs font-bold uppercase",
-                    title: "Trocar Imagem do Mapa"
+                    onClick: handleUpdateBackground,
+                    className: "px-4 py-2 hover:bg-amber-600/20 text-amber-500 rounded-xl text-xs font-bold uppercase whitespace-nowrap"
                 }, "🖼️ Fundo"),
+
                 mode === 'master' && el('button', {
                     onClick: () => setIsMapLibraryOpen(true),
-                    className: "px-4 py-2 hover:bg-indigo-600/20 text-indigo-400 rounded-xl text-xs font-bold uppercase flex items-center gap-2",
-                    title: "Gerenciar Biblioteca de Mapas"
+                    className: "px-4 py-2 hover:bg-indigo-600/20 text-indigo-400 rounded-xl text-xs font-bold uppercase flex items-center gap-2 whitespace-nowrap"
                 }, ["🗺️", "Mapas"]),
+
                 mode === 'master' && el('button', {
-                    onClick: () => {
-                        const size = prompt("Tamanho do Grid em pixels (Padrão: 50):", activeMap.gridSize || 50);
-                        if (size !== null && !isNaN(parseInt(size))) {
-                            const newMap = { ...activeMap, gridSize: parseInt(size) };
-                            const newMaps = maps.map(m => m.id === newMap.id ? newMap : m);
-                            updateSessionState({ 
-                                battlemap: { ...battlemapData, maps: newMaps } 
-                            });
-                        }
-                    },
-                    className: "px-4 py-2 hover:bg-amber-600/20 text-amber-500 rounded-xl text-xs font-bold uppercase",
-                    title: "Ajustar Tamanho do Grid"
+                    onClick: handleUpdateGrid,
+                    className: "px-4 py-2 hover:bg-amber-600/20 text-amber-500 rounded-xl text-xs font-bold uppercase whitespace-nowrap"
                 }, "📏 Grid"),
+
                 mode === 'master' && el('button', {
-                    onClick: () => {
-                        const existingNames = tokens.map(t => t.name);
-                        const playersToAdd = (allCharacters || []).filter(c => c.name.toLowerCase() !== 'mestre' && !existingNames.includes(c.name));
-                        if (playersToAdd.length === 0) {
-                            alert("Todos os jogadores já estão no mapa!");
-                            return;
-                        }
-                        const gs = activeMap.gridSize || 50;
-                        const newTokens = playersToAdd.map((p, idx) => ({
-                            id: `token_player_${p.name}`,
-                            type: 'player',
-                            name: p.name,
-                            imageUrl: p.sheetData?.info?.['Avatar'] || '',
-                            x: (idx * gs),
-                            y: 0,
-                            size: 1
-                        }));
-                        updateSessionState({ battlemap: { ...battlemapData, tokens: [...tokens, ...newTokens] } });
-                    },
-                    className: "px-4 py-2 hover:bg-green-600/20 text-green-500 rounded-xl text-xs font-bold uppercase",
-                    title: "Puxar todos os jogadores para o mapa"
+                    onClick: handleAddAllPlayers,
+                    className: "px-4 py-2 hover:bg-green-600/20 text-green-500 rounded-xl text-xs font-bold uppercase whitespace-nowrap"
                 }, "🎲 Jogadores"),
+
                 mode === 'master' && el('button', {
-                    onClick: () => {
-                        const monsterName = prompt("Digite o nome do monstro ou NPC (Biblioteca/Bestiário) para puxar:");
-                        const gs = activeMap.gridSize || 50;
-                        
-                        if (monsterName) {
-                            const m = allAvailableNPCs.find(mon => mon.name.toLowerCase().includes(monsterName.toLowerCase()));
-                            if (m) {
-                                const newToken = {
-                                    id: `token_monster_${m.id || Date.now()}_${Math.random().toString(36).substr(2,5)}`,
-                                    type: 'monster',
-                                    name: m.name,
-                                    imageUrl: m.imageUrl || '',
-                                    x: 0, y: 0, size: 1,
-                                    createdBy: characterName
-                                };
-                                updateSessionState({ battlemap: { ...battlemapData, tokens: [...tokens, newToken] } });
-                            } else {
-                                alert("NPC/Monstro não encontrado na biblioteca!");
-                            }
-                        } else {
-                            const existingNames = tokens.map(t => t.name);
-                            const monstersToAdd = monsters.filter(m => !existingNames.includes(m.name));
-                            if (monstersToAdd.length === 0) {
-                                alert("Não há monstros ativos novos para puxar!");
-                                return;
-                            }
-                            const newTokens = monstersToAdd.map((m, idx) => ({
-                                id: `token_monster_${m.id}_${Date.now()}`,
-                                type: 'monster',
-                                name: m.name,
-                                imageUrl: m.imageUrl || '',
-                                x: (idx * gs),
-                                y: gs,
-                                size: 1
-                            }));
-                            updateSessionState({ battlemap: { ...battlemapData, tokens: [...tokens, ...newTokens] } });
-                        }
-                    },
-                    className: "px-4 py-2 hover:bg-red-600/20 text-red-500 rounded-xl text-xs font-bold uppercase",
-                    title: "Puxar Monstros/NPCs da Biblioteca"
-                }, "👹 Biblioteca"),
-                // Removido "mode === 'master' &&" para jogadores também usarem
+                    onClick: handleAddMonster,
+                    className: "px-4 py-2 hover:bg-red-600/20 text-red-500 rounded-xl text-xs font-bold uppercase whitespace-nowrap"
+                }, "👹 Bio"),
+
                 el('button', {
-                    onClick: () => {
-                        const name = prompt("Nome do NPC ou Ficha Genérica:");
-                        if (!name) return;
-                        const url = prompt("Link da Imagem (Opcional - Google Drive/Net):");
-                        const parsedUrl = url ? parseImageUrl(url) : '';
-                        const gs = activeMap.gridSize || 50;
-                        const newToken = {
-                            id: `token_npc_${Date.now()}_${Math.random().toString(36).substr(2,5)}`,
-                            type: 'npc',
-                            name: name,
-                            imageUrl: parsedUrl,
-                            x: 0,
-                            y: gs * 2,
-                            size: 1,
-                            createdBy: characterName
-                        };
-                        updateSessionState({ battlemap: { ...battlemapData, tokens: [...tokens, newToken] } });
-                    },
-                    className: "px-4 py-2 hover:bg-purple-600/20 text-purple-500 rounded-xl text-xs font-bold uppercase",
-                    title: "Adicionar Token Genérico"
+                    onClick: handleAddNewToken,
+                    className: "px-4 py-2 hover:bg-purple-600/20 text-purple-500 rounded-xl text-xs font-bold uppercase whitespace-nowrap"
                 }, "➕ Token"),
 
                 el('button', {
-                    onClick: () => {
-                        const propName = prompt("O que você deseja adicionar? (Ex: barril, mesa, fogueira, árvore)");
-                        if (!propName) return;
-                        
-                        // Busca simplificada de assets (usando placeholder ou link de assets RPG)
-                        // Em uma versão real, isso poderia buscar em uma API de assets
-                        const url = prompt(`Link da imagem para "${propName}" (ou deixe em branco para buscar padrão):`);
-                        const gs = activeMap.gridSize || 50;
-                        
-                        const newToken = {
-                            id: `prop_${Date.now()}_${Math.random().toString(36).substr(2,5)}`,
-                            type: 'prop',
-                            name: propName,
-                            imageUrl: url || `https://api.dicebear.com/7.x/initials/svg?seed=${propName}&backgroundColor=71717a`,
-                            x: 0,
-                            y: gs * 3,
-                            size: 1,
-                            createdBy: characterName
-                        };
-                        updateSessionState({ battlemap: { ...battlemapData, tokens: [...tokens, newToken] } });
-                    },
-                    className: "px-4 py-2 hover:bg-stone-600/20 text-stone-400 rounded-xl text-xs font-bold uppercase",
-                    title: "Adicionar Objeto/Prop ao Mapa"
+                    onClick: handleAddProp,
+                    className: "px-4 py-2 hover:bg-stone-600/20 text-stone-400 rounded-xl text-xs font-bold uppercase whitespace-nowrap"
                 }, "📦 Props"),
                 
-                // Ferramentas de Desenho (Apenas quando no mapa)
-                el('div', { className: "w-px bg-slate-800 mx-1" }), // Separator
+                el('div', { className: "w-px bg-slate-800 mx-1" }), 
                 el('div', { className: "flex items-center gap-1 bg-slate-950 p-1 rounded-xl" }, [
                     el('button', {
                         onClick: () => setDrawMode(drawMode === 'cone' ? null : 'cone'),
-                        className: `w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${drawMode === 'cone' ? 'bg-amber-500 text-slate-900' : 'text-slate-400 hover:bg-slate-800'}`,
-                        title: "Cone (Arrastar)"
+                        className: `w-8 h-8 flex items-center justify-center rounded-lg ${drawMode === 'cone' ? 'bg-amber-500 text-slate-900' : 'text-slate-400 hover:bg-slate-800'}`
                     }, "📐"),
                     el('button', {
                         onClick: () => setDrawMode(drawMode === 'line' ? null : 'line'),
-                        className: `w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${drawMode === 'line' ? 'bg-amber-500 text-slate-900' : 'text-slate-400 hover:bg-slate-800'}`,
-                        title: "Linha (Arrastar)"
+                        className: `w-8 h-8 flex items-center justify-center rounded-lg ${drawMode === 'line' ? 'bg-amber-500 text-slate-900' : 'text-slate-400 hover:bg-slate-800'}`
                     }, "➖"),
                     el('button', {
                         onClick: () => setDrawMode(drawMode === 'circle' ? null : 'circle'),
-                        className: `w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${drawMode === 'circle' ? 'bg-amber-500 text-slate-900' : 'text-slate-400 hover:bg-slate-800'}`,
-                        title: "Círculo/Raio (Arrastar)"
+                        className: `w-8 h-8 flex items-center justify-center rounded-lg ${drawMode === 'circle' ? 'bg-amber-500 text-slate-900' : 'text-slate-400 hover:bg-slate-800'}`
                     }, "⭕"),
                     mode === 'master' && el('button', {
                         onClick: () => setDrawMode(drawMode === 'wall' ? null : 'wall'),
-                        className: `w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${drawMode === 'wall' ? 'bg-blue-500 text-white' : 'text-blue-400 hover:bg-blue-900/50'}`,
-                        title: "Parede (Bloqueia Visão - Arrastar)"
+                        className: `w-8 h-8 flex items-center justify-center rounded-lg ${drawMode === 'wall' ? 'bg-blue-500 text-white' : 'text-blue-400 hover:bg-blue-900/50'}`
                     }, "🧱"),
                     el('input', {
-                        type: 'color',
-                        value: drawColor,
-                        onChange: (e) => setDrawColor(e.target.value),
+                        type: 'color', value: drawColor, onChange: (e) => setDrawColor(e.target.value),
                         className: "w-6 h-6 ml-1 bg-transparent cursor-pointer rounded-full overflow-hidden border-0 p-0"
                     }),
                     el('button', {
                         onClick: () => {
                             if (drawings.length > 0) {
-                                const newDrawings = [...drawings];
-                                newDrawings.pop();
+                                const newDrawings = [...drawings]; newDrawings.pop();
                                 updateSessionState({ battlemap: { ...battlemapData, drawings: newDrawings } });
                             }
                         },
-                        className: `w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800 transition-colors`,
-                        title: "Desfazer último desenho"
+                        className: `w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800`
                     }, "↩️")
                 ]),
+
                 mode === 'master' && el('button', {
-                    onClick: () => {
-                        if (confirm("Limpar TODOS os desenhos/magias?")) {
-                            updateSessionState({ battlemap: { ...battlemapData, drawings: [] } });
-                        }
-                    },
-                    className: "px-4 py-2 hover:bg-red-600/20 text-red-500 rounded-xl text-xs font-bold uppercase",
-                    title: "Limpar todos os desenhos"
-                }, "🧹 Limpar Desenhos"),
+                    onClick: handleClearDrawings,
+                    className: "px-4 py-2 hover:bg-red-600/20 text-red-500 rounded-xl text-xs font-bold uppercase whitespace-nowrap"
+                }, "🧹"),
                 
                 mode === 'master' && el('button', {
-                    onClick: () => {
-                        if (confirm("Limpar TODAS as paredes?")) {
-                            updateSessionState({ battlemap: { ...battlemapData, walls: [] } });
-                        }
-                    },
-                    className: "px-2 py-2 hover:bg-blue-600/20 text-blue-500 rounded-xl text-xs font-bold uppercase",
-                    title: "Limpar Paredes"
+                    onClick: handleClearWalls,
+                    className: "px-2 py-2 hover:bg-blue-600/20 text-blue-500 rounded-xl text-xs font-bold uppercase"
                 }, "🧱×"),
                 
                 mode === 'master' && el('div', { className: "flex items-center gap-1 bg-slate-950 p-1 rounded-xl" }, [
                     el('button', {
                         onClick: () => setIsFogMode(!isFogMode),
-                        className: `px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${isFogMode ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`,
-                        title: "Ativar Modo Névoa (Pintar)"
+                        className: `px-3 py-1.5 rounded-lg text-[10px] font-black uppercase ${isFogMode ? 'bg-indigo-500 text-white' : 'text-slate-400 hover:bg-slate-800'}`
                     }, "🌬️ Névoa"),
                     isFogMode && el('button', {
                         onClick: () => setFogBrushType('hide'),
-                        className: `w-8 h-8 flex items-center justify-center rounded-lg ${fogBrushType === 'hide' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-slate-800'}`,
-                        title: "Esconder Área"
+                        className: `w-8 h-8 flex items-center justify-center rounded-lg ${fogBrushType === 'hide' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-slate-800'}`
                     }, "🌑"),
                     isFogMode && el('button', {
                         onClick: () => setFogBrushType('reveal'),
-                        className: `w-8 h-8 flex items-center justify-center rounded-lg ${fogBrushType === 'reveal' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-slate-800'}`,
-                        title: "Revelar Área"
-                    }, "👁️"),
-                    isFogMode && el('button', {
-                        onClick: () => {
-                            if (confirm("Cobrir TODO o mapa com névoa?")) {
-                                // Cria uma névoa densa (ex: 50x50 cells)
-                                const denseFog = [];
-                                for(let x=-10; x<60; x++) {
-                                    for(let y=-10; y<60; y++) denseFog.push(`${x},${y}`);
-                                }
-                                updateSessionState({ battlemap: { ...battlemapData, fog: denseFog } });
-                            }
-                        },
-                        className: `w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800`,
-                        title: "Cobrir Tudo"
-                    }, "⬛"),
-                    isFogMode && el('button', {
-                        onClick: () => {
-                            if (confirm("Revelar TODO o mapa (Remover toda a névoa)?")) {
-                                updateSessionState({ battlemap: { ...battlemapData, fog: [] } });
-                            }
-                        },
-                        className: `w-8 h-8 flex items-center justify-center rounded-lg text-red-500 hover:bg-red-500/10`,
-                        title: "Limpar Névoa"
-                    }, "🗑️")
+                        className: `w-8 h-8 flex items-center justify-center rounded-lg ${fogBrushType === 'reveal' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-slate-800'}`
+                    }, "👁️")
                 ]),
+
                 mode === 'master' && el('button', {
-                    onClick: () => {
-                        if (confirm("Tem certeza que deseja limpar TODOS os tokens do mapa?")) {
-                            updateSessionState({ battlemap: { ...battlemapData, tokens: [] } });
-                        }
-                    },
-                    className: "px-4 py-2 hover:bg-slate-700/50 text-slate-400 rounded-xl text-xs font-bold uppercase",
-                    title: "Remover todos os tokens do mapa"
-                }, "🗑️ Limpar Tokens"),
-                el('div', { className: "w-px bg-slate-800 mx-1" }), // Separator
-                el('button', { onClick: () => setCamera(prev => ({ ...prev, scale: Math.max(0.1, prev.scale - 0.2) })), className: "px-3 py-2 hover:bg-white/10 rounded-xl text-xs font-bold", title: "Afastar (-)" }, "➖"),
-                el('button', { onClick: () => setCamera(prev => ({ ...prev, scale: Math.min(10, prev.scale + 0.2) })), className: "px-3 py-2 hover:bg-white/10 rounded-xl text-xs font-bold", title: "Aproximar (+)" }, "➕"),
-                el('button', { onClick: () => setCamera({ x: 0, y: 0, scale: 1 }), className: "px-4 py-2 hover:bg-white/10 rounded-xl text-xs font-bold uppercase", title: "Centralizar Câmera" }, "🎯 Centro"),
+                    onClick: handleClearTokens,
+                    className: "px-4 py-2 hover:bg-slate-700/50 text-slate-400 rounded-xl text-xs font-bold uppercase whitespace-nowrap"
+                }, "🗑️"),
+
+                el('div', { className: "w-px bg-slate-800 mx-1" }),
+                el('button', { onClick: () => setCamera(prev => ({ ...prev, scale: Math.max(0.1, prev.scale - 0.2) })), className: "px-3 py-2 hover:bg-white/10 rounded-xl text-xs font-bold" }, "➖"),
+                el('button', { onClick: () => setCamera(prev => ({ ...prev, scale: Math.min(10, prev.scale + 0.2) })), className: "px-3 py-2 hover:bg-white/10 rounded-xl text-xs font-bold" }, "➕"),
+                el('button', { onClick: () => setCamera({ x: 0, y: 0, scale: 1 }), className: "px-4 py-2 hover:bg-white/10 rounded-xl text-xs font-bold uppercase" }, "🎯 Centro"),
                 el('span', { className: "px-4 py-2 text-xs font-bold text-slate-500 min-w-[3rem] text-center" }, `${Math.round(camera.scale * 100)}%`)
             ])
         ]),
@@ -797,16 +727,16 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
         // --- CONTEXT MENU OVERLAY (Configuração de Token) ---
         contextMenu && el('div', {
             key: 'context-menu-overlay',
-            className: "fixed inset-0 z-[500]",
+            className: `fixed inset-0 z-[500] bg-slate-950/20 backdrop-blur-[2px] ${window.innerWidth < 640 ? 'flex items-center justify-center p-4' : ''}`,
             onClick: () => setContextMenu(null),
             onContextMenu: (e) => { e.preventDefault(); setContextMenu(null); }
         }, [
             el('div', {
-                className: "absolute bg-slate-900/95 backdrop-blur-md border border-amber-500/50 rounded-2xl p-5 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col gap-4 w-72 animate-slide-up",
-                style: { 
-                    // Garante que o menu não saia da tela
-                    top: Math.min(contextMenu.y, window.innerHeight - 250), 
-                    left: Math.min(contextMenu.x, window.innerWidth - 300) 
+                className: "bg-slate-900/95 backdrop-blur-xl border border-amber-500/50 rounded-3xl p-5 md:p-6 shadow-3xl flex flex-col gap-4 w-full sm:w-80 max-h-[85vh] overflow-y-auto animate-slide-up hide-scrollbar",
+                style: window.innerWidth < 640 ? {} : { 
+                    position: 'absolute',
+                    top: Math.min(contextMenu.y, window.innerHeight - 450), 
+                    left: Math.min(contextMenu.x, window.innerWidth - 350)
                 },
                 onClick: (e) => e.stopPropagation()
             }, [
@@ -952,21 +882,169 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
             ])
         ]),
 
+        // --- MENU MOBILE OVERLAY ---
+        isMobileMenuOpen && el('div', {
+            key: 'mobile-menu-overlay',
+            className: "fixed inset-0 z-[1000] bg-slate-950/95 backdrop-blur-xl p-6 flex flex-col gap-6 animate-fade-in",
+            onClick: () => setIsMobileMenuOpen(false)
+        }, [
+            el('div', { key: 'mm-header', className: "flex justify-between items-center mb-4" }, [
+                el('h3', { className: "text-2xl font-black text-white italic uppercase tracking-tighter" }, "⚙️ Opções do Mapa"),
+                el('button', { onClick: () => setIsMobileMenuOpen(false), className: "text-slate-500 hover:text-white text-3xl transition-colors" }, "×")
+            ]),
+            
+            el('div', { 
+                key: 'mm-body',
+                className: "flex-grow overflow-y-auto space-y-8 custom-scrollbar",
+                onClick: (e) => e.stopPropagation()
+            }, [
+                // Combate (Master Only)
+                mode === 'master' && el('div', { key: 'mm-combat', className: "space-y-3" }, [
+                    el('p', { className: "text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]" }, "🛡️ Combate"),
+                    el('button', {
+                        onClick: () => { handleNextTurn(); setIsMobileMenuOpen(false); },
+                        className: "w-full bg-emerald-600/10 border border-emerald-500/30 p-4 rounded-2xl flex items-center gap-4 text-emerald-400 font-bold"
+                    }, ["▶️", "Próximo Turno"])
+                ]),
+
+                // Mapa (Master Only)
+                mode === 'master' && el('div', { key: 'mm-map', className: "space-y-3" }, [
+                    el('p', { className: "text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]" }, "🗺️ Configurações do Mapa"),
+                    el('div', { className: "grid grid-cols-2 gap-3" }, [
+                        el('button', {
+                            onClick: () => { handleUpdateBackground(); setIsMobileMenuOpen(false); },
+                            className: "bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold text-slate-300"
+                        }, ["🖼️", "Fundo"]),
+                        el('button', {
+                            onClick: () => { setIsMapLibraryOpen(true); setIsMobileMenuOpen(false); },
+                            className: "bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold text-slate-300"
+                        }, ["📁", "Biblioteca"]),
+                        el('button', {
+                            onClick: () => { handleUpdateGrid(); setIsMobileMenuOpen(false); },
+                            className: "bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold text-slate-300"
+                        }, ["📏", "Grid"]),
+                        el('button', {
+                            onClick: () => { handleClearTokens(); setIsMobileMenuOpen(false); },
+                            className: "bg-red-900/20 border border-red-500/30 p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold text-red-400"
+                        }, ["🗑️", "Limpar Tokens"])
+                    ])
+                ]),
+
+                // Tokens (Everyone)
+                el('div', { key: 'mm-tokens', className: "space-y-3" }, [
+                    el('p', { className: "text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em]" }, "🎲 Adicionar Entidades"),
+                    el('div', { className: "grid grid-cols-2 gap-3" }, [
+                        mode === 'master' && el('button', {
+                            onClick: () => { handleAddAllPlayers(); setIsMobileMenuOpen(false); },
+                            className: "bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold text-slate-300"
+                        }, ["🎲", "Jogadores"]),
+                        mode === 'master' && el('button', {
+                            onClick: () => { handleAddMonster(); setIsMobileMenuOpen(false); },
+                            className: "bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold text-slate-300"
+                        }, ["👹", "Bestiário"]),
+                        el('button', {
+                            onClick: () => { handleAddNewToken(); setIsMobileMenuOpen(false); },
+                            className: "bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold text-slate-300"
+                        }, ["➕", "Novo Token"]),
+                        el('button', {
+                            onClick: () => { handleAddProp(); setIsMobileMenuOpen(false); },
+                            className: "bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold text-slate-300"
+                        }, ["📦", "Objeto/Prop"])
+                    ].filter(Boolean))
+                ]),
+
+                // Desenhos (Everyone)
+                el('div', { key: 'mm-draw', className: "space-y-3" }, [
+                    el('p', { className: "text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]" }, "📐 Desenhos"),
+                    el('div', { className: "grid grid-cols-3 gap-3" }, [
+                        el('button', {
+                            onClick: () => { setDrawMode(drawMode === 'cone' ? null : 'cone'); setIsMobileMenuOpen(false); },
+                            className: `p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold ${drawMode === 'cone' ? 'bg-amber-500 text-slate-900' : 'bg-slate-900 border border-slate-800 text-slate-300'}`
+                        }, "📐 Cone"),
+                        el('button', {
+                            onClick: () => { setDrawMode(drawMode === 'line' ? null : 'line'); setIsMobileMenuOpen(false); },
+                            className: `p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold ${drawMode === 'line' ? 'bg-amber-500 text-slate-900' : 'bg-slate-900 border border-slate-800 text-slate-300'}`
+                        }, "➖ Linha"),
+                        el('button', {
+                            onClick: () => { setDrawMode(drawMode === 'circle' ? null : 'circle'); setIsMobileMenuOpen(false); },
+                            className: `p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold ${drawMode === 'circle' ? 'bg-amber-500 text-slate-900' : 'bg-slate-900 border border-slate-800 text-slate-300'}`
+                        }, "⭕ Círculo"),
+                        mode === 'master' && el('button', {
+                            onClick: () => { setDrawMode(drawMode === 'wall' ? null : 'wall'); setIsMobileMenuOpen(false); },
+                            className: `p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold ${drawMode === 'wall' ? 'bg-blue-500 text-white' : 'bg-slate-900 border border-slate-800 text-blue-400'}`
+                        }, "🧱 Parede"),
+                        el('button', {
+                            onClick: () => { 
+                                if (drawings.length > 0) {
+                                    const newDrawings = [...drawings]; newDrawings.pop();
+                                    updateSessionState({ battlemap: { ...battlemapData, drawings: newDrawings } });
+                                }
+                                setIsMobileMenuOpen(false);
+                            },
+                            className: "bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold text-slate-400"
+                        }, "↩️ Undo"),
+                        mode === 'master' && el('button', {
+                            onClick: () => { handleClearDrawings(); setIsMobileMenuOpen(false); },
+                            className: "bg-red-900/20 border border-red-500/30 p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold text-red-400"
+                        }, "🧹 Clear")
+                    ].filter(Boolean))
+                ]),
+
+                // Névoa (Master Only)
+                mode === 'master' && el('div', { key: 'mm-fog', className: "space-y-3" }, [
+                    el('p', { className: "text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em]" }, "🌬️ Névoa"),
+                    el('div', { className: "grid grid-cols-2 gap-3" }, [
+                        el('button', {
+                            onClick: () => { setIsFogMode(!isFogMode); setIsMobileMenuOpen(false); },
+                            className: `p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold ${isFogMode ? 'bg-indigo-500 text-white' : 'bg-slate-900 border border-slate-800 text-indigo-400'}`
+                        }, "🌬️ Ativar"),
+                        isFogMode && el('button', {
+                            onClick: () => { setFogBrushType(fogBrushType === 'hide' ? 'reveal' : 'hide'); },
+                            className: "bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold text-slate-300"
+                        }, [fogBrushType === 'hide' ? "🌑" : "👁️", fogBrushType === 'hide' ? "Pintar" : "Revelar"]),
+                        el('button', {
+                            onClick: () => { handleClearWalls(); setIsMobileMenuOpen(false); },
+                            className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold text-blue-400"
+                        }, "🧱 Limpar")
+                    ].filter(Boolean))
+                ]),
+
+                // Câmera
+                el('div', { key: 'mm-camera', className: "space-y-3 pb-10" }, [
+                    el('p', { className: "text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]" }, "📷 Câmera"),
+                    el('div', { className: "grid grid-cols-3 gap-3" }, [
+                        el('button', {
+                            onClick: () => setCamera(prev => ({ ...prev, scale: Math.max(0.1, prev.scale - 0.2) })),
+                            className: "bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold"
+                        }, "➖ Out"),
+                        el('button', {
+                            onClick: () => setCamera(prev => ({ ...prev, scale: Math.min(10, prev.scale + 0.2) })),
+                            className: "bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold"
+                        }, "➕ In"),
+                        el('button', {
+                            onClick: () => { setCamera({ x: 0, y: 0, scale: 1 }); setIsMobileMenuOpen(false); },
+                            className: "bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col items-center gap-2 text-xs font-bold text-amber-500"
+                        }, "🎯 Centro")
+                    ])
+                ])
+            ])
+        ]),
+
         // --- MODAL DE BIBLIOTECA DE MAPAS ---
         isMapLibraryOpen && el('div', {
-            className: "fixed inset-0 z-[600] bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-6",
+            className: "fixed inset-0 z-[600] bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-4 md:p-6",
             onClick: () => setIsMapLibraryOpen(false)
         }, [
             el('div', {
-                className: "bg-slate-900 border border-slate-800 rounded-[2.5rem] w-full max-w-2xl shadow-3xl overflow-hidden",
+                className: "bg-slate-900 border border-slate-800 rounded-[2rem] md:rounded-[2.5rem] w-full max-w-2xl shadow-3xl overflow-hidden flex flex-col max-h-[90vh]",
                 onClick: (e) => e.stopPropagation()
             }, [
-                el('div', { className: "p-8 border-b border-slate-800 flex justify-between items-center bg-indigo-600/5" }, [
+                el('div', { className: "p-6 md:p-8 border-b border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-indigo-600/5" }, [
                     el('div', null, [
-                        el('h2', { className: "text-2xl font-black text-white flex items-center gap-3" }, [
-                            el('span', { className: "text-indigo-500" }, "🗺️"), "Biblioteca de Mapas"
+                        el('h2', { className: "text-xl md:text-2xl font-black text-white flex items-center gap-3" }, [
+                            el('span', { className: "text-indigo-500" }, "🗺️"), "Biblioteca"
                         ]),
-                        el('p', { className: "text-slate-500 text-xs mt-1 font-bold uppercase tracking-widest" }, "Gerencie seus cenários e batalhas")
+                        el('p', { className: "text-slate-500 text-[10px] mt-1 font-bold uppercase tracking-widest" }, "Gerencie seus cenários")
                     ]),
                     el('button', {
                         onClick: () => {
@@ -983,26 +1061,26 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                                 } 
                             });
                         },
-                        className: "bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95"
+                        className: "w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95"
                     }, "+ Novo Mapa")
                 ]),
-                el('div', { className: "p-8 max-h-[60vh] overflow-y-auto grid grid-cols-2 gap-4" }, maps.map(m => {
+                el('div', { className: "p-4 md:p-8 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-4 flex-grow" }, maps.map(m => {
                     const isActive = m.id === activeMapId;
                     return el('div', {
                         key: m.id,
-                        className: `group relative rounded-3xl border-2 transition-all cursor-pointer overflow-hidden ${
+                        className: `group relative rounded-2xl md:rounded-3xl border-2 transition-all cursor-pointer overflow-hidden ${
                             isActive ? 'border-indigo-500 ring-4 ring-indigo-500/20' : 'border-slate-800 hover:border-slate-600'
                         }`,
                         onClick: () => {
                             updateSessionState({ battlemap: { ...battlemapData, activeMapId: m.id } });
                         }
                     }, [
-                        el('img', { src: m.imageUrl, className: "w-full h-40 object-cover opacity-60 group-hover:opacity-100 transition-opacity" }),
-                        el('div', { className: "absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-900 to-transparent" }, [
-                            el('h4', { className: "text-sm font-black text-white" }, m.name),
-                            el('span', { className: "text-[10px] text-slate-400" }, `${m.gridSize}px Grid`)
+                        el('img', { src: m.imageUrl, className: "w-full h-32 md:h-40 object-cover opacity-60 group-hover:opacity-100 transition-opacity" }),
+                        el('div', { className: "absolute bottom-0 left-0 right-0 p-3 md:p-4 bg-gradient-to-t from-slate-900 to-transparent" }, [
+                            el('h4', { className: "text-xs md:text-sm font-black text-white truncate" }, m.name),
+                            el('span', { className: "text-[8px] md:text-[10px] text-slate-400" }, `${m.gridSize}px Grid`)
                         ]),
-                        isActive && el('div', { className: "absolute top-4 right-4 bg-indigo-500 text-white text-[10px] font-black px-3 py-1 rounded-full" }, "ATIVO"),
+                        isActive && el('div', { className: "absolute top-3 right-3 md:top-4 md:right-4 bg-indigo-500 text-white text-[8px] md:text-[10px] font-black px-2 md:px-3 py-1 rounded-full" }, "ATIVO"),
                         !isActive && mode === 'master' && el('button', {
                             onClick: (e) => {
                                 e.stopPropagation();
@@ -1011,14 +1089,14 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                                     updateSessionState({ battlemap: { ...battlemapData, maps: newMaps } });
                                 }
                             },
-                            className: "absolute top-4 right-4 bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                            className: "absolute top-3 right-3 md:top-4 md:right-4 bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                         }, "×")
                     ]);
                 })),
-                el('div', { className: "p-6 bg-slate-950 flex justify-end" }, [
+                el('div', { className: "p-4 md:p-6 bg-slate-950 flex justify-end" }, [
                     el('button', {
                         onClick: () => setIsMapLibraryOpen(false),
-                        className: "bg-slate-800 hover:bg-slate-700 text-slate-400 px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+                        className: "w-full md:w-auto bg-slate-800 hover:bg-slate-700 text-slate-400 px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
                     }, "Fechar")
                 ])
             ])
