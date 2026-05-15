@@ -110,6 +110,12 @@ const SFX = {
     'level-up': () => {
         const notes = [261.63, 329.63, 392.00, 523.25];
         notes.forEach((f, i) => setTimeout(() => playTone(f, 0.5, 'square', 0.03), i * 150));
+    },
+    'impact': () => {
+        initCtx();
+        playTone(100, 0.8, 'sine', 0.2, true);
+        playNoise(0.5, 0.1);
+        setTimeout(() => playTone(80, 1.2, 'sine', 0.15, true), 100);
     }
 };
 

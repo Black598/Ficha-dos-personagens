@@ -455,3 +455,30 @@ input[type="text"], input[type="email"], input[type="password"], textarea {
 .animate-slide-up {
     animation: slide-up 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 }
+
+/* --- CINEMATIC EFFECTS --- */
+@keyframes slow-zoom {
+    from { transform: scale(1); }
+    to { transform: scale(1.15); }
+}
+
+.animate-slow-zoom {
+    animation: slow-zoom 20s linear infinite alternate;
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.animate-fade-in {
+    animation: fade-in 1s ease-out forwards;
+}
+
+.cinematic-letterbox {
+    background: black;
+    height: 15vh;
+    width: 100%;
+    position: absolute;
+    z-index: 10;
+}

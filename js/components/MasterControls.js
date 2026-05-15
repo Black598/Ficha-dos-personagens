@@ -1,4 +1,5 @@
 import { AudioManager } from '../AudioManager.js';
+import { parseImageUrl } from '../utils.js';
 
 const { useState, useEffect } = React;
 
@@ -321,6 +322,31 @@ export function MasterControls({ sessionState, updateSessionState }) {
                         },
                         className: "col-span-2 bg-indigo-900/30 border border-indigo-700/50 hover:bg-indigo-600 hover:text-white text-indigo-400 font-black text-[10px] py-2 rounded-xl transition-all shadow-md uppercase tracking-wider flex items-center justify-center gap-2"
                     }, [el('span', { key: 'icon' }, "🏕️"), "+ 8h (Descanso)"])
+                ])
+            ])
+        ]),
+
+        // Cenas e Revelações
+        el('div', { key: 'scene-section', className: "space-y-4" }, [
+            el('h3', { key: 'scene-title', className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-2" }, [
+                el('span', { key: 'scene-icon' }, "🎬"), "Controle de Cenas"
+            ]),
+            el('div', { key: 'scene-grid', className: "grid grid-cols-1 gap-3" }, [
+                el('button', {
+                    key: 'btn-cinematic',
+                    onClick: () => {
+                        const rawUrl = prompt("Link da Imagem para Cinematic (Revelação Dramática):", "https://");
+                        if (rawUrl && rawUrl !== "https://") {
+                            const url = parseImageUrl(rawUrl);
+                            updateSessionState({ 
+                                cutscene: { url, timestamp: Date.now() } 
+                            });
+                        }
+                    },
+                    className: "w-full bg-gradient-to-r from-purple-900/40 to-indigo-900/40 border border-purple-500/30 hover:from-purple-600 hover:to-indigo-600 text-purple-200 font-black text-[10px] py-4 rounded-2xl transition-all shadow-lg uppercase tracking-[0.2em] flex items-center justify-center gap-3 group"
+                }, [
+                    el('span', { key: 'icon', className: "text-lg group-hover:scale-125 transition-transform" }, "📽️"),
+                    "Iniciar Cinematic"
                 ])
             ])
         ]),

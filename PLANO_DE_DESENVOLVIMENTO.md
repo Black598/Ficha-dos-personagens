@@ -150,11 +150,64 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - Múltipla escolha para equipamento inicial (ex: "Pacote de Explorador" ou "Espada Longa") com opção de converter em ouro.
   - Opção de mesclar habilidades baseadas em APIs/Wikis com habilidades customizadas (homebrew).
 
+### 2. 📏 Praticidade Tática e HUD no Mapa
+- **Conceito:** Melhorias na interação direta no Campo de Batalha.
+- **Features:**
+  - **Régua de Medição:** Ferramenta de drag-and-drop para medir distâncias exatas (em quadrados ou metros).
+  - **Ping Sincronizado:** Clique central/longo para gerar animações de sinalização no mapa para todo o grupo.
+  - **HUD Rápido do Mestre:** Controles de HP (+ e -) integrados ao clicar em um token no mapa, sem abrir a aba lateral.
+  - **Auras e Status Visuais:** Indicadores coloridos sob os tokens para condições (fogo, veneno) e barras miniatura de HP.
 
+### 3. 🎙️ Narrador Inteligente (Gemini)
+- **Conceito:** A Inteligência Artificial reagindo em tempo real ao destino dos dados.
+- **Features:** 
+  - Geração automática de uma frase narrativa épica ou cômica sempre que houver um acerto crítico (20) ou falha crítico (1).
 
+### 4. ⚡ Qualidade de Vida (QoL)
+- **Conceito:** Agilizar os turnos e acesso a recursos rápidos.
+- **Features:**
+  - **Hotbar (Barra de Atalhos):** Uma barra na base da tela dos jogadores onde eles podem fixar suas principais magias/ataques para rolagem em 1 clique.
+  - **Playlist/Transição de Áudio:** Suporte a múltiplas músicas e fade-in/fade-out na transição de cenas pelo Mestre.
 
+### 5. 🐺 Pets, Familiares e Montarias
+- **Conceito:** Gestão avançada de companheiros animais.
+- **Features:** Aba dedicada na ficha para Pets. Ganham tokens próprios no mapa, com status independentes e inventário atrelado, podendo ser movimentados pelo respectivo jogador ou Mestre.
+
+### 6. 👓 Imersão Visual no Mapa (Filtros e Clima)
+- **Conceito:** Alterar o visual do grid de acordo com o ambiente e as capacidades visuais.
+- **Features:**
+  - **Filtro de Visão no Escuro:** Máscara visual preto-e-branco e sombria na revelação da neblina para personagens com visão no escuro, colorindo apenas áreas iluminadas por tochas.
+  - **Partículas Climáticas:** Animações sobrepostas de chuva, neve ou tempestade de areia (CSS Particles) vinculadas diretamente ao Rastreador de Ambiente atual.
+
+### 7. 🃏 Deck de Cartas Sincronizado
+- **Conceito:** Elemento de aleatoriedade visual diferente dos dados.
+- **Features:** Baralhos customizáveis (ex: Tarô, Encontros de Viagem). O mestre puxa uma carta e ela é revelada com uma animação 3D (flip) global no centro da tela de todos os jogadores.
+
+### 8. ☣️ Zonas de Perigo Automáticas (Hazards) no Mapa
+- **Conceito:** Armadilhas e terrenos perigosos interativos.
+- **Features:** O mestre demarca uma área de dano contínuo (lava, gás venenoso). Ao soltar um token dentro dessa área, o sistema aplica um aviso/dano pré-configurado automaticamente.
+
+### 9. 🛡️ Automação Tática de Condições
+- **Conceito:** O sistema impõe regras mecânicas rígidas com base nas condições do combate.
+- **Features:** Pulo automático de turnos de personagens Atordoados/Paralisados no rastreador de iniciativa, ou dano contínuo automatizado no início do turno (ex: Envenenado, Em Chamas).
+
+### 10. 🎬 Apresentação Cinematográfica (Modo "Cutscene")
+- **Conceito:** Revelação dramática de cenários e chefes.
+- **Features:** O mestre pode escurecer a tela de todos os jogadores, tocar um efeito sonoro de impacto e exibir uma imagem em tela cheia centralizada temporariamente para máxima imersão.
+
+### 11. 🩸 Cicatrizes de Batalha (Efeitos Persistentes)
+- **Conceito:** O cenário reage e guarda marcas da batalha.
+- **Features:** Magias de área (como bolas de fogo ou ácido) deixam manchas semitransparentes (crateras/queimaduras) no grid do mapa de forma permanente até o combate acabar.
+
+### 12. 💬 Tinta Mágica (Desenho de Estratégia Efêmero)
+- **Conceito:** Ferramenta de comunicação visual temporária para táticas.
+- **Features:** Uma "caneta laser" que desenha traços brilhantes sobre o mapa e que desaparecem gradualmente sozinhos após 3 segundos.
+
+### 13. 👁️ Mini-Ficha Rápida no Mapa (Tooltip de Monstro)
+- **Conceito:** Acesso instantâneo a status vitais sem sair da tela do mapa.
+- **Features:** Ao passar o mouse (ou duplo clique) sobre o token de um monstro, o Mestre vê um pequeno balão com HP, CA e Resumo de Ataques para narrar rapidamente o combate.
 
 ---
 
 **Última atualização:** 15/05/2026
-**Próximo passo:** Iniciar o Sistema de **🧙‍♂️ Assistente de Criação de Personagem (Charactermancer)**.
+**Próximo passo:** Iniciar o Sistema de **🎬 Apresentação Cinematográfica (Modo "Cutscene")**.

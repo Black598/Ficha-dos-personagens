@@ -477,6 +477,13 @@ function App() {
     }
   }, [sessionState.globalSFX, lastGlobalSFX]);
 
+  // Efeito para Cinematics
+  useEffect(() => {
+    if (sessionState.cutscene && sessionState.cutscene.url) {
+        AudioManager.play('impact');
+    }
+  }, [sessionState.cutscene?.timestamp]);
+
   // Efeito para Notificação de Carta (Notas Compartilhadas)
   useEffect(() => {
     const notes = sessionState.groupNotes || [];
@@ -1545,6 +1552,27 @@ function App() {
     el('p', { key: 'text', className: "text-[11px] font-bold uppercase tracking-[0.2em] drop-shadow-md" }, sessionState.announcement)
   ]);
 
+  const CutsceneOverlay = sessionState.cutscene?.url && el('div', {
+    key: 'cutscene-overlay',
+    className: "fixed inset-0 z-[2000] bg-black flex flex-col items-center justify-center p-0 transition-all duration-1000 animate-fade-in pointer-events-none"
+  }, [
+    el('div', { key: 'top-bar', className: "absolute top-0 left-0 w-full h-[15vh] bg-black z-10" }),
+    el('div', { key: 'bottom-bar', className: "absolute bottom-0 left-0 w-full h-[15vh] bg-black z-10" }),
+    el('img', { 
+        key: 'cutscene-img',
+        src: sessionState.cutscene.url, 
+        className: "w-full h-full object-contain animate-slow-zoom" 
+    }),
+    view === 'master' && el('button', {
+        key: 'close-cutscene',
+        onClick: (e) => {
+            e.stopPropagation();
+            updateSessionState({ cutscene: null });
+        },
+        className: "absolute top-8 right-8 w-14 h-14 bg-red-600/40 hover:bg-red-600 text-white rounded-2xl flex items-center justify-center text-4xl pointer-events-auto transition-all backdrop-blur-md border border-white/20 shadow-2xl z-20 active:scale-90"
+    }, "×")
+  ]);
+
   const HandoutOverlay = (sessionState.handout && showHandout && (sessionState.handoutTarget === 'all' || sessionState.handoutTarget === characterName || view === 'master')) && el('div', {
     key: 'handout-overlay',
     className: "fixed inset-0 z-[250] bg-black/90 backdrop-blur-md flex items-center justify-center p-8 md:p-20 transition-all animate-fade-in"
@@ -1668,6 +1696,7 @@ function App() {
     WorldMapOverlay,
     CraftingOverlay,
     ShopOverlay,
+    CutsceneOverlay,
     DiceOverlay
   );
 
