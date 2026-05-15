@@ -139,84 +139,67 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 
 ---
 
-### 🎬 17. Apresentação Cinematográfica & UX Mobile
+### 📱 17. Otimização Mobile-First & UX
 - **Status:** Concluído ✅
 - **Features:**
-  - ✅ **Modo Cutscene:** Revelação dramática de imagens com áudio de impacto e zoom lento.
-  - ✅ **Ajuste de Precisão Mobile:** Fim do desalinhamento de tokens no VTT e marcadores no Atlas em telas pequenas.
-  - ✅ **Hotbar de Atalhos:** Barra inferior para fixar ações rápidas dos jogadores.
-  - ✅ **Transição de Áudio:** Suporte a Fade Out e Playlist no painel do mestre.
-  - ✅ **Sistema de Tutoriais v2.0:** Guias atualizados e com sistema de versionamento que reativa o tutorial automaticamente após grandes updates.
+  - ✅ **Menus Responsivos (☰):** Implementação de menus hambúrguer em todas as visualizações (Ficha, Mapa e Atlas) para evitar overflow e scroll horizontal.
+  - ✅ **Layout de Relógio e Chat:** Reposicionamento dinâmico do relógio e do chat no celular, liberando espaço para a jogabilidade.
+  - ✅ **Configuração de Tokens Mobile:** Menu de contexto (long press) agora centralizado e rolável no mobile para fácil acesso a todas as opções.
+  - ✅ **Controles de Mapa Mobile:** Todas as ferramentas de desenho e mestre movidas para o menu hambúrguer no VTT.
+  - ✅ **Ajuste de Precisão:** Fim do desalinhamento de tokens e marcadores em telas de alta densidade de pixels.
+
+### 🎬 18. Apresentação Cinematográfica (Modo "Cutscene")
+- **Status:** Concluído ✅
+- **Features:**
+  - ✅ **Revelação Dramática:** O mestre pode escurecer a tela de todos, exibir imagens centralizadas e tocar áudios de impacto simultaneamente.
+  - ✅ **Transição de Áudio:** Suporte a Fade Out e Playlist automática.
+
+---
 
 ## 🚀 Próximas Implementações (Pendentes)
 
 ### 1. 🧙‍♂️ Assistente de Criação de Personagem (Charactermancer)
-
 - **Conceito:** Um menu guiado para acelerar a criação de novos personagens.
 - **Features:**
-  - Seleção de Classe e Raça com preenchimento automático de talentos e características na ficha.
-  - Progressão travada por nível (libera habilidades conforme upa).
-  - Múltipla escolha para equipamento inicial (ex: "Pacote de Explorador" ou "Espada Longa") com opção de converter em ouro.
-  - Opção de mesclar habilidades baseadas em APIs/Wikis com habilidades customizadas (homebrew).
+  - Seleção de Classe e Raça com preenchimento automático de talentos e características.
+  - Progressão travada por nível.
+  - Múltipla escolha para equipamento inicial.
 
 ### 2. 📏 Praticidade Tática e HUD no Mapa
 - **Conceito:** Melhorias na interação direta no Campo de Batalha.
 - **Features:**
-  - **Régua de Medição:** Ferramenta de drag-and-drop para medir distâncias exatas (em quadrados ou metros).
-  - **Ping Sincronizado:** Clique central/longo para gerar animações de sinalização no mapa para todo o grupo.
-  - **HUD Rápido do Mestre:** Controles de HP (+ e -) integrados ao clicar em um token no mapa, sem abrir a aba lateral.
-  - **Auras e Status Visuais:** Indicadores coloridos sob os tokens para condições (fogo, veneno) e barras miniatura de HP.
+  - **Régua de Medição:** Ferramenta de drag-and-drop para medir distâncias exatas.
+  - **Ping Sincronizado:** Clique central/longo para gerar animações de sinalização no mapa.
+  - **HUD Rápido do Mestre:** Controles de HP (+ e -) integrados ao clicar em um token.
 
 ### 3. 🎙️ Narrador Inteligente (Gemini)
-- **Conceito:** A Inteligência Artificial reagindo em tempo real ao destino dos dados.
-- **Features:** 
-  - Geração automática de uma frase narrativa épica ou cômica sempre que houver um acerto crítico (20) ou falha crítico (1).
+- **Conceito:** A Inteligência Artificial reagindo em tempo real ao destino dos dados (Críticos e Falhas).
 
-### 4. ⚡ Qualidade de Vida (QoL)
-- **Conceito:** Agilizar os turnos e acesso a recursos rápidos.
-- **Features:**
-  - **Hotbar (Barra de Atalhos):** CONCLUÍDO ✅
-  - **Playlist/Transição de Áudio:** CONCLUÍDO ✅
+### 4. 🐺 Pets, Familiares e Montarias
+- **Conceito:** Aba dedicada na ficha para Pets com tokens independentes no mapa.
 
-### 5. 🐺 Pets, Familiares e Montarias
-- **Conceito:** Gestão avançada de companheiros animais.
-- **Features:** Aba dedicada na ficha para Pets. Ganham tokens próprios no mapa, com status independentes e inventário atrelado, podendo ser movimentados pelo respectivo jogador ou Mestre.
+### 5. 👓 Imersão Visual no Mapa (Filtros e Clima v2)
+- **Features:** Filtros de Visão no Escuro (P&B) e partículas climáticas vinculadas ao Rastreador de Ambiente.
 
-### 6. 👓 Imersão Visual no Mapa (Filtros e Clima)
-- **Conceito:** Alterar o visual do grid de acordo com o ambiente e as capacidades visuais.
-- **Features:**
-  - **Filtro de Visão no Escuro:** Máscara visual preto-e-branco e sombria na revelação da neblina para personagens com visão no escuro, colorindo apenas áreas iluminadas por tochas.
-  - **Partículas Climáticas:** Animações sobrepostas de chuva, neve ou tempestade de areia (CSS Particles) vinculadas diretamente ao Rastreador de Ambiente atual.
+### 🃏 6. Deck de Cartas Sincronizado
+- **Conceito:** Baralhos customizáveis (ex: Tarô, Encontros) com animação 3D de revelação global.
 
-### 7. 🃏 Deck de Cartas Sincronizado
-- **Conceito:** Elemento de aleatoriedade visual diferente dos dados.
-- **Features:** Baralhos customizáveis (ex: Tarô, Encontros de Viagem). O mestre puxa uma carta e ela é revelada com uma animação 3D (flip) global no centro da tela de todos os jogadores.
+### ☣️ 7. Zonas de Perigo Automáticas (Hazards)
+- **Conceito:** Áreas de dano contínuo (lava, gás) que aplicam efeitos automaticamente ao entrar.
 
-### 8. ☣️ Zonas de Perigo Automáticas (Hazards) no Mapa
-- **Conceito:** Armadilhas e terrenos perigosos interativos.
-- **Features:** O mestre demarca uma área de dano contínuo (lava, gás venenoso). Ao soltar um token dentro dessa área, o sistema aplica um aviso/dano pré-configurado automaticamente.
+### 🛡️ 8. Automação Tática de Condições
+- **Conceito:** Pulo automático de turnos para personagens paralisados e dano contínuo (sangramento/fogo) automatizado.
 
-### 9. 🛡️ Automação Tática de Condições
-- **Conceito:** O sistema impõe regras mecânicas rígidas com base nas condições do combate.
-- **Features:** Pulo automático de turnos de personagens Atordoados/Paralisados no rastreador de iniciativa, ou dano contínuo automatizado no início do turno (ex: Envenenado, Em Chamas).
+### 🩸 9. Cicatrizes de Batalha (Efeitos Persistentes)
+- **Conceito:** Marcas de magias (crateras, queimaduras) que permanecem no mapa.
 
-### 10. 🎬 Apresentação Cinematográfica (Modo "Cutscene") - CONCLUÍDO ✅
-- **Conceito:** Revelação dramática de cenários e chefes.
-- **Features:** O mestre pode escurecer a tela de todos os jogadores, tocar um efeito sonoro de impacto e exibir uma imagem em tela cheia centralizada temporariamente para máxima imersão.
+### 💬 10. Tinta Mágica (Laser Pointer)
+- **Conceito:** Desenhos temporários que desaparecem após 3 segundos para indicar táticas.
 
-### 11. 🩸 Cicatrizes de Batalha (Efeitos Persistentes)
-- **Conceito:** O cenário reage e guarda marcas da batalha.
-- **Features:** Magias de área (como bolas de fogo ou ácido) deixam manchas semitransparentes (crateras/queimaduras) no grid do mapa de forma permanente até o combate acabar.
-
-### 12. 💬 Tinta Mágica (Desenho de Estratégia Efêmero)
-- **Conceito:** Ferramenta de comunicação visual temporária para táticas.
-- **Features:** Uma "caneta laser" que desenha traços brilhantes sobre o mapa e que desaparecem gradualmente sozinhos após 3 segundos.
-
-### 13. 👁️ Mini-Ficha Rápida no Mapa (Tooltip de Monstro)
-- **Conceito:** Acesso instantâneo a status vitais sem sair da tela do mapa.
-- **Features:** Ao passar o mouse (ou duplo clique) sobre o token de um monstro, o Mestre vê um pequeno balão com HP, CA e Resumo de Ataques para narrar rapidamente o combate.
+### 👁️ 11. Mini-Ficha Rápida (Tooltip de Monstro)
+- **Conceito:** Resumo de status ao passar o mouse sobre tokens para o Mestre.
 
 ---
 
 **Última atualização:** 15/05/2026
-**Próximo passo:** Iniciar o Sistema de **🎬 Apresentação Cinematográfica (Modo "Cutscene")**.
+**Próximo passo:** Iniciar o Sistema de **📏 Régua de Medição e Pings no Mapa**.
