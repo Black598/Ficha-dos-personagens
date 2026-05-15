@@ -1623,7 +1623,34 @@ function App() {
     isBattlemapOpen: isBattlemapOpen
   });
 
+  const ClockOverlay = view !== 'login' && (() => {
+    const day = sessionState.day || 1;
+    const time = sessionState.timeMinutes !== undefined ? sessionState.timeMinutes : 480;
+    const h = Math.floor(time / 60).toString().padStart(2, '0');
+    const m = (time % 60).toString().padStart(2, '0');
+    
+    // Identifica visual baseado no horário (Dia vs Noite)
+    let icon = "☀️";
+    let bgClass = "bg-sky-900/40 border-sky-400/50 text-sky-100";
+    if (time < 360 || time >= 1080) { // Noite: antes das 6h ou depois das 18h
+        icon = "🌙";
+        bgClass = "bg-indigo-950/60 border-indigo-500/50 text-indigo-200";
+    }
+
+    return el('div', {
+        key: 'clock-overlay',
+        className: `fixed top-6 left-1/2 -translate-x-1/2 md:translate-x-0 md:top-4 md:left-4 z-[100] ${bgClass} border-2 backdrop-blur-md px-4 py-2 rounded-2xl shadow-2xl flex items-center gap-3 transition-all hover:scale-105 pointer-events-none`
+    }, [
+        el('span', { key: 'icon', className: "text-2xl drop-shadow-md" }, icon),
+        el('div', { key: 'text-container', className: "flex flex-col" }, [
+            el('span', { key: 'day-label', className: "text-[9px] font-black uppercase tracking-[0.2em] opacity-80" }, `Dia ${day}`),
+            el('span', { key: 'time-label', className: "text-lg font-black font-mono leading-none tracking-tighter" }, `${h}:${m}`)
+        ])
+    ]);
+  })();
+
   const AllOverlays = React.createElement(React.Fragment, null, 
+    ClockOverlay,
     AnnouncementOverlay,
     HandoutOverlay,
     LibraryOverlay,

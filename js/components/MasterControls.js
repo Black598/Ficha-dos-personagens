@@ -229,35 +229,80 @@ export function MasterControls({ sessionState, updateSessionState }) {
             ])
         ]),
 
-        // CALENDÁRIO / DIA
+        // RELÓGIO DE SESSÃO / CALENDÁRIO
         el('div', { key: 'day-section', className: "space-y-4" }, [
             el('h3', { key: 'day-title', className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-2" }, [
-                el('span', { key: 'day-icon' }, "📅"), "Calendário da Campanha"
+                el('span', { key: 'day-icon' }, "🕒"), "Relógio de Sessão"
             ]),
-            el('div', { key: 'day-counter-box', className: "bg-slate-950 border border-slate-800 rounded-3xl p-4 flex items-center justify-between shadow-inner" }, [
-                el('div', { key: 'day-text-box', className: "flex flex-col" }, [
-                    el('span', { key: 'day-label', className: "text-[8px] font-black text-slate-600 uppercase tracking-widest" }, "Tempo Passado"),
-                    el('span', { key: 'day-value', className: "text-3xl font-black text-amber-500 tracking-tighter" }, `Dia ${sessionState?.day || 1}`)
+            el('div', { key: 'day-counter-box', className: "bg-slate-950 border border-slate-800 rounded-3xl p-4 shadow-inner space-y-4" }, [
+                el('div', { className: "flex items-center justify-between" }, [
+                    el('div', { className: "flex flex-col" }, [
+                        el('span', { className: "text-[8px] font-black text-slate-600 uppercase tracking-widest" }, "Tempo Passado"),
+                        el('span', { className: "text-3xl font-black text-amber-500 tracking-tighter" }, `Dia ${sessionState?.day || 1}`)
+                    ]),
+                    el('div', { className: "flex flex-col text-right" }, [
+                        el('span', { className: "text-[8px] font-black text-slate-600 uppercase tracking-widest" }, "Hora Atual"),
+                        (() => {
+                            const time = sessionState?.timeMinutes !== undefined ? sessionState.timeMinutes : 480; // Default 08:00
+                            const h = Math.floor(time / 60).toString().padStart(2, '0');
+                            const m = (time % 60).toString().padStart(2, '0');
+                            return el('span', { className: "text-2xl font-black text-purple-400 font-mono bg-slate-900 px-3 py-1 rounded-xl border border-slate-800" }, `${h}:${m}`);
+                        })()
+                    ])
                 ]),
-                el('div', { key: 'day-btns', className: "flex gap-2" }, [
+                el('div', { className: "grid grid-cols-4 gap-2 border-t border-slate-800 pt-4" }, [
                     el('button', {
-                        key: 'btn-dec-day',
                         onClick: () => {
-                            const currentDay = sessionState?.day || 1;
-                            updateSessionState({ day: Math.max(1, currentDay - 1) });
+                            let currentDay = sessionState?.day || 1;
+                            let oldTime = sessionState?.timeMinutes !== undefined ? sessionState.timeMinutes : 480;
+                            let time = oldTime + 10;
+                            if (time >= 1440) { time -= 1440; currentDay++; }
+                            
+                            const updates = { day: currentDay, timeMinutes: time };
+                            if (oldTime < 360 && time >= 360) updates.environment = 'none'; // Amanheceu
+                            else if (oldTime < 1080 && time >= 1080) updates.environment = 'night'; // Anoiteceu
+                            
+                            updateSessionState(updates);
                             AudioManager.play('click');
                         },
-                        className: "w-10 h-10 bg-slate-900 border border-slate-700 rounded-xl flex items-center justify-center text-xl text-slate-400 hover:text-white hover:border-amber-500/50 transition-all shadow-lg"
-                    }, "−"),
+                        className: "bg-slate-900 border border-slate-700 hover:border-amber-500 hover:text-white text-slate-400 font-black text-[10px] py-2 rounded-xl transition-all shadow-md"
+                    }, "+ 10m"),
                     el('button', {
-                        key: 'btn-inc-day',
                         onClick: () => {
-                            const currentDay = sessionState?.day || 1;
-                            updateSessionState({ day: currentDay + 1 });
+                            let currentDay = sessionState?.day || 1;
+                            let oldTime = sessionState?.timeMinutes !== undefined ? sessionState.timeMinutes : 480;
+                            let time = oldTime + 60;
+                            if (time >= 1440) { time -= 1440; currentDay++; }
+                            
+                            const updates = { day: currentDay, timeMinutes: time };
+                            if (oldTime < 360 && time >= 360) updates.environment = 'none'; // Amanheceu
+                            else if (oldTime < 1080 && time >= 1080) updates.environment = 'night'; // Anoiteceu
+                            
+                            updateSessionState(updates);
                             AudioManager.play('click');
                         },
-                        className: "w-10 h-10 bg-slate-900 border border-slate-700 rounded-xl flex items-center justify-center text-xl text-slate-400 hover:text-white hover:border-amber-500/50 transition-all shadow-lg"
-                    }, "+")
+                        className: "bg-slate-900 border border-slate-700 hover:border-amber-500 hover:text-white text-slate-400 font-black text-[10px] py-2 rounded-xl transition-all shadow-md"
+                    }, "+ 1h"),
+                    el('button', {
+                        onClick: () => {
+                            let currentDay = sessionState?.day || 1;
+                            let oldTime = sessionState?.timeMinutes !== undefined ? sessionState.timeMinutes : 480;
+                            let time = oldTime + 480; // 8 hours
+                            if (time >= 1440) { time -= 1440; currentDay++; }
+                            
+                            const updates = { day: currentDay, timeMinutes: time };
+                            // Check if crossed 6am or 6pm
+                            if (oldTime < 360 && time >= 360) updates.environment = 'none';
+                            else if (oldTime < 1080 && time >= 1080) updates.environment = 'night';
+                            else if (time < oldTime) { // Crossed midnight
+                                if (time >= 360) updates.environment = 'none';
+                            }
+                            
+                            updateSessionState(updates);
+                            AudioManager.play('rest');
+                        },
+                        className: "col-span-2 bg-indigo-900/30 border border-indigo-700/50 hover:bg-indigo-600 hover:text-white text-indigo-400 font-black text-[10px] py-2 rounded-xl transition-all shadow-md uppercase tracking-wider flex items-center justify-center gap-2"
+                    }, [el('span', { key: 'icon' }, "🏕️"), "+ 8h (Descanso)"])
                 ])
             ])
         ]),

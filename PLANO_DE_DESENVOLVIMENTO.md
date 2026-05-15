@@ -114,6 +114,22 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - Áudios disparados por um jogador são sincronizados e tocados para **todos** na sala em tempo real.
   - O soundpad é salvo individualmente na ficha de cada personagem.
 
+### 🎲 14. Personalização de Dados (Dice Skins)
+- **Status:** Concluído
+- **Features:** 
+  - ✅ **Skins:** Escolha de materiais (Metal, Cristal Magico, Magma) integrados com materiais avançados de ThreeJS.
+  - ✅ **Customização:** Color picker livre para customizar a cor dos dados rolando em tempo real.
+  - ✅ **Trilha Visual:** Efeitos de partículas e brilho (rastro) durante a rolagem para skins mágicas.
+  - ✅ **Persistência:** Dados salvos localmente (`localStorage`) para uso contínuo.
+  - ✅ **Interface In-Game:** Botão "Dados" na ficha que abre o Modal de customização diretamente do personagem.
+
+### 🕒 15. Relógio de Sessão (In-Game Time)
+- **Status:** Concluído
+- **Features:** 
+  - ✅ **Controle de Tempo:** Interface para o Mestre avançar blocos de 10 minutos, 1 hora ou 8 horas (Descanso).
+  - ✅ **Sincronia Global:** Um relógio persistente na tela de todos os jogadores (sobreposição visual global) sincronizado com o Firebase.
+  - ✅ **Iluminação Dinâmica:** O ambiente transita automaticamente de "Normal" para "Noite" (ou vice-versa) ao passar das 06:00 ou das 18:00.
+
 ---
 
 ## 🚀 Próximas Implementações (Pendentes)
@@ -131,15 +147,11 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 - **Conceito:** Revelação automática do mapa baseada na posição e visão dos tokens.
 - **Features:** Linha de visão (LoS) que respeita paredes, sombras dinâmicas e controle de raio de luz (tochas/visão no escuro).
 
-### 🎲 3. Personalização de Dados (Dice Skins)
-- **Conceito:** Menu de cosméticos para o rolador 3D.
-- **Features:** Escolha de materiais (Metal, Cristal, Magma), cores customizadas e efeitos de trilha (partículas) ao rolar.
 
-### 🕒 4. Relógio de Sessão (In-Game Time)
-- **Conceito:** Rastreador de tempo cronológico dentro do mundo.
-- **Features:** Botões para avançar 10m/1h/Descanso, sincronia com iluminação do mapa (dia/noite) e controle de duração de efeitos.
+
+
 
 ---
 
-**Última atualização:** 13/05/2026
+**Última atualização:** 15/05/2026
 **Próximo passo:** Iniciar o Sistema de **🧙‍♂️ Assistente de Criação de Personagem (Charactermancer)**.
