@@ -467,9 +467,13 @@ function App() {
     const sfx = sessionState.globalSFX;
     if (sfx && sfx.url && (!lastGlobalSFX || sfx.timestamp !== lastGlobalSFX.timestamp)) {
         setLastGlobalSFX(sfx);
-        const audio = new Audio(sfx.url);
-        audio.volume = 0.8;
-        audio.play().catch(e => console.error("Erro ao tocar SFX global:", e));
+        
+        // Só toca o som se ele foi enviado a menos de 10 segundos (evita tocar sons velhos ao recarregar a página)
+        if (Date.now() - sfx.timestamp < 10000) {
+            const audio = new Audio(sfx.url);
+            audio.volume = 0.8;
+            audio.play().catch(e => console.error("Erro ao tocar SFX global:", e));
+        }
     }
   }, [sessionState.globalSFX, lastGlobalSFX]);
 
@@ -1499,6 +1503,8 @@ function App() {
     libraryData: sessionState.library || {},
     allCharacters,
     characterName,
+    turnState: sessionState.turnState || { activeChar: null, round: 1 },
+    advanceTurn,
     updateSessionState,
     onBack: () => setIsBattlemapOpen(false)
   });

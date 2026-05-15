@@ -1,10 +1,28 @@
 import { AudioManager } from '../AudioManager.js';
 
-const { useState } = React;
+const { useState, useEffect } = React;
 
 export function MasterControls({ sessionState, updateSessionState }) {
     const el = React.createElement;
     const [isSfxMenuOpen, setIsSfxMenuOpen] = useState(false);
+    
+    // Estado local para as Notas do Mestre (Evita que o cursor pule pro final a cada digitação)
+    const [localNotes, setLocalNotes] = useState(sessionState?.masterNotes || '');
+
+    // Atualiza notas locais quando vier atualização externa (ex: Gerar NPC)
+    useEffect(() => {
+        setLocalNotes(sessionState?.masterNotes || '');
+    }, [sessionState?.masterNotes]);
+
+    // Salva automaticamente após 1 segundo sem digitar (Debounce)
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            if (localNotes !== (sessionState?.masterNotes || '')) {
+                updateSessionState({ masterNotes: localNotes });
+            }
+        }, 1000);
+        return () => clearTimeout(handler);
+    }, [localNotes]);
 
     // Sons rápidos do grid principal
     const QUICK_SOUNDS = [
@@ -350,10 +368,10 @@ export function MasterControls({ sessionState, updateSessionState }) {
             ]),
             el('textarea', {
                 key: 'notes-textarea',
-                className: "w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 text-xs text-slate-300 outline-none focus:border-amber-500/50 resize-none h-64 shadow-inner",
+                className: "w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 text-xs text-slate-300 outline-none focus:border-amber-500/50 resize-none h-64 shadow-inner custom-scrollbar",
                 placeholder: "Segredos, nomes de NPCs, planos malignos...",
-                value: sessionState?.masterNotes || '',
-                onChange: (e) => updateSessionState({ masterNotes: e.target.value })
+                value: localNotes,
+                onChange: (e) => setLocalNotes(e.target.value)
             })
         ])
     ]);

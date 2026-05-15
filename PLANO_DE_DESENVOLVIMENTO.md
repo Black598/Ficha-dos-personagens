@@ -130,6 +130,13 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Sincronia Global:** Um relógio persistente na tela de todos os jogadores (sobreposição visual global) sincronizado com o Firebase.
   - ✅ **Iluminação Dinâmica:** O ambiente transita automaticamente de "Normal" para "Noite" (ou vice-versa) ao passar das 06:00 ou das 18:00.
 
+### 🌫️ 16. Névoa de Guerra Dinâmica (Dynamic Fog of War)
+- **Status:** Concluído
+- **Features:** 
+  - ✅ **Ferramenta de Parede:** O mestre pode traçar linhas estruturais no mapa que interagem com o sistema de visão global.
+  - ✅ **Linha de Visão (LoS):** Cálculo dinâmico que impede que as áreas reveladas pelos jogadores atravessem paredes/obstáculos.
+  - ✅ **Raio de Visão Pessoal:** A neblina é dinamicamente removida em tempo real nas posições dos tokens baseada no atributo 'Visão (sqr)' de cada um.
+
 ---
 
 ## 🚀 Próximas Implementações (Pendentes)
@@ -142,10 +149,6 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - Progressão travada por nível (libera habilidades conforme upa).
   - Múltipla escolha para equipamento inicial (ex: "Pacote de Explorador" ou "Espada Longa") com opção de converter em ouro.
   - Opção de mesclar habilidades baseadas em APIs/Wikis com habilidades customizadas (homebrew).
-
-### 2. 🌫️ Névoa de Guerra Dinâmica (Dynamic Fog of War)
-- **Conceito:** Revelação automática do mapa baseada na posição e visão dos tokens.
-- **Features:** Linha de visão (LoS) que respeita paredes, sombras dinâmicas e controle de raio de luz (tochas/visão no escuro).
 
 
 

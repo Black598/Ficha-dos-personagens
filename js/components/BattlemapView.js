@@ -3,7 +3,7 @@ import { parseImageUrl } from '../utils.js';
 const { useState, useRef, useEffect } = React;
 const el = React.createElement;
 
-export function BattlemapView({ mode, battlemapData, updateSessionState, onBack, allCharacters, characterName, monsters = [], libraryData = {} }) {
+export function BattlemapView({ mode, battlemapData, updateSessionState, onBack, allCharacters, characterName, monsters = [], libraryData = {}, turnState, advanceTurn }) {
     // Expandimos a lista de monstros para incluir o bestiário da biblioteca
     const bestiary = libraryData.bestiary || [];
     const allAvailableNPCs = [...monsters, ...bestiary];
@@ -100,6 +100,12 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
         e.stopPropagation();
         if (mode !== 'master' && token.name !== characterName && token.createdBy !== characterName) return; // Só arrasta o próprio token ou o que criou
         
+        // Bloqueio de Turno (Apenas para Jogadores)
+        if (mode !== 'master' && turnState?.activeChar && turnState.activeChar !== characterName) {
+            alert(`Aguarde sua vez! É o turno de ${turnState.activeChar}.`);
+            return;
+        }
+        
         if (e.target.setPointerCapture) {
             try { e.target.setPointerCapture(e.pointerId); } catch(err) {}
         }
@@ -163,8 +169,13 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
             updateSessionState({ battlemap: { ...battlemapData, tokens: newTokens } });
             setDraggingToken(null);
         } else if (currentDraw) {
-            const newDrawings = [...drawings, { ...currentDraw, id: `draw_${Date.now()}_${Math.random().toString(36).substr(2,5)}` }];
-            updateSessionState({ battlemap: { ...battlemapData, drawings: newDrawings } });
+            if (currentDraw.shape === 'wall') {
+                const newWalls = [...(battlemapData.walls || []), { ...currentDraw, id: `wall_${Date.now()}_${Math.random().toString(36).substr(2,5)}` }];
+                updateSessionState({ battlemap: { ...battlemapData, walls: newWalls } });
+            } else {
+                const newDrawings = [...drawings, { ...currentDraw, id: `draw_${Date.now()}_${Math.random().toString(36).substr(2,5)}` }];
+                updateSessionState({ battlemap: { ...battlemapData, drawings: newDrawings } });
+            }
             setCurrentDraw(null);
         } else if (e.altKey) {
             const rect = cameraRef.current.getBoundingClientRect();
@@ -233,6 +244,31 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
 
             // Controles Rápidos (Zoom, etc)
             el('div', { className: "flex gap-2 pointer-events-auto bg-slate-900/80 p-2 rounded-2xl border border-slate-800 backdrop-blur-md" }, [
+                mode === 'master' && el('button', {
+                    onClick: () => {
+                        const currentOrder = turnState?.initiativeOrder || [];
+                        if (currentOrder.length === 0) {
+                            alert("A iniciativa está vazia. Adicione jogadores na tela do Mestre primeiro.");
+                            return;
+                        }
+                        const activeIndex = currentOrder.findIndex(c => c.name === turnState.activeChar);
+                        let nextIndex = activeIndex + 1;
+                        if (nextIndex >= currentOrder.length || activeIndex === -1) {
+                            nextIndex = 0;
+                            // Se cruzou o fim, avança o round
+                            updateSessionState({ turnState: { ...turnState, round: (turnState?.round || 1) + 1 } });
+                        }
+                        
+                        if (advanceTurn) {
+                            advanceTurn(currentOrder[nextIndex].name);
+                        } else {
+                            updateSessionState({ turnState: { ...turnState, activeChar: currentOrder[nextIndex].name } });
+                        }
+                    },
+                    className: "px-4 py-2 hover:bg-emerald-600/20 text-emerald-500 rounded-xl text-xs font-bold uppercase border-r border-slate-700",
+                    title: "Passar a vez no Combate"
+                }, "▶️ Próximo Turno"),
+                
                 mode === 'master' && el('button', {
                     onClick: () => {
                         const url = prompt("Cole o Link (URL) da imagem do Mapa:", activeMap.imageUrl);
@@ -405,6 +441,11 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                         className: `w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${drawMode === 'circle' ? 'bg-amber-500 text-slate-900' : 'text-slate-400 hover:bg-slate-800'}`,
                         title: "Círculo/Raio (Arrastar)"
                     }, "⭕"),
+                    mode === 'master' && el('button', {
+                        onClick: () => setDrawMode(drawMode === 'wall' ? null : 'wall'),
+                        className: `w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${drawMode === 'wall' ? 'bg-blue-500 text-white' : 'text-blue-400 hover:bg-blue-900/50'}`,
+                        title: "Parede (Bloqueia Visão - Arrastar)"
+                    }, "🧱"),
                     el('input', {
                         type: 'color',
                         value: drawColor,
@@ -432,6 +473,16 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                     className: "px-4 py-2 hover:bg-red-600/20 text-red-500 rounded-xl text-xs font-bold uppercase",
                     title: "Limpar todos os desenhos"
                 }, "🧹 Limpar Desenhos"),
+                
+                mode === 'master' && el('button', {
+                    onClick: () => {
+                        if (confirm("Limpar TODAS as paredes?")) {
+                            updateSessionState({ battlemap: { ...battlemapData, walls: [] } });
+                        }
+                    },
+                    className: "px-2 py-2 hover:bg-blue-600/20 text-blue-500 rounded-xl text-xs font-bold uppercase",
+                    title: "Limpar Paredes"
+                }, "🧱×"),
                 
                 mode === 'master' && el('div', { className: "flex items-center gap-1 bg-slate-950 p-1 rounded-xl" }, [
                     el('button', {
@@ -584,8 +635,40 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                     }
                 }),
 
+                // Paredes (Apenas Master ou levemente visível)
+                [...(battlemapData.walls || []), currentDraw?.shape === 'wall' ? currentDraw : null].filter(Boolean).map(w => {
+                    const dx = w.endX - w.startX;
+                    const dy = w.endY - w.startY;
+                    const distance = Math.sqrt(dx*dx + dy*dy);
+                    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                    
+                    if (mode !== 'master' && w.id) return null; // Jogador não vê as linhas de parede
+                    
+                    return el('div', {
+                        key: w.id || 'current_wall',
+                        className: "absolute origin-left pointer-events-none rounded-full z-40",
+                        style: {
+                            left: `${w.startX}px`,
+                            top: `${w.startY}px`,
+                            width: `${distance}px`,
+                            height: `6px`,
+                            transform: `translateY(-50%) rotate(${angle}deg)`,
+                            backgroundColor: '#3b82f6', // Blue for master
+                            boxShadow: '0 0 10px #3b82f6',
+                            opacity: 0.8
+                        }
+                    });
+                }),
+
                 // Tokens
-                tokens.map(t => {
+                [...tokens].sort((a, b) => {
+                    if (mode === 'master') return 0;
+                    const aIsMine = a.name === characterName || a.createdBy === characterName;
+                    const bIsMine = b.name === characterName || b.createdBy === characterName;
+                    if (aIsMine && !bIsMine) return 1; // Coloca pro final (renderiza por cima)
+                    if (!aIsMine && bIsMine) return -1;
+                    return 0;
+                }).map(t => {
                     const isDraggingThis = draggingToken && draggingToken.id === t.id;
                     const renderToken = isDraggingThis ? draggingToken : t;
                     const gs = activeMap.gridSize || 50;
@@ -654,13 +737,28 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                     const centerX = (gx * gs) + (gs / 2);
                     const centerY = (gy * gs) + (gs / 2);
                     
+                    const walls = battlemapData.walls || [];
+                    
+                    // Helper para intersecção de segmentos
+                    const intersect = (x1,y1, x2,y2, x3,y3, x4,y4) => {
+                        const den = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4);
+                        if(den === 0) return false;
+                        const t = ((x1-x3)*(y3-y4) - (y1-y3)*(x3-x4)) / den;
+                        const u = -((x1-x2)*(y1-y3) - (y1-y2)*(x1-x3)) / den;
+                        return t > 0 && t < 1 && u > 0 && u < 1;
+                    };
+                    
                     const isRevealedByVision = tokens.some(t => {
                         if (t.type !== 'player') return false;
                         const tx = t.x + (gs * (t.size || 1) / 2);
                         const ty = t.y + (gs * (t.size || 1) / 2);
                         const dist = Math.sqrt(Math.pow(centerX - tx, 2) + Math.pow(centerY - ty, 2));
                         const visionRange = (t.visionRadius || 3) * gs; // Padrão 3 quadrados
-                        return dist < visionRange;
+                        if (dist >= visionRange) return false;
+                        
+                        // Verificar colisão com paredes (LoS)
+                        const hitWall = walls.some(w => intersect(tx, ty, centerX, centerY, w.startX, w.startY, w.endX, w.endY));
+                        return !hitWall;
                     });
 
                     if (isRevealedByVision && mode !== 'master') return null;

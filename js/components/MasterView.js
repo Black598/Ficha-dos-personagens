@@ -186,9 +186,12 @@ export function MasterView({
                         if (!theme) return;
                         try {
                             const npc = await generateNPC(theme);
-                            const text = `👤 **NPC GERADO**\n**Nome:** ${npc.name} (${npc.race} ${npc.class})\n**Aparência:** ${npc.personality}\n**Segredo:** ${npc.secret}\n**Stats:** HP:${npc.stats?.HP} CA:${npc.stats?.CA}`;
-                            sendChatMessage(text, 'Mestre');
-                            alert(`NPC Gerado: ${npc.name}\nDados enviados para o Chat!`);
+                            const npcText = `\n\n--- NPC: ${npc.name} ---\nRaça/Classe: ${npc.race} ${npc.class}\nAparência: ${npc.appearance || ''}\nPersonalidade: ${npc.personality || ''}\nSegredo: ${npc.secret || ''}\nStats: HP ${npc.stats?.HP || '?'}, CA ${npc.stats?.CA || '?'}\n`;
+                            
+                            const currentNotes = sessionState.masterNotes || '';
+                            updateSessionState({ masterNotes: currentNotes + npcText });
+                            
+                            alert(`NPC Gerado: ${npc.name}\nDados enviados para suas "Notas do Mestre (Privado)"!`);
                         } catch (e) { alert("Erro ao gerar NPC: " + e.message); }
                     },
                     className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-purple-600 transition-all text-white"
