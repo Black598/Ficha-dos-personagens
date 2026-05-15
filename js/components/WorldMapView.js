@@ -131,14 +131,15 @@ export function WorldMapView({ mode, worldMapData, updateSessionState, onBack, b
                 // Imagem do Mapa
                 el('img', { 
                     src: mapImageUrl,
-                    // max-w-none é essencial para evitar que o mobile encolha a imagem via CSS, desalinhando as coordenadas (x,y)
+                    // max-w-none e width-auto são essenciais para evitar que o mobile encolha a imagem via CSS
                     className: "max-w-none shadow-[0_0_100px_rgba(0,0,0,0.5)] border-4 border-orange-900/50",
+                    style: { width: 'auto', height: 'auto' },
                     onLoad: (e) => {
-                        // Centralizar mapa inicialmente
+                        // Centralizar mapa inicialmente usando dimensões NATURAIS
                         const img = e.target;
                         setCamera({ 
-                            x: (window.innerWidth - img.width) / 2, 
-                            y: (window.innerHeight - img.height) / 2, 
+                            x: (window.innerWidth - img.naturalWidth) / 2, 
+                            y: (window.innerHeight - img.naturalHeight) / 2, 
                             scale: 0.8 
                         });
                     }

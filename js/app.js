@@ -457,7 +457,11 @@ function App() {
   useEffect(() => {
     const ambient = sessionState.ambientMusic;
     if (ambient && ambient.url) {
-        AudioManager.playAmbient(ambient.url, 'global', ambient.volume || 0.5);
+        if (ambient.fadeOut) {
+            AudioManager.stopAmbient('global', true);
+        } else {
+            AudioManager.playAmbient(ambient.url, 'global', ambient.volume || 0.5);
+        }
     } else {
         AudioManager.stopAmbient('global');
     }

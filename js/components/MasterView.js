@@ -4,7 +4,7 @@ import { OracleMural } from './OracleMural.js';
 import { MasterControls } from './MasterControls.js';
 import { MonsterManager } from './MonsterManager.js';
 import { ConditionModal } from './ConditionModal.js';
-import { MasterTutorialPopup } from './MasterTutorialPopup.js';
+import { MasterTutorialPopup, MASTER_TUTORIAL_VERSION } from './MasterTutorialPopup.js';
 import { MasterVault } from './MasterVault.js';
 import { LootManager } from './LootManager.js';
 
@@ -54,7 +54,7 @@ export function MasterView({
     onOpenShop
 }) {
     const [showSettings, setShowSettings] = useState(false);
-    const [showTutorial, setShowTutorial] = useState(() => localStorage.getItem('has_seen_master_tutorial') !== 'true');
+    const [showTutorial, setShowTutorial] = useState(() => localStorage.getItem('has_seen_master_tutorial') !== MASTER_TUTORIAL_VERSION);
     const [showVault, setShowVault] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(null); 
     const [oracleOpen, setOracleOpen] = useState(false);

@@ -139,6 +139,15 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 
 ---
 
+### 🎬 17. Apresentação Cinematográfica & UX Mobile
+- **Status:** Concluído ✅
+- **Features:**
+  - ✅ **Modo Cutscene:** Revelação dramática de imagens com áudio de impacto e zoom lento.
+  - ✅ **Ajuste de Precisão Mobile:** Fim do desalinhamento de tokens no VTT e marcadores no Atlas em telas pequenas.
+  - ✅ **Hotbar de Atalhos:** Barra inferior para fixar ações rápidas dos jogadores.
+  - ✅ **Transição de Áudio:** Suporte a Fade Out e Playlist no painel do mestre.
+  - ✅ **Sistema de Tutoriais v2.0:** Guias atualizados e com sistema de versionamento que reativa o tutorial automaticamente após grandes updates.
+
 ## 🚀 Próximas Implementações (Pendentes)
 
 ### 1. 🧙‍♂️ Assistente de Criação de Personagem (Charactermancer)
@@ -166,8 +175,8 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 ### 4. ⚡ Qualidade de Vida (QoL)
 - **Conceito:** Agilizar os turnos e acesso a recursos rápidos.
 - **Features:**
-  - **Hotbar (Barra de Atalhos):** Uma barra na base da tela dos jogadores onde eles podem fixar suas principais magias/ataques para rolagem em 1 clique.
-  - **Playlist/Transição de Áudio:** Suporte a múltiplas músicas e fade-in/fade-out na transição de cenas pelo Mestre.
+  - **Hotbar (Barra de Atalhos):** CONCLUÍDO ✅
+  - **Playlist/Transição de Áudio:** CONCLUÍDO ✅
 
 ### 5. 🐺 Pets, Familiares e Montarias
 - **Conceito:** Gestão avançada de companheiros animais.
@@ -191,7 +200,7 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 - **Conceito:** O sistema impõe regras mecânicas rígidas com base nas condições do combate.
 - **Features:** Pulo automático de turnos de personagens Atordoados/Paralisados no rastreador de iniciativa, ou dano contínuo automatizado no início do turno (ex: Envenenado, Em Chamas).
 
-### 10. 🎬 Apresentação Cinematográfica (Modo "Cutscene")
+### 10. 🎬 Apresentação Cinematográfica (Modo "Cutscene") - CONCLUÍDO ✅
 - **Conceito:** Revelação dramática de cenários e chefes.
 - **Features:** O mestre pode escurecer a tela de todos os jogadores, tocar um efeito sonoro de impacto e exibir uma imagem em tela cheia centralizada temporariamente para máxima imersão.
 

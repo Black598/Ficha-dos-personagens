@@ -2,25 +2,45 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
 
-export function PlayerTutorialPopup({ onClose }) {
-    const [activeTab, setActiveTab] = useState('geral');
+export const PLAYER_TUTORIAL_VERSION = '2.0';
 
-    // Marca no localStorage que já viu o tutorial
+export function PlayerTutorialPopup({ onClose }) {
+    const [activeTab, setActiveTab] = useState('novidades'); // Abre direto nas novidades quando há update
+
     useEffect(() => {
-        localStorage.setItem('has_seen_player_tutorial', 'true');
+        localStorage.setItem('has_seen_player_tutorial', PLAYER_TUTORIAL_VERSION);
     }, []);
 
     const tabs = [
+        { id: 'novidades', label: '🔥 Novidades', icon: '⭐' },
         { id: 'geral', label: '📖 Geral', icon: '🛡️' },
         { id: 'vtt', label: '🗺️ Mapa/VTT', icon: '📍' },
         { id: 'alquimia', label: '🧪 Alquimia', icon: '⚗️' },
         { id: 'combate', label: '⚔️ Combate', icon: '🎲' },
-        { id: 'social', label: '💬 Social', icon: '📜' },
-        { id: 'novidades', label: '🔥 Novidades', icon: '⭐' }
+        { id: 'social', label: '💬 Social', icon: '📜' }
     ];
 
     const renderContent = () => {
         switch (activeTab) {
+            case 'novidades':
+                return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
+                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 2.0 - Otimização & Imersão"),
+                    
+                    el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "📌 Barra de Atalhos (Hotbar)"),
+                        el('p', { className: "text-xs" }, "Agora você pode fixar seus ataques e magias favoritos na base da tela! Clique no ícone de tachinha (📌) na sua lista de ataques ou no grimório para criar um atalho rápido.")
+                    ]),
+
+                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🎬 Cenas Cinematográficas"),
+                        el('p', { className: "text-xs" }, "Prepare-se para o drama! O mestre agora pode revelar cenários e chefes em tela cheia com trilha sonora de impacto sincronizada para todo o grupo.")
+                    ]),
+
+                    el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2" }, "📱 Experiência Mobile"),
+                        el('p', { className: "text-xs" }, "Corrigimos o alinhamento de tokens e mapas no celular. Agora a visão tática está perfeitamente sincronizada entre PC e dispositivos móveis.")
+                    ])
+                ]);
             case 'geral':
                 return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
                     el('p', null, "Bem-vindo à sua ", el('strong', { className: "text-amber-400" }, "Ficha de Personagem"), "! Este é o seu portal para o mundo do RPG."),
@@ -69,25 +89,6 @@ export function PlayerTutorialPopup({ onClose }) {
                         el('li', null, el('strong', { className: "text-white" }, "Cartas:"), " Notas compartilhadas aparecem como envelopes na sua tela. Clique para ler!")
                     )
                 );
-            case 'novidades':
-                return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
-                    el('p', null, "O sistema foi atualizado com recursos de última geração:"),
-                    
-                    el('div', { className: "bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-emerald-400 font-bold mb-2" }, "🔊 Soundboard Sincronizado"),
-                        el('p', { className: "text-xs" }, "Músicas e ambientes agora tocam via YouTube direto na sua ficha, totalmente sincronizados com o clima visual da cena.")
-                    ]),
-
-                    el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-blue-400 font-bold mb-2" }, "🗺️ VTT Evoluído"),
-                        el('p', { className: "text-xs" }, "Mapas de alta definição, tokens com HP visível e sistema de névoa dinâmico para exploração imersiva.")
-                    ]),
-
-                    el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-amber-400 font-bold mb-2" }, "⚗️ Sistema de Crafting"),
-                        el('p', { className: "text-xs" }, "Transforme lixo em tesouro! Use a forja e o caldeirão para aprimorar seus itens com ajuda da IA.")
-                    ])
-                ]);
             default:
                 return null;
         }

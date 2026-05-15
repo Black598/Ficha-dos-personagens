@@ -2,26 +2,46 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
 
-export function MasterTutorialPopup({ onClose }) {
-    const [activeTab, setActiveTab] = useState('geral');
+export const MASTER_TUTORIAL_VERSION = '2.0';
 
-    // Marca no localStorage que já viu o tutorial
+export function MasterTutorialPopup({ onClose }) {
+    const [activeTab, setActiveTab] = useState('novidades');
+
     useEffect(() => {
-        localStorage.setItem('has_seen_master_tutorial', 'true');
+        localStorage.setItem('has_seen_master_tutorial', MASTER_TUTORIAL_VERSION);
     }, []);
 
     const tabs = [
+        { id: 'novidades', label: '🔥 Novidades', icon: '⭐' },
         { id: 'geral', label: '📖 Geral', icon: '👑' },
         { id: 'vtt', label: '🗺️ VTT & Mapas', icon: '📍' },
         { id: 'soundboard', label: '🔊 Som & Clima', icon: '🎼' },
         { id: 'herois', label: '🏰 Heróis', icon: '🛡️' },
         { id: 'monstros', label: '🐉 Monstros', icon: '🐙' },
-        { id: 'gemini', label: '🤖 Oráculo (Gemini)', icon: '✨' },
-        { id: 'novidades', label: '🔥 Novidades', icon: '⭐' }
+        { id: 'gemini', label: '🤖 Oráculo (Gemini)', icon: '✨' }
     ];
 
     const renderContent = () => {
         switch (activeTab) {
+            case 'novidades':
+                return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
+                    el('p', { className: "text-purple-400 font-bold" }, "✨ Versão 2.0 - Controle Absoluto"),
+                    
+                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🎬 Cenas Cinematográficas"),
+                        el('p', { className: "text-xs" }, "No painel de controle, você agora tem o botão 'Iniciar Cinematic'. Cole um link de imagem para fazer uma revelação dramática em tela cheia para todos os jogadores, com áudio de impacto automático.")
+                    ]),
+
+                    el('div', { className: "bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-emerald-400 font-bold mb-2 flex items-center gap-2" }, "🔊 Transições de Áudio (Fade)"),
+                        el('p', { className: "text-xs" }, "Chega de cortes bruscos no som! Use o novo botão 'Parar (Fade)' para diminuir o volume da música gradualmente, criando uma transição suave entre cenas.")
+                    ]),
+
+                    el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "📍 Atlas & VTT Sincronizado"),
+                        el('p', { className: "text-xs" }, "Corrigimos bugs de alinhamento em dispositivos móveis. O que você marca no Atlas ou posiciona no Campo de Batalha agora aparece exatamente no mesmo pixel para jogadores em celulares ou tablets.")
+                    ])
+                ]);
             case 'geral':
                 return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
                     el('p', null, "Bem-vindo à ", el('strong', { className: "text-purple-400" }, "Sala do Mestre"), "! Este é o seu painel de controle absoluto para a campanha."),
@@ -77,25 +97,6 @@ export function MasterTutorialPopup({ onClose }) {
                         el('p', { className: "text-xs text-slate-400" }, "Insira sua API Key nas Configurações (⚙️). A chave fica salva localmente no seu navegador.")
                     )
                 );
-            case 'novidades':
-                return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
-                    el('p', null, "As últimas atualizações transformaram a Sala do Mestre em um estúdio completo:"),
-                    
-                    el('div', { className: "bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-emerald-400 font-bold mb-2" }, "🎼 Sincronização Audiovisual"),
-                        el('p', { className: "text-xs" }, "Mudar o clima para 'Chuva' agora ativa automaticamente o som de chuva e o efeito visual na tela dos jogadores.")
-                    ]),
-
-                    el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-blue-400 font-bold mb-2" }, "📍 VTT Profissional"),
-                        el('p', { className: "text-xs" }, "Tokens agora sincronizam HP, nomes e auras em tempo real entre Mestre e Jogadores.")
-                    ]),
-
-                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-purple-400 font-bold mb-2" }, "👹 Gerador de Monstros IA"),
-                        el('p', { className: "text-xs" }, "Crie encontros épicos apenas descrevendo o monstro. A IA cuida do balanceamento e das habilidades.")
-                    ])
-                ]);
             default:
                 return null;
         }

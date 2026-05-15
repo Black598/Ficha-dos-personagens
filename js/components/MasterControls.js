@@ -156,7 +156,17 @@ export function MasterControls({ sessionState, updateSessionState }) {
                         onClick: addCustomAtmosphere,
                         className: "w-8 h-8 bg-emerald-900/30 text-emerald-500 rounded-full flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all text-xl"
                     }, "+"),
-                    sessionState.ambientMusic && el('span', { key: 'playing-indicator', className: "flex items-center gap-2" }, [
+                    sessionState.ambientMusic && el('div', { key: 'playing-indicator', className: "flex items-center gap-3" }, [
+                        el('button', {
+                            onClick: () => {
+                                // Envia comando de fade via session state para todos
+                                updateSessionState({ ambientMusic: { ...sessionState.ambientMusic, fadeOut: true } });
+                                // Localmente para o mestre também
+                                AudioManager.stopAmbient('global', true);
+                            },
+                            className: "text-[8px] bg-red-900/20 text-red-400 px-2 py-1 rounded border border-red-500/30 hover:bg-red-600 hover:text-white transition-all uppercase font-black",
+                            title: "Para a música suavemente para todos"
+                        }, "Parar (Fade)"),
                         el('span', { key: 'pulse', className: "w-2 h-2 bg-emerald-500 rounded-full animate-pulse" }),
                         el('span', { key: 'label', className: "text-[8px] font-black text-emerald-500 uppercase" }, "Tocando")
                     ])

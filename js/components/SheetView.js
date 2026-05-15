@@ -2,7 +2,7 @@ import { DiceRoller } from './DiceRoller.js';
 import { AudioManager } from '../AudioManager.js';
 import { CharacterSetupModal } from './CharacterSetupModal.js';
 import { TalentTooltip } from './TalentTooltip.js';
-import { PlayerTutorialPopup } from './PlayerTutorialPopup.js';
+import { PlayerTutorialPopup, PLAYER_TUTORIAL_VERSION } from './PlayerTutorialPopup.js';
 import { safeParseJSON, parseImageUrl } from '../utils.js';
 import { VisualInventory } from './VisualInventory.js';
 import { PlayerSoundboard } from './PlayerSoundboard.js';
@@ -56,7 +56,7 @@ export function SheetView({
     const [pageAnimation, setPageAnimation] = useState('');
     const [chatInput, setChatInput] = useState('');
     const [hiddenRollRequests, setHiddenRollRequests] = useState({});
-    const [showTutorial, setShowTutorial] = useState(() => localStorage.getItem('has_seen_player_tutorial') !== 'true');
+    const [showTutorial, setShowTutorial] = useState(() => localStorage.getItem('has_seen_player_tutorial') !== PLAYER_TUTORIAL_VERSION);
     const [useVisualInventory, setUseVisualInventory] = useState(true);
     const [showSoundboard, setShowSoundboard] = useState(false);
 
@@ -99,6 +99,22 @@ export function SheetView({
         else if (type === 'rest') AudioManager.play('rest');
 
         setTimeout(() => setEffectClass(''), 1000);
+    };
+
+    // --- LÓGICA DE HOTBAR (ATALHOS) ---
+    const hotbarItems = safeParseJSON(characterSheetData.outros?.['Hotbar'] || '[]', []);
+    
+    const addToHotbar = (item) => {
+        if (hotbarItems.some(i => i.name === item.name && i.type === item.type)) return;
+        if (hotbarItems.length >= 8) return;
+        const newHotbar = [...hotbarItems, { ...item, id: Date.now() }];
+        updateSheetField('outros', 'Hotbar', JSON.stringify(newHotbar));
+        AudioManager.play('click');
+    };
+
+    const removeFromHotbar = (id) => {
+        const newHotbar = hotbarItems.filter(i => i.id !== id);
+        updateSheetField('outros', 'Hotbar', JSON.stringify(newHotbar));
     };
 
     // Nível Up
@@ -879,6 +895,14 @@ export function SheetView({
                                     updateSheetField('ataques', null, novosAtaques);
                                 }
                             }, "×"),
+
+                            // Botão Fixar na Hotbar
+                            el('button', {
+                                key: "btn-pin",
+                                className: `absolute -top-2 -left-2 w-5 h-5 border rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition-all z-10 ${hotbarItems.some(i => i.name === atk.nome && i.type === 'ataque') ? 'bg-amber-500 border-amber-300 text-white' : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-amber-600'}`,
+                                onClick: () => addToHotbar({ type: 'ataque', name: atk.nome, bonus: atk.bonus, dano: atk.dano, icon: '⚔️' }),
+                                title: "Fixar nos Atalhos"
+                            }, "📌"),
                             
                             // Nome
                             el('div', { className: "col-span-4 pr-2" }, 
@@ -1405,6 +1429,14 @@ export function SheetView({
                                                     updateSheetField('magias', nivel, novaLista);
                                                 }
                                             }),
+
+                                            // Botão Fixar na Hotbar (Magia)
+                                            nomeMagia && el('button', {
+                                                key: "btn-pin-spell",
+                                                className: `absolute bottom-2 right-4 text-[12px] opacity-0 group-hover/spell:opacity-100 transition-all ${hotbarItems.some(i => i.name === nomeMagia && i.type === 'magia') ? 'text-amber-500' : 'text-slate-600 hover:text-amber-500'}`,
+                                                onClick: () => addToHotbar({ type: 'magia', name: nomeMagia, nivel, desc: descMagia, icon: '🪄' }),
+                                                title: "Fixar nos Atalhos"
+                                            }, "📌"),
                                             el('textarea', {
                                                 className: "w-full bg-transparent text-[11px] text-slate-500 italic mt-2 outline-none resize-none",
                                                 placeholder: "Descrição...",
@@ -1886,6 +1918,46 @@ export function SheetView({
                         isMaster: false
                     })
                 ])
+            ])
+        ]),
+
+        // --- HOTBAR (BARRA DE ATALHOS) ---
+        el('div', {
+            key: 'hotbar',
+            className: "fixed bottom-0 left-0 right-0 z-[100] p-4 pointer-events-none flex justify-center"
+        }, [
+            el('div', {
+                className: "bg-slate-900/80 backdrop-blur-2xl border-t-2 border-x-2 border-slate-800 rounded-t-[2.5rem] p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] flex items-end gap-3 pointer-events-auto animate-slide-up max-w-[95vw] overflow-x-auto custom-scrollbar no-scrollbar"
+            }, [
+                hotbarItems.length === 0 && el('div', { className: "px-8 py-2 text-slate-600 text-[9px] font-black uppercase tracking-widest italic" }, "Seus atalhos aparecerão aqui... (Fixe magias ou ataques com 📌)"),
+                
+                hotbarItems.map((item) => el('div', {
+                    key: item.id,
+                    className: "group relative flex flex-col items-center gap-1 min-w-[70px] cursor-pointer",
+                    onClick: () => {
+                        if (item.type === 'ataque') {
+                            triggerExternalRoll(20, false, parseInt(item.bonus) || 0, 'normal', 1, item.name);
+                        } else {
+                            sendChatMessage(`${characterName} conjura **${item.name}**!`, 'all');
+                            AudioManager.play('magic');
+                        }
+                    }
+                }, [
+                    // Botão Remover
+                    el('button', {
+                        onClick: (e) => { e.stopPropagation(); removeFromHotbar(item.id); },
+                        className: "absolute -top-1 -right-1 w-5 h-5 bg-slate-950 border border-slate-700 text-slate-500 rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-all z-10 hover:text-red-500 hover:border-red-500"
+                    }, "×"),
+
+                    // Ícone e Nome
+                    el('div', { 
+                        className: "w-14 h-14 bg-slate-950 border-2 border-slate-800 rounded-2xl flex items-center justify-center text-2xl shadow-inner group-hover:border-amber-500/50 group-hover:scale-110 transition-all relative overflow-hidden"
+                    }, [
+                        el('span', { className: "z-10 drop-shadow-md" }, item.icon),
+                        el('div', { className: "absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" })
+                    ]),
+                    el('span', { className: "text-[8px] font-black text-slate-500 uppercase tracking-tighter truncate w-16 text-center group-hover:text-amber-500" }, item.name)
+                ]))
             ])
         ])
     ]);

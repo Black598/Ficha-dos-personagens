@@ -564,7 +564,11 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                     key: 'map-image',
                     src: activeMap.imageUrl,
                     className: "block pointer-events-none",
-                    style: { filter: 'drop-shadow(0 0 50px rgba(0,0,0,0.5))' },
+                    style: { 
+                        filter: 'drop-shadow(0 0 50px rgba(0,0,0,0.5))',
+                        maxWidth: 'none', // Importante: Impede que o Tailwind/Mobile redimensione o mapa
+                        width: 'auto'
+                    },
                     alt: "Mapa"
                 }) : el('div', { className: "w-[800px] h-[600px] bg-slate-900 border-4 border-dashed border-slate-800 flex items-center justify-center rounded-[3rem]" }, [
                     el('span', { className: "text-slate-700 font-black text-2xl uppercase tracking-widest" }, "Vazio")
