@@ -81,10 +81,10 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
         setCamera({ x: newX, y: newY, scale: newScale });
     };
 
-    const handleMouseDown = (e) => {
-        // Botão direito do mouse OU botão do meio para arrastar o mapa
-        if (e.button === 1 || e.button === 2) {
-            e.preventDefault();
+    const handlePointerDown = (e) => {
+        const isTouch = e.pointerType === 'touch';
+        // Botão direito/meio do mouse OU toque na tela para arrastar o mapa
+        if (e.button === 1 || e.button === 2 || (isTouch && !drawMode && !draggingToken)) {
             setIsDraggingCanvas(true);
             setDragStart({ x: e.clientX, y: e.clientY });
         } else if (e.button === 0 && drawMode && !draggingToken) {
@@ -95,14 +95,19 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
         }
     };
 
-    const handleTokenMouseDown = (e, token) => {
-        if (e.button !== 0) return; // Apenas botão esquerdo do mouse
+    const handleTokenPointerDown = (e, token) => {
+        if (e.button !== 0) return; // Apenas botão principal (esquerdo) ou toque
         e.stopPropagation();
         if (mode !== 'master' && token.name !== characterName && token.createdBy !== characterName) return; // Só arrasta o próprio token ou o que criou
-        setDraggingToken({ ...token, startMouseX: e.clientX, startMouseY: e.clientY, initX: token.x, initY: token.y });
+        
+        if (e.target.setPointerCapture) {
+            try { e.target.setPointerCapture(e.pointerId); } catch(err) {}
+        }
+        
+        setDraggingToken({ ...token, startMouseX: e.clientX, startMouseY: e.clientY, initX: token.x, initY: token.y, pointerId: e.pointerId });
     };
 
-    const handleMouseMove = (e) => {
+    const handlePointerMove = (e) => {
         if (isDraggingCanvas) {
             const dx = e.clientX - dragStart.x;
             const dy = e.clientY - dragStart.y;
@@ -138,7 +143,11 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
         }
     };
 
-    const handleMouseUp = (e) => {
+    const handlePointerUp = (e) => {
+        if (draggingToken && e.target.releasePointerCapture) {
+            try { e.target.releasePointerCapture(e.pointerId); } catch(err) {}
+        }
+
         if (isDraggingCanvas) {
             setIsDraggingCanvas(false);
         } else if (draggingToken) {
@@ -182,17 +191,17 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
 
     // Atrelar eventos no document para evitar que o drag quebre se sair da div
     useEffect(() => {
-        const up = (e) => handleMouseUp(e);
-        const move = (e) => handleMouseMove(e);
+        const up = (e) => handlePointerUp(e);
+        const move = (e) => handlePointerMove(e);
         
         if (isDraggingCanvas || draggingToken || currentDraw) {
-            window.addEventListener('mouseup', up);
-            window.addEventListener('mousemove', move);
+            window.addEventListener('pointerup', up);
+            window.addEventListener('pointermove', move);
         }
         
         return () => {
-            window.removeEventListener('mouseup', up);
-            window.removeEventListener('mousemove', move);
+            window.removeEventListener('pointerup', up);
+            window.removeEventListener('pointermove', move);
         };
     }, [isDraggingCanvas, draggingToken, dragStart, camera, tokens, battlemapData, activeMap, currentDraw, drawMode, drawColor]);
 
@@ -474,8 +483,10 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                     title: "Remover todos os tokens do mapa"
                 }, "🗑️ Limpar Tokens"),
                 el('div', { className: "w-px bg-slate-800 mx-1" }), // Separator
+                el('button', { onClick: () => setCamera(prev => ({ ...prev, scale: Math.max(0.1, prev.scale - 0.2) })), className: "px-3 py-2 hover:bg-white/10 rounded-xl text-xs font-bold", title: "Afastar (-)" }, "➖"),
+                el('button', { onClick: () => setCamera(prev => ({ ...prev, scale: Math.min(10, prev.scale + 0.2) })), className: "px-3 py-2 hover:bg-white/10 rounded-xl text-xs font-bold", title: "Aproximar (+)" }, "➕"),
                 el('button', { onClick: () => setCamera({ x: 0, y: 0, scale: 1 }), className: "px-4 py-2 hover:bg-white/10 rounded-xl text-xs font-bold uppercase", title: "Centralizar Câmera" }, "🎯 Centro"),
-                el('span', { className: "px-4 py-2 text-xs font-bold text-slate-500" }, `${Math.round(camera.scale * 100)}%`)
+                el('span', { className: "px-4 py-2 text-xs font-bold text-slate-500 min-w-[3rem] text-center" }, `${Math.round(camera.scale * 100)}%`)
             ])
         ]),
 
@@ -483,8 +494,9 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
         el('div', {
             key: 'canvas-container',
             ref: containerRef,
-            className: `w-full h-full relative outline-none ${isDraggingCanvas ? 'cursor-grabbing' : 'cursor-grab'} overflow-hidden`,
-            onMouseDown: handleMouseDown,
+            // touch-none é vital para mobile para não rolar a página enquanto arrasta
+            className: `w-full h-full relative outline-none ${isDraggingCanvas ? 'cursor-grabbing' : 'cursor-grab'} overflow-hidden touch-none`,
+            onPointerDown: handlePointerDown,
             onWheel: handleWheel
         }, [
             // A "Câmera" aplica a transformação
@@ -606,7 +618,7 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
 
                         el('div', {
                             key: 'token-img-container',
-                            onMouseDown: (e) => handleTokenMouseDown(e, t),
+                            onPointerDown: (e) => handleTokenPointerDown(e, t),
                             onContextMenu: (e) => {
                                 e.preventDefault();
                                 e.stopPropagation();

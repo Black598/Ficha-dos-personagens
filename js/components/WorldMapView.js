@@ -28,9 +28,9 @@ export function WorldMapView({ mode, worldMapData, updateSessionState, onBack, b
     };
 
     // --- PAN ---
-    const handleMouseDown = (e) => {
-        if (e.button === 1 || e.button === 2 || (e.button === 0 && !isAddingPin)) {
-            e.preventDefault();
+    const handlePointerDown = (e) => {
+        const isTouch = e.pointerType === 'touch';
+        if (e.button === 1 || e.button === 2 || ((e.button === 0 || isTouch) && !isAddingPin)) {
             setIsDragging(true);
             setDragStart({ x: e.clientX, y: e.clientY });
         } else if (e.button === 0 && isAddingPin) {
@@ -62,7 +62,7 @@ export function WorldMapView({ mode, worldMapData, updateSessionState, onBack, b
         }
     };
 
-    const handleMouseMove = (e) => {
+    const handlePointerMove = (e) => {
         if (isDragging) {
             const dx = e.clientX - dragStart.x;
             const dy = e.clientY - dragStart.y;
@@ -71,13 +71,13 @@ export function WorldMapView({ mode, worldMapData, updateSessionState, onBack, b
         }
     };
 
-    const handleMouseUp = () => setIsDragging(false);
+    const handlePointerUp = () => setIsDragging(false);
 
     return el('div', { 
-        className: "fixed inset-0 z-[400] bg-[#1a1410] flex flex-col overflow-hidden select-none font-serif",
+        className: "fixed inset-0 z-[400] bg-[#1a1410] flex flex-col overflow-hidden select-none font-serif touch-none",
         onWheel: handleWheel,
-        onMouseMove: handleMouseMove,
-        onMouseUp: handleMouseUp,
+        onPointerMove: handlePointerMove,
+        onPointerUp: handlePointerUp,
         onContextMenu: (e) => e.preventDefault()
     }, [
         // --- TOOLBAR ---
@@ -99,8 +99,10 @@ export function WorldMapView({ mode, worldMapData, updateSessionState, onBack, b
                 }, "🖼️ Trocar Mapa")
             ]),
 
-            el('div', { className: "bg-orange-950/90 backdrop-blur-md px-8 py-3 rounded-3xl border border-orange-500/40 shadow-2xl" }, [
-                el('h1', { className: "text-orange-200 text-xl font-black uppercase tracking-[0.4em] drop-shadow-lg" }, "Atlas de Campanha")
+            el('div', { className: "bg-orange-950/90 backdrop-blur-md px-8 py-3 rounded-3xl border border-orange-500/40 shadow-2xl flex items-center gap-6 pointer-events-auto" }, [
+                el('button', { onClick: () => setCamera(prev => ({ ...prev, scale: Math.max(0.1, prev.scale - 0.2) })), className: "text-orange-500 hover:text-orange-200 text-lg font-black", title: "Afastar (-)" }, "➖"),
+                el('h1', { className: "text-orange-200 text-xl font-black uppercase tracking-[0.4em] drop-shadow-lg hidden sm:block" }, "Atlas"),
+                el('button', { onClick: () => setCamera(prev => ({ ...prev, scale: Math.min(5, prev.scale + 0.2) })), className: "text-orange-500 hover:text-orange-200 text-lg font-black", title: "Aproximar (+)" }, "➕")
             ]),
 
             el('div', { className: "flex gap-3 pointer-events-auto" }, [
@@ -117,7 +119,7 @@ export function WorldMapView({ mode, worldMapData, updateSessionState, onBack, b
         el('div', { 
             ref: containerRef,
             className: "flex-1 relative cursor-grab active:cursor-grabbing overflow-hidden",
-            onMouseDown: handleMouseDown
+            onPointerDown: handlePointerDown
         }, [
             el('div', {
                 ref: mapRef,
@@ -129,7 +131,8 @@ export function WorldMapView({ mode, worldMapData, updateSessionState, onBack, b
                 // Imagem do Mapa
                 el('img', { 
                     src: mapImageUrl,
-                    className: "shadow-[0_0_100px_rgba(0,0,0,0.5)] border-4 border-orange-900/50",
+                    // max-w-none é essencial para evitar que o mobile encolha a imagem via CSS, desalinhando as coordenadas (x,y)
+                    className: "max-w-none shadow-[0_0_100px_rgba(0,0,0,0.5)] border-4 border-orange-900/50",
                     onLoad: (e) => {
                         // Centralizar mapa inicialmente
                         const img = e.target;

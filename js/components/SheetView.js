@@ -40,7 +40,8 @@ export function SheetView({
     setIsBattlemapOpen,
     setIsWorldMapOpen,
     onOpenCrafting,
-    onOpenShop
+    onOpenShop,
+    setRollingModalOpen
 }) {
     const charData = characterSheetData; // Alias para compatibilidade com código legado
 
@@ -613,6 +614,11 @@ export function SheetView({
                         onClick: onToggleTree,
                         className: "bg-purple-600/10 hover:bg-purple-600 text-purple-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-purple-600/30 px-4 py-2 rounded-xl transition-all"
                     }, "⭐ Talentos"),
+                    el('button', {
+                        key: 'btn-dicemodal',
+                        onClick: () => setRollingModalOpen(true),
+                        className: "bg-indigo-600/10 hover:bg-indigo-600 text-indigo-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-indigo-600/30 px-4 py-2 rounded-xl transition-all"
+                    }, "🎲 Dados"),
 
                     el('button', {
                         key: 'btn-library',

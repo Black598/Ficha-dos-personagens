@@ -19,6 +19,22 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
     const [tabletopActive, setTabletopActive] = React.useState(false);
     const hiderTimeoutRef = React.useRef(null);
 
+    // --- COSMÉTICOS (Dice Skins) ---
+    const [diceSkin, setDiceSkin] = React.useState(localStorage.getItem('diceSkin') || 'padrao');
+    const [diceColor, setDiceColor] = React.useState(localStorage.getItem('diceColor') || '#aa1111');
+    const skinRef = React.useRef(diceSkin);
+    const colorRef = React.useRef(diceColor);
+
+    React.useEffect(() => {
+        localStorage.setItem('diceSkin', diceSkin);
+        skinRef.current = diceSkin;
+    }, [diceSkin]);
+
+    React.useEffect(() => {
+        localStorage.setItem('diceColor', diceColor);
+        colorRef.current = diceColor;
+    }, [diceColor]);
+
     // Sync refs with state for the 3D engine to read
     React.useEffect(() => {
         rollModeRef.current = localRollMode;
@@ -63,6 +79,31 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
         let rollStartTime = 0;
         const rollDuration = 1200;
         let currentRollData = {};
+        let particles = [];
+
+        function createParticle(pos, skin, color) {
+            const size = Math.random() * 0.4 + 0.1;
+            const geo = new THREE.BoxGeometry(size, size, size);
+            let mat;
+            if (skin === 'magma') {
+                mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(1.5), transparent: true, opacity: 0.8 });
+            } else if (skin === 'cristal') {
+                mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
+            } else {
+                mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.5 });
+            }
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.copy(pos);
+            mesh.position.x += (Math.random() - 0.5) * 1.5;
+            mesh.position.y += (Math.random() - 0.5) * 1.5;
+            mesh.position.z += (Math.random() - 0.5) * 1.5;
+            scene.add(mesh);
+            particles.push({
+                mesh,
+                life: 1.0,
+                velocity: new THREE.Vector3((Math.random()-0.5)*0.1, Math.random()*0.1, (Math.random()-0.5)*0.1)
+            });
+        }
 
         const container = canvasContainerRef.current;
         if (!container) {
@@ -180,6 +221,14 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
                         if (!die.transitionQ) die.transitionQ = group.quaternion.clone();
                         group.quaternion.slerpQuaternions(die.transitionQ, die.targetQuaternion, snapT);
                     }
+
+                    // Partículas de trilha
+                    const skin = skinRef.current;
+                    if (skin === 'magma' || skin === 'cristal') {
+                        if (Math.random() > 0.5) {
+                            createParticle(die.group.position, skin, colorRef.current);
+                        }
+                    }
                 });
                 if (t === 1.0) {
                     isRolling = false;
@@ -190,6 +239,20 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
                     die.group.position.y = Math.sin(time / 500 + die.id) * 0.2;
                 });
             }
+
+            // Atualizar partículas
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.life -= 0.02;
+                p.mesh.position.add(p.velocity);
+                p.mesh.scale.setScalar(p.life);
+                p.mesh.material.opacity = p.life;
+                if (p.life <= 0) {
+                    scene.remove(p.mesh);
+                    particles.splice(i, 1);
+                }
+            }
+
             renderer.render(scene, camera);
         }
         animate(performance.now());
@@ -222,12 +285,53 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
             const radius = numDice <= 1 ? 3.5 : numDice <= 3 ? 2.8 : numDice <= 6 ? 2.2 : 1.7;
 
             const isD100 = sides === 100;
-            const baseMatParams = {
-                color: sides === 2 ? 0xaaaaaa : 0xaa1111,
-                roughness: 0.2, 
-                metalness: sides === 2 ? 1.0 : 0.5,
-                envMapIntensity: 1.0, flatShading: true
-            };
+            
+            const skin = skinRef.current;
+            const userColor = new THREE.Color(colorRef.current);
+            let material;
+            
+            if (skin === 'metal') {
+                material = new THREE.MeshStandardMaterial({
+                    color: userColor,
+                    roughness: 0.15,
+                    metalness: 0.9,
+                    flatShading: true
+                });
+            } else if (skin === 'cristal') {
+                material = new THREE.MeshPhysicalMaterial({
+                    color: userColor,
+                    roughness: 0.05,
+                    metalness: 0.1,
+                    transmission: 0.9,
+                    opacity: 1,
+                    transparent: true,
+                    ior: 1.5,
+                    thickness: 2,
+                    flatShading: true
+                });
+            } else if (skin === 'magma') {
+                material = new THREE.MeshStandardMaterial({
+                    color: 0x111111,
+                    emissive: userColor,
+                    emissiveIntensity: 0.8,
+                    roughness: 0.9,
+                    metalness: 0.1,
+                    flatShading: true
+                });
+            } else {
+                // Padrao
+                material = new THREE.MeshStandardMaterial({
+                    color: userColor,
+                    roughness: 0.3, 
+                    metalness: 0.2,
+                    flatShading: true
+                });
+            }
+
+            if (sides === 2 && skin === 'padrao') {
+                material.color.setHex(0xaaaaaa);
+                material.metalness = 1.0;
+            }
 
             currentRollData = { sides, modifier, mode, rolls: [], isSecret };
             console.log(`🎲 Rolling ${numDice}d${sides} (quantity=${quantity}, mode=${mode})`);
@@ -251,7 +355,7 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
                 let dieGroup = new THREE.Group(); scene.add(dieGroup);
                 // Each die gets its OWN geometry instance to avoid shared state issues
                 const dieGeometry = createDiceGeometry(sides, radius);
-                const dieMesh = new THREE.Mesh(dieGeometry, new THREE.MeshStandardMaterial(baseMatParams));
+                const dieMesh = new THREE.Mesh(dieGeometry, material.clone());
                 dieGroup.add(dieMesh);
 
                 const dieFacesData = getFacesData(dieGeometry, sides).filter((f) => sides !== 2 || Math.abs(f.normal.y) > 0.9);
@@ -412,6 +516,34 @@ export function DiceRoller({ rollDice, recentRolls, characterName, view, isRolli
                     el('div', { key: 'label', ref: diceLabelRef, className: "dice-label mt-4 text-purple-400 font-bold tracking-widest text-lg uppercase h-8" }, "Escolha o dado")
                 ]),
                 el('section', { key: 'controls', className: "controls relative z-[120] flex flex-col items-center gap-5 mt-4 w-full" }, [
+
+                    // Skins & Colors (Cosméticos)
+                    el('div', { key: 'customization', className: "w-full bg-slate-950/80 border border-indigo-500/30 rounded-2xl p-3 flex flex-col sm:flex-row gap-4 items-center justify-around shadow-inner" }, [
+                        el('div', { className: "flex items-center gap-3" }, [
+                            el('span', { className: "text-[10px] font-black text-indigo-400 uppercase tracking-widest" }, "🎨 Material:"),
+                            el('select', {
+                                value: diceSkin,
+                                onChange: (e) => setDiceSkin(e.target.value),
+                                className: "bg-slate-900 border border-slate-700 text-white text-xs font-bold rounded-lg px-3 py-1.5 outline-none focus:border-indigo-500"
+                            }, [
+                                el('option', { value: 'padrao' }, "Plástico Padrão"),
+                                el('option', { value: 'metal' }, "Aço Polido"),
+                                el('option', { value: 'cristal' }, "Cristal Mágico"),
+                                el('option', { value: 'magma' }, "Magma Fervente")
+                            ])
+                        ]),
+                        el('div', { className: "flex items-center gap-3" }, [
+                            el('span', { className: "text-[10px] font-black text-indigo-400 uppercase tracking-widest" }, "🖌️ Cor do Dado:"),
+                            el('div', { className: "relative w-8 h-8 rounded-full overflow-hidden border-2 border-slate-700 hover:border-indigo-500 transition-colors" }, [
+                                el('input', {
+                                    type: 'color',
+                                    value: diceColor,
+                                    onChange: (e) => setDiceColor(e.target.value),
+                                    className: "absolute -top-2 -left-2 w-12 h-12 cursor-pointer bg-transparent"
+                                })
+                            ])
+                        ])
+                    ]),
 
                     el('div', { key: 'qty-section', className: "w-full bg-slate-950/60 border border-amber-500/20 rounded-2xl p-4 flex flex-col gap-3" }, [
                         el('p', { key: 'qty-title', className: "text-[9px] font-black text-amber-500 uppercase tracking-[0.3em] text-center" }, 'Quantos dados rodar?'),
