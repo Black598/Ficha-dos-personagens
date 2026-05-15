@@ -561,13 +561,13 @@ export function SheetView({
         // --- BANNER DE TURNO ---
         isMyTurn && el('div', {
             key: 'turn-banner',
-            className: "fixed top-24 left-1/2 -translate-x-1/2 z-[60] bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-600 text-slate-900 px-8 py-2 rounded-full font-black uppercase tracking-[0.3em] shadow-[0_0_30px_rgba(251,191,36,0.6)] animate-bounce text-xs border-2 border-amber-200"
+            className: "fixed top-20 md:top-24 left-1/2 -translate-x-1/2 z-[60] bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-600 text-slate-900 px-4 md:px-8 py-1 md:py-2 rounded-full font-black uppercase tracking-[0.2em] md:tracking-[0.3em] shadow-[0_0_30px_rgba(251,191,36,0.6)] animate-bounce text-[9px] md:text-xs border-2 border-amber-200 whitespace-nowrap"
         }, "🔥 É a sua vez!"),
 
         // --- ÍCONES DE STATUS (Minecraft Style) ---
         el('div', {
             key: 'status-icons',
-            className: "fixed top-24 right-8 z-50 flex flex-col gap-4"
+            className: "fixed top-20 md:top-24 right-4 md:right-8 z-50 flex flex-col gap-2 md:gap-4"
         }, (activeConditions || []).map((cond) =>
             el('div', {
                 key: cond.name,
@@ -617,7 +617,7 @@ export function SheetView({
                         el('p', { className: "text-slate-500 text-[10px] font-bold uppercase tracking-widest italic" }, characterSheetData.info?.['Classe'] || 'Aventureiro')
                     )
                 ]),
-                el('div', { className: "flex gap-3" },
+                el('div', { className: "flex gap-2 md:gap-3 overflow-x-auto pb-2 md:pb-0 hide-scrollbar mask-fade-right md:mask-none" },
                     el('button', {
                         onClick: () => setIsBattlemapOpen(true),
                         className: "bg-green-600/10 hover:bg-green-600 text-green-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-green-600/30 px-4 py-2 rounded-xl transition-all"
@@ -668,14 +668,14 @@ export function SheetView({
             )
         ),
         // --- CONTEÚDO PRINCIPAL ---
-        el('main', { key: 'sheet-main', className: "max-w-7xl mx-auto p-4 md:p-6 space-y-10" },
+        el('main', { key: 'sheet-main', className: "max-w-7xl mx-auto p-4 md:p-6 space-y-6 md:space-y-10" },
             // --- BLOCO 1: INFORMAÇÕES INICIAIS ---
-            el('div', { className: "bg-slate-900 border-2 border-slate-800 p-6 rounded-[2.5rem] shadow-xl" },
-                el('div', { className: "grid grid-cols-1 md:grid-cols-4 gap-6" },
+            el('div', { className: "bg-slate-900 border-2 border-slate-800 p-4 md:p-6 rounded-[2rem] md:rounded-[2.5rem] shadow-xl" },
+                el('div', { className: "grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6" },
                     // Coluna 1: Nome do Personagem (Destaque)
-                    el('div', { className: "flex flex-col justify-center border-r border-slate-800 pr-4" },
+                    el('div', { className: "flex flex-col justify-center border-r border-slate-800 pr-4 col-span-2 md:col-span-1 pb-4 md:pb-0 border-b md:border-b-0" },
                         el('p', { className: "text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1" }, "Nome do Personagem"),
-                        el('p', { className: "text-2xl font-black text-amber-400 tracking-tighter" }, characterSheetData.info?.['Nome do Personagem'] || '---')
+                        el('p', { className: "text-xl md:text-2xl font-black text-amber-400 tracking-tighter" }, characterSheetData.info?.['Nome do Personagem'] || '---')
                     ),
                     // Coluna 2: Classe e Raça
                     el('div', { className: "space-y-4" },
@@ -870,13 +870,13 @@ export function SheetView({
             ),
             // --- BLOCO 4: ATAQUES E COMBATE ---
             el('div', { className: "bg-slate-900 border-2 border-slate-800 rounded-[2.5rem] overflow-hidden shadow-xl" },
-                el('div', { className: "bg-slate-800/50 px-8 py-4 border-b border-slate-700 flex items-center justify-between" },
+                el('div', { className: "bg-slate-800/50 px-6 py-4 border-b border-slate-700 flex items-center justify-between" },
                     el('h3', { className: "text-sm font-black text-slate-200 uppercase tracking-widest italic flex items-center gap-2" }, "⚔️ Ataques e Conjuração"),
-                    el('span', { className: "text-[10px] text-slate-500 font-bold uppercase tracking-widest" }, "Tabela de Combate")
+                    el('span', { className: "hidden md:block text-[10px] text-slate-500 font-bold uppercase tracking-widest" }, "Tabela de Combate")
                 ),
-                el('div', { className: "p-6 space-y-3" },
+                el('div', { className: "p-4 md:p-6 space-y-3" },
                     // Cabeçalho
-                    el('div', { className: "grid grid-cols-12 px-4 text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]" },
+                    el('div', { className: "hidden md:grid grid-cols-12 px-4 text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]" },
                         el('div', { className: "col-span-4" }, "Arma/Ataque"),
                         el('div', { className: "col-span-2 text-center" }, "Bônus"),
                         el('div', { className: "col-span-3 text-center" }, "Dano"),
@@ -884,11 +884,11 @@ export function SheetView({
                     ),
                     // Linhas de Ataque
                     (characterSheetData.ataques || []).map((atk, idx) =>
-                        el('div', { key: `atk-${idx}`, className: "grid grid-cols-12 items-center bg-slate-950/40 border border-slate-800 p-4 rounded-2xl group hover:border-amber-500/40 transition-all relative" },
+                        el('div', { key: `atk-${idx}`, className: "flex flex-col md:grid md:grid-cols-12 items-center bg-slate-950/40 border border-slate-800 p-4 rounded-2xl group hover:border-amber-500/40 transition-all relative gap-3 md:gap-0" },
                             // Botão Deletar Ataque
                             el('button', {
                                 key: "btn-del",
-                                className: "absolute -top-2 -right-2 w-5 h-5 bg-red-900 border border-red-500 text-white rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity z-10",
+                                className: "absolute -top-2 -right-2 w-6 h-6 bg-red-900 border border-red-500 text-white rounded-full flex items-center justify-center text-[10px] opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-10",
                                 onClick: () => {
                                     const novosAtaques = [...characterSheetData.ataques];
                                     novosAtaques.splice(idx, 1);
@@ -899,15 +899,15 @@ export function SheetView({
                             // Botão Fixar na Hotbar
                             el('button', {
                                 key: "btn-pin",
-                                className: `absolute -top-2 -left-2 w-5 h-5 border rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition-all z-10 ${hotbarItems.some(i => i.name === atk.nome && i.type === 'ataque') ? 'bg-amber-500 border-amber-300 text-white' : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-amber-600'}`,
+                                className: `absolute -top-2 -left-2 w-6 h-6 border rounded-full flex items-center justify-center text-[8px] opacity-100 md:opacity-0 group-hover:opacity-100 transition-all z-10 ${hotbarItems.some(i => i.name === atk.nome && i.type === 'ataque') ? 'bg-amber-500 border-amber-300 text-white' : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-amber-600'}`,
                                 onClick: () => addToHotbar({ type: 'ataque', name: atk.nome, bonus: atk.bonus, dano: atk.dano, icon: '⚔️' }),
                                 title: "Fixar nos Atalhos"
                             }, "📌"),
                             
                             // Nome
-                            el('div', { className: "col-span-4 pr-2" }, 
+                            el('div', { className: "w-full md:col-span-4 md:pr-2" }, 
                                 el('input', {
-                                    className: "bg-transparent text-slate-200 font-bold text-sm truncate uppercase tracking-tight outline-none w-full focus:text-amber-500",
+                                    className: "bg-transparent text-slate-200 font-bold text-base md:text-sm truncate uppercase tracking-tight outline-none w-full focus:text-amber-500",
                                     defaultValue: atk.nome,
                                     onBlur: (e) => {
                                         const novosAtaques = [...characterSheetData.ataques];
@@ -916,54 +916,59 @@ export function SheetView({
                                     }
                                 })
                             ),
-                            // Bônus
-                            el('div', { className: "col-span-2 text-center flex items-center justify-center gap-1" }, [
-                                el('input', {
-                                    className: "bg-slate-900 px-2 py-1 rounded-lg text-amber-500 font-black text-xs border border-slate-800 shadow-inner w-10 text-center outline-none focus:border-amber-500",
-                                    defaultValue: atk.bonus,
-                                    onBlur: (e) => {
-                                        const novosAtaques = [...characterSheetData.ataques];
-                                        novosAtaques[idx].bonus = e.target.value;
-                                        updateSheetField('ataques', null, novosAtaques);
-                                    }
-                                }),
-                                el('button', {
-                                    onClick: () => triggerExternalRoll(20, false, parseInt(atk.bonus) || 0, 'normal', 1),
-                                    className: "text-xs hover:scale-125 transition-transform",
-                                    title: "Rolar Ataque (1d20)"
-                                }, "🎲")
-                            ]),
-                            // Dano
-                            el('div', { className: "col-span-3 text-center px-1 flex items-center justify-center gap-1" }, [
-                                el('input', {
-                                    className: "bg-transparent text-blue-400 font-black text-sm drop-shadow-[0_0_8px_rgba(59,130,246,0.3)] text-center outline-none w-full focus:text-white",
-                                    defaultValue: atk.dano,
-                                    onBlur: (e) => {
-                                        const novosAtaques = [...characterSheetData.ataques];
-                                        novosAtaques[idx].dano = e.target.value;
-                                        updateSheetField('ataques', null, novosAtaques);
-                                    }
-                                }),
-                                el('button', {
-                                    onClick: () => {
-                                        const formula = (atk.dano || '1d6').toLowerCase().replace(/\s/g, '');
-                                        const match = formula.match(/^(\d+)d(\d+)([+-]\d+)?$/);
-                                        if (match) {
-                                            const qty = parseInt(match[1]) || 1;
-                                            const sides = parseInt(match[2]) || 6;
-                                            const bonus = parseInt(match[3]) || 0;
-                                            triggerExternalRoll(sides, false, bonus, 'normal', qty);
-                                        } else {
-                                            // Fallback simples
-                                            triggerExternalRoll(6, false, 0, 'normal', 1);
+                            // Container para Bônus e Dano no Mobile
+                            el('div', { className: "flex w-full md:contents gap-2" }, [
+                                // Bônus
+                                el('div', { className: "flex-1 md:col-span-2 text-center flex items-center justify-center gap-1 bg-slate-900/50 md:bg-transparent p-2 md:p-0 rounded-xl md:rounded-none" }, [
+                                    el('span', { className: "md:hidden text-[8px] font-black text-slate-600 uppercase mr-1" }, "ATK:"),
+                                    el('input', {
+                                        className: "bg-slate-900 px-2 py-1 rounded-lg text-amber-500 font-black text-xs border border-slate-800 shadow-inner w-10 text-center outline-none focus:border-amber-500",
+                                        defaultValue: atk.bonus,
+                                        onBlur: (e) => {
+                                            const novosAtaques = [...characterSheetData.ataques];
+                                            novosAtaques[idx].bonus = e.target.value;
+                                            updateSheetField('ataques', null, novosAtaques);
                                         }
-                                    },
-                                    className: "text-xs hover:scale-125 transition-transform text-blue-400",
-                                    title: "Rolar Dano"
-                                }, "💥")
+                                    }),
+                                    el('button', {
+                                        onClick: () => triggerExternalRoll(20, false, parseInt(atk.bonus) || 0, 'normal', 1),
+                                        className: "text-lg md:text-xs hover:scale-125 transition-transform",
+                                        title: "Rolar Ataque (1d20)"
+                                    }, "🎲")
+                                ]),
+                                // Dano
+                                el('div', { className: "flex-1 md:col-span-3 text-center px-1 flex items-center justify-center gap-1 bg-slate-900/50 md:bg-transparent p-2 md:p-0 rounded-xl md:rounded-none" }, [
+                                    el('span', { className: "md:hidden text-[8px] font-black text-slate-600 uppercase mr-1" }, "DMG:"),
+                                    el('input', {
+                                        className: "bg-transparent text-blue-400 font-black text-sm drop-shadow-[0_0_8px_rgba(59,130,246,0.3)] text-center outline-none w-full focus:text-white",
+                                        defaultValue: atk.dano,
+                                        onBlur: (e) => {
+                                            const novosAtaques = [...characterSheetData.ataques];
+                                            novosAtaques[idx].dano = e.target.value;
+                                            updateSheetField('ataques', null, novosAtaques);
+                                        }
+                                    }),
+                                    el('button', {
+                                        onClick: () => {
+                                            const formula = (atk.dano || '1d6').toLowerCase().replace(/\s/g, '');
+                                            const match = formula.match(/^(\d+)d(\d+)([+-]\d+)?$/);
+                                            if (match) {
+                                                const qty = parseInt(match[1]) || 1;
+                                                const sides = parseInt(match[2]) || 6;
+                                                const bonus = parseInt(match[3]) || 0;
+                                                triggerExternalRoll(sides, false, bonus, 'normal', qty);
+                                            } else {
+                                                // Fallback simples
+                                                triggerExternalRoll(6, false, 0, 'normal', 1);
+                                            }
+                                        },
+                                        className: "text-lg md:text-xs hover:scale-125 transition-transform text-blue-400",
+                                        title: "Rolar Dano"
+                                    }, "💥")
+                                ])
                             ]),
                             // Tipo
-                            el('div', { className: "col-span-3 text-right" }, 
+                            el('div', { className: "w-full md:col-span-3 text-right" }, 
                                 el('input', {
                                     className: "text-[10px] text-slate-500 font-black uppercase italic tracking-tighter bg-slate-900/50 px-2 py-1 rounded-md border border-slate-800 text-right outline-none w-full focus:text-slate-200",
                                     defaultValue: atk.tipo,
@@ -1524,7 +1529,7 @@ export function SheetView({
                         )
                     ]),
                     
-                    el('div', { key: 'main-bar', className: "bg-slate-900/80 backdrop-blur-xl border border-slate-700 p-4 rounded-full shadow-2xl flex items-center gap-3" }, [
+                    el('div', { key: 'main-bar', className: "bg-slate-900/80 backdrop-blur-xl border border-slate-700 p-3 md:p-4 rounded-full shadow-2xl flex items-center gap-3 overflow-x-auto hide-scrollbar max-w-full" }, [
                         // Botão Dado (Abre o Canvas 3D global)
                         el('button', {
                             onClick: () => setQuickRollOpen(!quickRollOpen),
@@ -1922,15 +1927,13 @@ export function SheetView({
         ]),
 
         // --- HOTBAR (BARRA DE ATALHOS) ---
-        el('div', {
+        hotbarItems.length > 0 && el('div', {
             key: 'hotbar',
-            className: "fixed bottom-0 left-0 right-0 z-[100] p-4 pointer-events-none flex justify-center"
+            className: "fixed bottom-24 md:bottom-0 left-0 right-0 z-[100] p-4 pointer-events-none flex justify-center"
         }, [
             el('div', {
-                className: "bg-slate-900/80 backdrop-blur-2xl border-t-2 border-x-2 border-slate-800 rounded-t-[2.5rem] p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] flex items-end gap-3 pointer-events-auto animate-slide-up max-w-[95vw] overflow-x-auto custom-scrollbar no-scrollbar"
+                className: "bg-slate-900/60 backdrop-blur-xl border-2 border-slate-800 rounded-[2.5rem] p-3 shadow-2xl flex items-center gap-3 pointer-events-auto animate-slide-up max-w-[95vw] overflow-x-auto hide-scrollbar"
             }, [
-                hotbarItems.length === 0 && el('div', { className: "px-8 py-2 text-slate-600 text-[9px] font-black uppercase tracking-widest italic" }, "Seus atalhos aparecerão aqui... (Fixe magias ou ataques com 📌)"),
-                
                 hotbarItems.map((item) => el('div', {
                     key: item.id,
                     className: "group relative flex flex-col items-center gap-1 min-w-[70px] cursor-pointer",

@@ -1677,7 +1677,7 @@ function App() {
 
     return el('div', {
         key: 'clock-overlay',
-        className: `fixed top-6 left-1/2 -translate-x-1/2 md:translate-x-0 md:top-4 md:left-4 z-[100] ${bgClass} border-2 backdrop-blur-md px-4 py-2 rounded-2xl shadow-2xl flex items-center gap-3 transition-all hover:scale-105 pointer-events-none`
+        className: `fixed top-4 left-4 md:top-4 md:left-4 z-[100] ${bgClass} border-2 backdrop-blur-md px-3 py-1.5 md:px-4 md:py-2 rounded-2xl shadow-2xl flex items-center gap-2 md:gap-3 transition-all hover:scale-105 pointer-events-none`
     }, [
         el('span', { key: 'icon', className: "text-2xl drop-shadow-md" }, icon),
         el('div', { key: 'text-container', className: "flex flex-col" }, [

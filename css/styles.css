@@ -9,6 +9,35 @@ button { cursor: pointer; }
   body { font-size: 14px; }
   .break-words { word-wrap: break-word; overflow-wrap: break-word; }
   .overflow-wrap-anywhere { overflow-wrap: anywhere; }
+  
+  /* Hide scrollbar but keep functionality */
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Better spacing for mobile */
+  .mobile-p-2 { padding: 0.5rem; }
+  .mobile-gap-2 { gap: 0.5rem; }
+  
+  /* Responsive grids */
+  .mobile-grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mobile-grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.horizontal-scroll {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.horizontal-scroll > * {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+.mask-fade-right {
+  mask-image: linear-gradient(to right, black 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
 }
 /* Touch-friendly interactions */
 @media (hover: none) and (pointer: coarse) {
