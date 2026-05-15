@@ -1677,12 +1677,12 @@ function App() {
 
     return el('div', {
         key: 'clock-overlay',
-        className: `fixed top-4 left-4 md:top-4 md:left-4 z-[100] ${bgClass} border-2 backdrop-blur-md px-3 py-1.5 md:px-4 md:py-2 rounded-2xl shadow-2xl flex items-center gap-2 md:gap-3 transition-all hover:scale-105 pointer-events-none`
+        className: `fixed bottom-0 left-0 right-0 z-[100] ${bgClass} border-t-2 md:border-2 backdrop-blur-md md:bottom-8 md:left-8 md:right-auto md:px-4 md:py-2 md:rounded-2xl shadow-2xl flex items-center justify-center md:justify-start gap-4 md:gap-3 transition-all hover:scale-105 pointer-events-none h-10 md:h-auto`
     }, [
-        el('span', { key: 'icon', className: "text-2xl drop-shadow-md" }, icon),
-        el('div', { key: 'text-container', className: "flex flex-col" }, [
-            el('span', { key: 'day-label', className: "text-[9px] font-black uppercase tracking-[0.2em] opacity-80" }, `Dia ${day}`),
-            el('span', { key: 'time-label', className: "text-lg font-black font-mono leading-none tracking-tighter" }, `${h}:${m}`)
+        el('span', { key: 'icon', className: "text-lg md:text-2xl drop-shadow-md" }, icon),
+        el('div', { key: 'text-container', className: "flex items-center md:flex-col gap-3 md:gap-0" }, [
+            el('span', { key: 'day-label', className: "text-[9px] md:text-[9px] font-black uppercase tracking-[0.2em] opacity-80" }, `Dia ${day}`),
+            el('span', { key: 'time-label', className: "text-sm md:text-lg font-black font-mono leading-none tracking-tighter" }, `${h}:${m}`)
         ])
     ]);
   })();

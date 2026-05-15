@@ -59,6 +59,7 @@ export function SheetView({
     const [showTutorial, setShowTutorial] = useState(() => localStorage.getItem('has_seen_player_tutorial') !== PLAYER_TUTORIAL_VERSION);
     const [useVisualInventory, setUseVisualInventory] = useState(true);
     const [showSoundboard, setShowSoundboard] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     // --- CÁLCULO DE BÔNUS DE INVENTÁRIO ---
     const getInventoryBonuses = () => {
@@ -617,7 +618,8 @@ export function SheetView({
                         el('p', { className: "text-slate-500 text-[10px] font-bold uppercase tracking-widest italic" }, characterSheetData.info?.['Classe'] || 'Aventureiro')
                     )
                 ]),
-                el('div', { className: "flex gap-2 md:gap-3 overflow-x-auto pb-2 md:pb-0 hide-scrollbar mask-fade-right md:mask-none" },
+                // Menu Desktop (Hidden on Mobile)
+                el('div', { className: "hidden md:flex gap-3" }, [
                     el('button', {
                         onClick: () => setIsBattlemapOpen(true),
                         className: "bg-green-600/10 hover:bg-green-600 text-green-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-green-600/30 px-4 py-2 rounded-xl transition-all"
@@ -631,42 +633,90 @@ export function SheetView({
                         className: "bg-purple-600/10 hover:bg-purple-600 text-purple-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-purple-600/30 px-4 py-2 rounded-xl transition-all"
                     }, "⭐ Talentos"),
                     el('button', {
-                        key: 'btn-dicemodal',
                         onClick: () => setRollingModalOpen(true),
                         className: "bg-indigo-600/10 hover:bg-indigo-600 text-indigo-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-indigo-600/30 px-4 py-2 rounded-xl transition-all"
                     }, "🎲 Dados"),
-
                     el('button', {
-                        key: 'btn-library',
                         onClick: () => setIsLibraryOpen(true),
                         className: "bg-amber-600/10 hover:bg-amber-600 text-amber-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-amber-600/30 px-4 py-2 rounded-xl transition-all"
                     }, "📚 Biblioteca"),
                     el('button', {
-                        key: 'btn-bargain',
                         onClick: () => setIsBargainOpen(true),
                         className: "bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-red-600/30 px-4 py-2 rounded-xl transition-all"
                     }, "👺 Barganhas"),
                     el('button', {
-                        key: 'btn-help',
                         onClick: () => setShowTutorial(true),
-                        className: "w-10 h-10 bg-slate-800 hover:bg-amber-600 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg",
-                        title: "Ajuda/Tutorial"
+                        className: "w-10 h-10 bg-slate-800 hover:bg-amber-600 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg"
                     }, "❓"),
                     el('button', {
-                        key: 'btn-request-delete',
                         onClick: onRequestDelete,
-                        className: "w-10 h-10 bg-slate-800 hover:bg-red-900 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg",
-                        title: "Solicitar Exclusão de Ficha"
+                        className: "w-10 h-10 bg-slate-800 hover:bg-red-900 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg"
                     }, "🗑️"),
                     el('button', {
-                        key: 'btn-exit',
                         onClick: onBack,
-                        className: "w-10 h-10 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg",
-                        title: "Sair da Ficha"
+                        className: "w-10 h-10 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg"
                     }, "✕")
-                )
+                ]),
+                // Botão Hamburguer (Mobile Only)
+                el('button', {
+                    className: "md:hidden w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-xl text-amber-500 border border-slate-700",
+                    onClick: () => setIsMobileMenuOpen(true)
+                }, "☰")
             )
         ),
+
+        // --- MENU MOBILE (OVERLAY) ---
+        isMobileMenuOpen && el('div', { className: "fixed inset-0 z-[1000] bg-slate-950/95 backdrop-blur-xl p-8 flex flex-col gap-6 animate-fade-in" }, [
+            el('div', { className: "flex justify-between items-center mb-4" }, [
+                el('h3', { className: "text-amber-500 font-black uppercase tracking-[0.2em]" }, "Menu de Navegação"),
+                el('button', { className: "text-white text-3xl", onClick: () => setIsMobileMenuOpen(false) }, "✕")
+            ]),
+            el('div', { className: "grid grid-cols-2 gap-4" }, [
+                el('button', {
+                    onClick: () => { setIsBattlemapOpen(true); setIsMobileMenuOpen(false); },
+                    className: "bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-3 text-white"
+                }, [el('span', { className: "text-3xl" }, "🗺️"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Mapa")]),
+                el('button', {
+                    onClick: () => { setIsWorldMapOpen(true); setIsMobileMenuOpen(false); },
+                    className: "bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-3 text-white"
+                }, [el('span', { className: "text-3xl" }, "🌍"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Atlas")]),
+                el('button', {
+                    onClick: () => { onToggleTree(); setIsMobileMenuOpen(false); },
+                    className: "bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-3 text-white"
+                }, [el('span', { className: "text-3xl" }, "⭐"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Talentos")]),
+                el('button', {
+                    onClick: () => { setRollingModalOpen(true); setIsMobileMenuOpen(false); },
+                    className: "bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-3 text-white"
+                }, [el('span', { className: "text-3xl" }, "🎲"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Dados")]),
+                el('button', {
+                    onClick: () => { setIsLibraryOpen(true); setIsMobileMenuOpen(false); },
+                    className: "bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-3 text-white"
+                }, [el('span', { className: "text-3xl" }, "📚"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Biblioteca")]),
+                el('button', {
+                    onClick: () => { setIsBargainOpen(true); setIsMobileMenuOpen(false); },
+                    className: "bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-3 text-white"
+                }, [el('span', { className: "text-3xl" }, "👺"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Barganhas")]),
+                el('button', {
+                    onClick: () => { setIsChatOpen(true); setIsMobileMenuOpen(false); },
+                    className: "bg-purple-900/20 border border-purple-500/30 p-6 rounded-2xl flex flex-col items-center gap-3 text-purple-400"
+                }, [el('span', { className: "text-3xl" }, "💬"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Chat Privado")]),
+                el('button', {
+                    onClick: () => { setShowTutorial(true); setIsMobileMenuOpen(false); },
+                    className: "bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-3 text-slate-400"
+                }, [el('span', { className: "text-3xl" }, "❓"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Ajuda")])
+            ]),
+            el('div', { className: "mt-auto grid grid-cols-2 gap-4" }, [
+                el('button', {
+                    onClick: () => { onRequestDelete(); setIsMobileMenuOpen(false); },
+                    className: "bg-red-900/20 border border-red-500/30 p-4 rounded-2xl text-red-500 text-[10px] font-black uppercase tracking-widest"
+                }, "🗑️ Excluir Ficha"),
+                el('button', {
+                    onClick: onBack,
+                    className: "bg-slate-800 p-4 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest"
+                }, "✕ Sair da Ficha")
+            ])
+        ]),
+
         // --- CONTEÚDO PRINCIPAL ---
         el('main', { key: 'sheet-main', className: "max-w-7xl mx-auto p-4 md:p-6 space-y-6 md:space-y-10" },
             // --- BLOCO 1: INFORMAÇÕES INICIAIS ---
@@ -1466,8 +1516,8 @@ export function SheetView({
             ])
         ),
         // --- MENU FIXO INFERIOR (CONTROLES) ---
-        el('div', { className: "fixed bottom-0 left-0 w-full p-6 z-[60] pointer-events-none" },
-            el('div', { className: "max-w-7xl mx-auto flex items-end justify-center gap-4 pointer-events-auto" }, [
+        el('div', { className: "fixed bottom-10 md:bottom-0 left-0 w-full p-3 md:p-6 z-[60] pointer-events-none" },
+            el('div', { className: "max-w-7xl mx-auto flex items-end justify-center gap-3 md:gap-4 pointer-events-auto" }, [
                 // Barra de Botões Fixos
                 // Barra de Botões Fixos
                 el('div', { key: 'footer-controls', className: "flex flex-col items-center gap-3" }, [
@@ -1793,8 +1843,8 @@ export function SheetView({
             )
         ),
 
-        // 4. CHAT COM O MESTRE (FLOAT)
-        el('div', { key: 'chat-floating-node', className: "fixed bottom-6 right-6 z-[300] font-sans" }, [
+        // 4. CHAT COM O MESTRE (FLOAT - Apenas Desktop)
+        el('div', { key: 'chat-floating-node', className: "hidden md:flex fixed bottom-24 right-6 z-[300] font-sans" }, [
             !isChatOpen && el('button', {
                 key: 'chat-toggle',
                 onClick: () => setIsChatOpen(true),
@@ -1802,11 +1852,12 @@ export function SheetView({
             }, [
                 "💬",
                 chatMessages && chatMessages.length > 0 && el('span', { className: "absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-slate-900 animate-pulse" })
-            ]),
-            isChatOpen && el('div', {
-                key: 'chat-window',
-                className: "w-80 h-[28rem] bg-slate-900 border-2 border-purple-500/30 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden animate-slide-up"
-            }, [
+            ])
+        ]),
+        isChatOpen && el('div', {
+            key: 'chat-window',
+            className: "fixed inset-0 md:inset-auto md:bottom-24 md:right-6 md:w-80 md:h-[28rem] z-[500] bg-slate-900 border-2 border-purple-500/30 md:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden animate-slide-up"
+        }, [
                 el('div', { className: "p-5 bg-gradient-to-r from-purple-700 to-indigo-800 flex justify-between items-center text-white" }, [
                     el('div', { className: "flex flex-col" }, [
                         el('h4', { className: "text-[10px] font-black uppercase tracking-[0.2em]" }, "Chat com o Mestre"),
@@ -1843,8 +1894,7 @@ export function SheetView({
                         className: "w-10 h-10 bg-purple-600 hover:bg-purple-500 text-white rounded-xl flex items-center justify-center transition-all shadow-lg text-lg"
                     }, "➔")
                 ])
-            ])
-        ]),
+            ]),
 
         // --- 5. ROLAGEM SECRETA (FORÇADA PELO MESTRE) ---
         (sessionState?.rollRequests?.[characterName.toLowerCase()] && !hiddenRollRequests[characterName.toLowerCase()]) && el('div', {
