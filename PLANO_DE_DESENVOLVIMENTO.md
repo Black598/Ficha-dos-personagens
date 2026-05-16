@@ -9,12 +9,10 @@ Este documento organiza o progresso e as próximas funcionalidades do sistema.
 As funcionalidades abaixo já foram implementadas e estão operacionais.
 
 ### 1. 🎒 Inventário Visual (Grid/Slots) & Equipamentos
-
 - **Status:** Concluído (Refinado)
 - **Features:** Grid 24 slots, ícones automáticos, sistema de equipar, bônus dinâmicos e **Adição Direta de Itens** (sem texto).
 
 ### 2. ⚔️ Combate Avançado & Iniciativa
-
 - **Status:** Concluído
 - **Features:**
   - **Iniciativa Drag & Drop:** Reordene combatentes arrastando.
@@ -24,27 +22,22 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Tutoriais Integrados:** Guias atualizados para Mestre e Jogadores cobrindo VTT, Som e Alquimia.
 
 ### 3. ⛈️ Clima e Imersão Atmosférica
-
 - **Status:** Concluído (Expandido)
 - **Features:** 10 efeitos sincronizados — Chuva, Neve, Fogo, **Tempestade** ⚡ (relâmpagos), **Tempestade de Areia**, **Pétalas** 🌸, Névoa, Lua de Sangue, Veneno e Noite. Invisíveis para o Mestre.
 
 ### 4. 👤 Gerador de NPCs (IA)
-
 - **Status:** Concluído
 - **Features:** Integração com Gemini para gerar NPCs completos (Nome, Background, Segredos e Stats) com um clique.
 
 ### 5. 🏰 Gestão de Campanhas & Importação
-
 - **Status:** Concluído
 - **Features:** Criação de salas, exclusão atômica de dados e importação via ID para recuperação de salas.
 
 ### 6. 💰 Loot, Barganhas e Biblioteca
-
 - **Status:** Concluído
 - _Sistemas base de exploração e interação._
 
 ### 7. 🐾 Glossário Animal & Bestiário
-
 - **Status:** Concluído
 - **Features:**
   - **Monstros** 👹: Aba exclusiva do Mestre com CR, PV, CA, Tipo e Habilidades.
@@ -52,7 +45,6 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - Modal de detalhe com stats completos; deleção exclusiva do Mestre.
 
 ### 8. 🔊 Soundboard Sincronizado
-
 - **Status:** Concluído
 - **Features:**
   - ✅ **Atmosferas:** Músicas de fundo em loop (Taverna, Floresta, Combate, etc.) com suporte a **YouTube**.
@@ -64,7 +56,6 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Instant SFX:** Sons rápidos para feedback imediato.
 
 ### 9. 🗺️ Mapa de Batalha (VTT) Integrado
-
 - **Status:** Concluído
 - **Features:**
   - ✅ **Fase 1:** Pan, Zoom e renderização de Grid e Fundo em alta resolução.
@@ -75,7 +66,6 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Fase 6:** Sistema de Dados 3D persistente integrado na UI do mapa.
 
 ### 10. 🗺️ Mapa do Mundo Interativo (Atlas)
-
 - **Status:** Concluído
 - **Features:**
   - ✅ **Fase 1:** Renderização de Mapa Mundi com Pan/Zoom independente.
@@ -84,7 +74,6 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Fase 4:** Integração com Google Drive para mapas de alta definição.
 
 ### 11. 🧪 Alquimia e Crafting
-
 - **Status:** Concluído
 - **Features:**
   - ✅ **Dois Modos:** Caldeirão (Alquimia) e Bigorna (Forja).
@@ -94,7 +83,6 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Feedback Visual:** Animações e cores específicas para cada modo de criação.
 
 ### 12. 🛒 Loja do Mestre (Trading System)
-
 - **Status:** Concluído (Avançado)
 - **Features:**
   - ✅ **Vitrine do Mestre:** Interface para colocar itens à venda com nome, ícone e descrição.
@@ -137,8 +125,6 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Linha de Visão (LoS):** Cálculo dinâmico que impede que as áreas reveladas pelos jogadores atravessem paredes/obstáculos.
   - ✅ **Raio de Visão Pessoal:** A neblina é dinamicamente removida em tempo real nas posições dos tokens baseada no atributo 'Visão (sqr)' de cada um.
 
----
-
 ### 📱 17. Otimização Mobile-First & UX
 - **Status:** Concluído ✅
 - **Features:**
@@ -147,12 +133,23 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Configuração de Tokens Mobile:** Menu de contexto (long press) agora centralizado e rolável no mobile para fácil acesso a todas as opções.
   - ✅ **Controles de Mapa Mobile:** Todas as ferramentas de desenho e mestre movidas para o menu hambúrguer no VTT.
   - ✅ **Ajuste de Precisão:** Fim do desalinhamento de tokens e marcadores em telas de alta densidade de pixels.
+  - ✅ **Sincronização de Loja:** Toggle de habilitar/desabilitar loja integrado no menu hambúrguer do Mestre.
 
 ### 🎬 18. Apresentação Cinematográfica (Modo "Cutscene")
 - **Status:** Concluído ✅
 - **Features:**
   - ✅ **Revelação Dramática:** O mestre pode escurecer a tela de todos, exibir imagens centralizadas e tocar áudios de impacto simultaneamente.
   - ✅ **Transição de Áudio:** Suporte a Fade Out e Playlist automática.
+
+### 🔒 19. Camada de Segurança e Multi-Campanha (Portão & PIN)
+- **Status:** Concluído ✅
+- **Features:**
+  - ✅ **Landing Page:** Nova porta de entrada para seleção de campanhas, evitando carregamento direto da última sala.
+  - ✅ **Senhas Dual-Layer:** Diferenciação entre **Senha da Sala** (acesso global) e **Senha de Mestre** (acesso administrativo).
+  - ✅ **Autenticação Persistente:** Mestre e Jogadores só precisam digitar suas senhas/PINs uma vez por sessão.
+  - ✅ **PIN de Personagem:** Trava individual de 4 dígitos para cada ficha.
+  - ✅ **Bypass de Mestre:** O Mestre pode entrar em qualquer ficha sem PIN após se autenticar.
+  - ✅ **Exclusão Segura:** Proteção contra exclusão acidental de salas exigindo senha ou confirmação textual.
 
 ---
 
@@ -201,5 +198,5 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 
 ---
 
-**Última atualização:** 15/05/2026
+**Última atualização:** 16/05/2026
 **Próximo passo:** Iniciar o Sistema de **📏 Régua de Medição e Pings no Mapa**.

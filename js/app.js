@@ -20,6 +20,8 @@ import { WorldMapView } from './components/WorldMapView.js'
 import { CraftingView } from './components/CraftingView.js'
 import { TradingSystem } from './components/TradingSystem.js'
 
+import { LandingView } from './components/LandingView.js'
+
 // 2. INICIALIZAÇÃO FIREBASE
 const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app()
 const auth = firebase.auth()
@@ -29,187 +31,40 @@ const { useState, useEffect, useRef } = React
 
 function App() {
   const el = React.createElement;
-  // --- ESTADOS ---
+
+  // --- 1. ESTADOS ---
   const scriptWebhook = "https://script.google.com/macros/s/AKfycbyEW3GW4hV_BstFdzeuP-rMt4w67mgXza6XjYPezy1rGEnzB9u_yllzmmNHJLGVMuSTqA/exec";
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState('login');
+  const [view, setView] = useState('landing');
   const [allCharacters, setAllCharacters] = useState([]);
   const [characterName, setCharacterName] = useState('');
   const [characterData, setCharacterData] = useState(null);
   const [characterSheetData, setCharacterSheetData] = useState(null);
   const [creatingCharacter, setCreatingCharacter] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [isNewCharacter, setIsNewCharacter] = useState(false); // Abre setup ao criar
+  const [isNewCharacter, setIsNewCharacter] = useState(false);
   const [rollHistory, setRollHistory] = useState([]);
   const [recentRolls, setRecentRolls] = useState([]);
   const [tooltip, setTooltip] = useState({ show: false, content: null, x: 0, y: 0 });
   const [editableSheetData, setEditableSheetData] = useState(null);
   const [isRollingModalOpen, setRollingModalOpen] = useState(false);
   const [turnState, setTurnState] = useState({ activeChar: '', round: 1 });
-  const [souls, setSouls] = useState([]); // Grimório de Almas
+  const [souls, setSouls] = useState([]);
   const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
-  const [externalRoll, setExternalRoll] = useState(null); // Gatilho para rolagens 3D sem modal
+  const [externalRoll, setExternalRoll] = useState(null);
   const [isCraftingOpen, setIsCraftingOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [lastGlobalSFX, setLastGlobalSFX] = useState(null);
-
-  // --- ESTADOS DE CAMPANHAS / SALAS ---
   const [currentAppId, setCurrentAppId] = useState(localStorage.getItem('selected_rpg') || DEFAULT_APP_ID);
   const [campaigns, setCampaigns] = useState([{ id: DEFAULT_APP_ID, name: 'Dungeon Delvers (Original)' }]);
-
-  // Buscar lista de campanhas globais do Firebase
-    useEffect(() => {
-        const unsub = db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
-            .onSnapshot((doc) => {
-                if (doc.exists && doc.data().list) {
-                    setCampaigns(doc.data().list);
-                } else {
-                    // Inicializa se não existir
-                    const initialList = [{ id: DEFAULT_APP_ID, name: 'Dungeon Delvers (Original)' }];
-                    db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
-                        .set({ list: initialList }, { merge: true });
-                    setCampaigns(initialList);
-                }
-            }, (err) => {
-                console.error("Erro ao carregar lista de campanhas:", err);
-                // Fallback para a padrão se falhar
-                setCampaigns([{ id: DEFAULT_APP_ID, name: 'Dungeon Delvers (Original)' }]);
-            });
-        return () => unsub();
-    }, [user]);
-
-  // Salvar a campanha atual no localStorage
-  useEffect(() => {
-    localStorage.setItem('selected_rpg', currentAppId);
-  }, [currentAppId]);
-
-  const createNewCampaign = async (name) => {
-    const newId = 'rpg-' + name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    
-    // Busca a lista mais recente do Firebase para não sobrescrever nada por erro de sincronia local
-    const doc = await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list').get();
-    let currentList = [];
-    if (doc.exists && doc.data().list) {
-        currentList = doc.data().list;
-    } else {
-        currentList = [{ id: DEFAULT_APP_ID, name: 'Dungeon Delvers (Original)' }];
-    }
-
-    // Verifica se já existe
-    if (currentList.some(c => c.id === newId)) {
-        alert("Já existe uma campanha com este ID ou nome similar.");
-        setCurrentAppId(newId); // Apenas entra nela
-        return;
-    }
-
-    const newList = [...currentList, { id: newId, name: name }];
-    await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
-      .set({ list: newList }, { merge: true });
-    
-    setCurrentAppId(newId);
-  };
-
-  const importCampaign = async (campaignId) => {
-    if (!campaignId.startsWith('rpg-')) {
-        alert("ID de campanha inválido. Deve começar com 'rpg-'");
-        return;
-    }
-
-    const doc = await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list').get();
-    let currentList = (doc.exists && doc.data().list) ? doc.data().list : [];
-
-    if (currentList.some(c => c.id === campaignId)) {
-        alert("Esta campanha já está na lista.");
-        setCurrentAppId(campaignId);
-        return;
-    }
-
-    // Tenta verificar se a campanha realmente existe no Firebase (checa se tem algum dado nela)
-    const charSnap = await db.collection('artifacts').doc(campaignId).collection('public').doc('data').collection('characters').limit(1).get();
-    
-    if (charSnap.empty) {
-        if (!confirm("Não encontramos personagens nesta campanha. Deseja importá-la mesmo assim?")) return;
-    }
-
-    const newList = [...currentList, { id: campaignId, name: campaignId.replace('rpg-', '').toUpperCase() }];
-    await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
-      .set({ list: newList }, { merge: true });
-
-    setCurrentAppId(campaignId);
-    alert("Campanha importada com sucesso!");
-  };
-
-  const deleteCampaign = async (campaignId) => {
-    if (campaignId === DEFAULT_APP_ID) {
-      alert("Não é possível apagar a campanha original.");
-      return;
-    }
-    if (!confirm("⚠️ ATENÇÃO: Tem certeza que deseja apagar permanentemente esta campanha? Todos os personagens e dados desta sala serão perdidos. Esta ação não pode ser desfeita.")) return;
-    
-    try {
-        // 1. Tenta limpar personagens (lixo no firebase)
-        const charSnap = await db.collection('artifacts').doc(campaignId).collection('public').doc('data').collection('characters').get();
-        const batch = db.batch();
-        charSnap.forEach(doc => batch.delete(doc.ref));
-        
-        // 2. Limpa mensagens
-        const msgSnap = await db.collection('artifacts').doc(campaignId).collection('public').doc('data').collection('messages').get();
-        msgSnap.forEach(doc => batch.delete(doc.ref));
-        
-        // 3. Limpa sessão
-        batch.delete(db.collection('artifacts').doc(campaignId).collection('public').doc('data').collection('global').doc('session'));
-        
-        await batch.commit();
-
-        // 4. Remove da lista global
-        const newList = campaigns.filter(c => c.id !== campaignId);
-        await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
-            .set({ list: newList }, { merge: true });
-        
-        // Se a campanha apagada era a atual, volta para a original
-        if (currentAppId === campaignId) {
-            setCurrentAppId(DEFAULT_APP_ID);
-            setView('login');
-        }
-        alert("Campanha e dados removidos com sucesso.");
-    } catch (e) {
-        console.error("Erro ao deletar campanha:", e);
-        alert("Erro ao remover dados, mas a campanha será removida da lista.");
-        const newList = campaigns.filter(c => c.id !== campaignId);
-        await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
-            .set({ list: newList }, { merge: true });
-    }
-  };
-
-  const lastHPs = useRef({}); // Rastreador de HP para mortes automáticas (Ref evita re-renders)
-  
-  // --- NOVOS ESTADOS GLOBAIS (SALA DO MESTRE) ---
   const [sessionState, setSessionState] = useState({
-    announcement: '',
-    handout: '',
-    environment: 'none',
-    monsters: [],
-    masterNotes: '',
-    day: 1,
-    library: {
-      characters: [],
-      books: [],
-      bestiary: []
-    },
-    devilsBargain: {
-      categories: BARGAIN_EFFECTS,
-      activeBargains: []
-    },
-    battlemap: {
-      activeMapId: null,
-      maps: [],
-      tokens: []
-    },
-    announcementTarget: 'all',
-    handoutTarget: 'all',
-    groupNotes: [],
-    activeLoot: null // { gold, items, approved: false, timestamp }
+    announcement: '', handout: '', environment: 'none', monsters: [],
+    masterNotes: '', day: 1, library: { characters: [], books: [], bestiary: [] },
+    devilsBargain: { categories: BARGAIN_EFFECTS, activeBargains: [] },
+    battlemap: { activeMapId: null, maps: [], tokens: [] },
+    announcementTarget: 'all', handoutTarget: 'all', groupNotes: [],
+    activeLoot: null
   });
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isBattlemapOpen, setIsBattlemapOpen] = useState(false);
@@ -221,1680 +76,539 @@ function App() {
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const [lastNotifiedNoteId, setLastNotifiedNoteId] = useState(() => localStorage.getItem(`last_note_${currentAppId}`));
   const [showLetter, setShowLetter] = useState(false);
-
-  // --- FUNÇÕES AUXILIARES ---
-  const updateSessionState = async (updates) => {
-    try {
-      await db.collection('artifacts').doc(currentAppId)
-        .collection('public').doc('data').collection('global').doc('session')
-        .set(updates, { merge: true });
-    } catch (e) { console.error("Erro ao atualizar sessão:", e); }
-  };
-
-  const sendChatMessage = (text, sender, recipient = null) => {
-    db.collection('artifacts').doc(currentAppId)
-      .collection('public').doc('data').collection('messages')
-      .add({
-        text,
-        sender,
-        recipient,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
-  };
-
-  const shareNote = async (text, sender) => {
-    const newNote = {
-      id: Date.now(),
-      text,
-      sender,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    const updatedNotes = [...(sessionState.groupNotes || []), newNote];
-    await updateSessionState({ groupNotes: updatedNotes });
-    AudioManager.play('page');
-  };
-
-  const deleteNote = async (noteId) => {
-    const updatedNotes = (sessionState.groupNotes || []).filter(n => n.id !== noteId);
-    await updateSessionState({ groupNotes: updatedNotes });
-  };
-
-  const generateLoot = (level) => {
-    const loot = getRandomLoot(level);
-    updateSessionState({ activeLoot: { ...loot, approved: false } });
-  };
-
-  const generateNPC = async (theme = "fantasia medieval") => {
-    try {
-      const prompt = `Gere um NPC de RPG de mesa para o tema: ${theme}. 
-      Retorne APENAS um JSON com os seguintes campos:
-      - name: Nome do NPC
-      - race: Raça
-      - class: Classe ou Ocupação
-      - appearance: Descrição física curta
-      - personality: Traços de personalidade
-      - secret: Um segredo ou motivação oculta
-      - stats: { HP, CA, Atributos: { FOR, DES, CON, INT, SAB, CAR } }
-      Use valores apropriados para um NPC desafiador mas justo.`;
-
-      const response = await askGemini(prompt);
-      // Remove possíveis blocos de código markdown do JSON
-      const jsonStr = response.replace(/```json|```/g, '').trim();
-      return JSON.parse(jsonStr);
-    } catch (e) {
-      console.error("Erro ao gerar NPC:", e);
-      throw e;
-    }
-  };
-
-  const approveLoot = () => {
-    if (!sessionState.activeLoot) return;
-    updateSessionState({ activeLoot: { ...sessionState.activeLoot, approved: true } });
-    AudioManager.play('chest_open');
-  };
-
-  const clearLoot = () => {
-    updateSessionState({ activeLoot: null });
-  };
-
-  const claimLootItem = async (item) => {
-    if (!sessionState.activeLoot || !characterName || !characterSheetData) return;
-
-    const currentEquip = characterSheetData.outros?.['Equipamento'] || "";
-    const updatedEquip = currentEquip ? `${currentEquip}, ${item.name}` : item.name;
-    
-    const updatedSheet = {
-      ...characterSheetData,
-      outros: { ...characterSheetData.outros, Equipamento: updatedEquip }
-    };
-
-    // Atualiza estados locais para feedback instantâneo
-    setCharacterSheetData(updatedSheet);
-    const updatedFullData = { ...characterData, sheetData: updatedSheet };
-    setCharacterData(updatedFullData);
-
-    // Salva persistência
-    await saveCharacter(characterName, updatedFullData);
-
-    const updatedLootItems = sessionState.activeLoot.items.filter(i => i.id !== item.id);
-    await updateSessionState({
-      activeLoot: { ...sessionState.activeLoot, items: updatedLootItems }
-    });
-    AudioManager.play('coins');
-  };
-
-  const claimLootGold = async (amount) => {
-    if (!sessionState.activeLoot || !characterName || !characterSheetData || amount <= 0) return;
-
-    const currentGold = parseInt(characterSheetData.outros?.PO || '0');
-    const updatedGold = currentGold + amount;
-
-    const updatedSheet = {
-      ...characterSheetData,
-      outros: { ...characterSheetData.outros, PO: updatedGold.toString() }
-    };
-
-    // Atualiza estados locais para feedback instantâneo
-    setCharacterSheetData(updatedSheet);
-    const updatedFullData = { ...characterData, sheetData: updatedSheet };
-    setCharacterData(updatedFullData);
-
-    // Salva persistência
-    await saveCharacter(characterName, updatedFullData);
-
-    await updateSessionState({
-      activeLoot: { ...sessionState.activeLoot, gold: Math.max(0, sessionState.activeLoot.gold - amount) }
-    });
-    AudioManager.play('coins');
-  };
-
-
-
-  // Reset showHandout local state when handout URL changes in session
-  useEffect(() => {
-    setShowHandout(true);
-  }, [sessionState.handout]);
-
-  // --- ESCUTA DE DIAS PARA BARGANHAS ---
-  const lastDayRef = useRef(sessionState.day);
-  useEffect(() => {
-    if (sessionState.day > lastDayRef.current) {
-        console.log("Dia avançou! Ticking down bargains (Days)...");
-        const active = sessionState.devilsBargain?.activeBargains || [];
-        if (active.length > 0) {
-            const updated = active.map(b => {
-                // Só decrementa se for do tipo 'days' e não for permanente
-                if ((b.unit === 'days' || b.unit === 'Dias') && b.unit !== 'permanent') {
-                    return { ...b, duration: b.duration - 1 };
-                }
-                return b;
-            }).filter(b => b.unit === 'permanent' || b.duration > 0);
-            if (JSON.stringify(active) !== JSON.stringify(updated)) {
-                updateSessionState({
-                    devilsBargain: {
-                        ...sessionState.devilsBargain,
-                        activeBargains: updated
-                    }
-                });
-            }
-        }
-    }
-    lastDayRef.current = sessionState.day;
-  }, [sessionState.day]);
-
-  // --- 1. EFEITO DE AUTENTICAÇÃO ---
-  useEffect(() => {
-    const unsubAuth = auth.onAuthStateChanged((user) => {
-      if (user) {
-        setUser(user);
-      } else {
-        auth.signInAnonymously();
-      }
-    });
-    return () => unsubAuth();
-  }, [])
-
-  // --- 1.1 ESCUTA ESTADO DE TURNOS ---
-  useEffect(() => {
-    if (!user) return;
-    const unsubTurns = db.collection('artifacts').doc(currentAppId)
-      .collection('public').doc('data').collection('global').doc('turnState')
-      .onSnapshot((doc) => {
-        if (doc.exists) setTurnState(doc.data());
-        else setTurnState({ activeChar: '', round: 1 }); // Reset se for sala nova
-      });
-    return () => unsubTurns();
-  }, [user, currentAppId]);
-
-  // --- 1.2 ESCUTA GRIMÓRIO DE ALMAS ---
-  useEffect(() => {
-    if (!user) return;
-    const unsubSouls = db.collection('artifacts').doc(currentAppId)
-      .collection('public').doc('data').collection('global').doc('souls')
-      .onSnapshot((doc) => {
-        if (doc.exists) setSouls(doc.data().list || []);
-        else setSouls([]); // Reset
-      });
-    return () => unsubSouls();
-  }, [user, currentAppId]);
+  const [isMasterAuthenticated, setIsMasterAuthenticated] = useState(false);
+  const [authenticatedCharacters, setAuthenticatedCharacters] = useState([]);
   
-  // --- 1.3 ESCUTA ESTADO DA SESSÃO ---
+  const lastHPs = useRef({});
+  const lastDayRef = useRef(1);
+
+  // --- 2. EFEITOS (Hooks) ---
+
+  // Auth
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged(u => u ? setUser(u) : auth.signInAnonymously());
+    return () => unsub();
+  }, []);
+
+  // Campanhas
+  useEffect(() => {
+    const unsub = db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list')
+      .onSnapshot(doc => {
+        if (doc.exists && doc.data().list) setCampaigns(doc.data().list);
+        else {
+          const init = [{ id: DEFAULT_APP_ID, name: 'Dungeon Delvers (Original)' }];
+          db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list').set({ list: init }, { merge: true });
+          setCampaigns(init);
+        }
+      });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => { 
+    localStorage.setItem('selected_rpg', currentAppId); 
+    setIsMasterAuthenticated(false); 
+    setAuthenticatedCharacters([]); // Reseta autenticações ao trocar de sala
+  }, [currentAppId]);
+
+  // Sincronização de Sessão (Real-time)
   useEffect(() => {
     if (!user) return;
-    let active = true;
-    const unsubSession = db.collection('artifacts').doc(currentAppId)
-      .collection('public').doc('data').collection('global').doc('session')
-      .onSnapshot((doc) => {
-        if (!active) return;
+    const unsub = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('session')
+      .onSnapshot(doc => {
         if (doc.exists) {
-            const data = doc.data();
-            setSessionState(prev => ({ ...prev, ...data }));
-            
-            // Somente dispara som se for novo timestamp e NÃO for o mestre que acabou de disparar (opcional)
-            if (data.triggerSound && (!lastTriggerSound || data.triggerSound.timestamp !== lastTriggerSound.timestamp)) {
-                setLastTriggerSound(data.triggerSound);
-                if (data.triggerSound.type) {
-                    AudioManager.play(data.triggerSound.type);
-                }
-            }
-
-        } else {
-            setSessionState({
-              announcement: '', handout: '', environment: 'none', monsters: [],
-              masterNotes: '', day: 1, library: { characters: [], books: [], bestiary: [] },
-              devilsBargain: { categories: BARGAIN_EFFECTS, activeBargains: [] },
-              announcementTarget: 'all', handoutTarget: 'all', groupNotes: []
-            });
+          const data = doc.data();
+          setSessionState(prev => ({ ...prev, ...data }));
+          if (data.triggerSound && (!lastTriggerSound || data.triggerSound.timestamp !== lastTriggerSound.timestamp)) {
+            setLastTriggerSound(data.triggerSound);
+            if (data.triggerSound.type) AudioManager.play(data.triggerSound.type);
+          }
         }
       });
-    return () => {
-        active = false;
-        unsubSession();
-    };
-  }, [user, currentAppId]); // Removido lastTriggerSound daqui
-  
-  // --- 1.4 SINCRONIZAÇÃO DE MÚSICA AMBIENTE E SOUNDPAD GLOBAL ---
+    return () => unsub();
+  }, [user, currentAppId]);
+
+  // Turnos e Almas
   useEffect(() => {
-    const ambient = sessionState.ambientMusic;
-    if (ambient && ambient.url) {
-        if (ambient.fadeOut) {
-            AudioManager.stopAmbient('global', true);
-        } else {
-            AudioManager.playAmbient(ambient.url, 'global', ambient.volume || 0.5);
-        }
-    } else {
-        AudioManager.stopAmbient('global');
-    }
+    if (!user) return;
+    const unsubTurns = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('turnState')
+      .onSnapshot(doc => setTurnState(doc.exists ? doc.data() : { activeChar: '', round: 1 }));
+    const unsubSouls = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('souls')
+      .onSnapshot(doc => setSouls(doc.exists ? (doc.data().list || []) : []));
+    return () => { unsubTurns(); unsubSouls(); };
+  }, [user, currentAppId]);
+
+  // Música e SFX
+  useEffect(() => {
+    const amb = sessionState.ambientMusic;
+    if (amb && amb.url) amb.fadeOut ? AudioManager.stopAmbient('global', true) : AudioManager.playAmbient(amb.url, 'global', amb.volume || 0.5);
+    else AudioManager.stopAmbient('global');
   }, [sessionState.ambientMusic]);
 
   useEffect(() => {
     const sfx = sessionState.globalSFX;
     if (sfx && sfx.url && (!lastGlobalSFX || sfx.timestamp !== lastGlobalSFX.timestamp)) {
-        setLastGlobalSFX(sfx);
-        
-        // Só toca o som se ele foi enviado a menos de 10 segundos (evita tocar sons velhos ao recarregar a página)
-        if (Date.now() - sfx.timestamp < 10000) {
-            const audio = new Audio(sfx.url);
-            audio.volume = 0.8;
-            audio.play().catch(e => console.error("Erro ao tocar SFX global:", e));
-        }
+      setLastGlobalSFX(sfx);
+      if (Date.now() - sfx.timestamp < 10000) {
+        const audio = new Audio(sfx.url); audio.volume = 0.8;
+        audio.play().catch(e => console.error(e));
+      }
     }
   }, [sessionState.globalSFX, lastGlobalSFX]);
 
-  // Efeito para Cinematics
-  useEffect(() => {
-    if (sessionState.cutscene && sessionState.cutscene.url) {
-        AudioManager.play('impact');
-    }
-  }, [sessionState.cutscene?.timestamp]);
-
-  // Efeito para Notificação de Carta (Notas Compartilhadas)
-  useEffect(() => {
-    const notes = sessionState.groupNotes || [];
-    if (notes.length > 0 && view === 'sheet') {
-      const lastNote = notes[notes.length - 1];
-      if (lastNote.id.toString() !== lastNotifiedNoteId && lastNote.sender !== characterName) {
-        setLastNotifiedNoteId(lastNote.id.toString());
-        localStorage.setItem(`last_note_${currentAppId}`, lastNote.id.toString());
-        setShowLetter(true);
-        AudioManager.play('paper');
-      }
-    }
-  }, [sessionState.groupNotes, characterName, lastNotifiedNoteId, view, currentAppId]);
-
-  // --- 1.4 ESCUTA CHAT (MENSAGENS PRIVADAS) ---
+  // Chat
   useEffect(() => {
     if (!user) return;
-    
-    // Reset chat messages on campaign change
     setChatMessages([]);
-    
-    const unsubChat = db.collection('artifacts').doc(currentAppId)
-      .collection('public').doc('data').collection('messages')
-      .orderBy('timestamp', 'asc')
-      .limitToLast(50)
+    const unsub = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('messages')
+      .orderBy('timestamp', 'asc').limitToLast(50)
       .onSnapshot(snap => {
         const msgs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setChatMessages(msgs);
-        
-        // Notifica o mestre se houver nova mensagem de jogador
-        if (msgs.length > 0) {
-            const lastMsg = msgs[msgs.length - 1];
-            if (lastMsg.sender !== 'Mestre' && view === 'master') {
-                setHasNewMessage(true);
-            }
-        }
+        if (msgs.length > 0 && msgs[msgs.length-1].sender !== 'Mestre' && view === 'master') setHasNewMessage(true);
       });
-    return () => unsubChat();
+    return () => unsub();
   }, [user, view, currentAppId]);
 
-  // --- 2. CARREGAMENTO DE DADOS (PLANILHA + FIREBASE) ---
+  // Personagens (Merge Planilha + Firebase)
   useEffect(() => {
     if (!user) return;
     setLoading(true);
     let active = true;
-    let unsubSnapshot = null;
-
-    const initAppData = async () => {
-      let googlePlayers = [];
-      try {
-        if (currentAppId === DEFAULT_APP_ID) {
-           googlePlayers = await loadPlayerList(); 
-        }
-      } catch (e) { console.error("Erro planilha:", e); }
-      
+    const init = async () => {
+      let gPlayers = [];
+      try { if (currentAppId === DEFAULT_APP_ID) gPlayers = await loadPlayerList(); } catch(e){}
       if (!active) return;
-
-      unsubSnapshot = db.collection('artifacts').doc(currentAppId)
-        .collection('public').doc('data')
-        .collection('characters')
-        .onSnapshot((snap) => {
+      const unsub = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters')
+        .onSnapshot(snap => {
           if (!active) return;
-          const firebaseData = {};
-          snap.forEach(doc => {
-            firebaseData[doc.id.toLowerCase()] = doc.data();
+          const fbData = {}; snap.forEach(d => fbData[d.id.toLowerCase()] = d.data());
+          const merged = gPlayers.map(p => {
+            const id = (p.Personagem || p.name || "").toLowerCase().trim();
+            return { ...p, ...(fbData[id] || {}), name: p.Personagem || p.name };
+          }).filter(p => !p.deleted);
+          const gIds = gPlayers.map(p => (p.Personagem || p.name || "").toLowerCase().trim());
+          Object.keys(fbData).forEach(id => {
+            if (!gIds.includes(id) && !['mestre','sessao','globais'].includes(id) && !fbData[id].deleted) {
+              merged.push({ ...fbData[id], name: fbData[id].name || id });
+            }
           });
-
-          const mergedList = googlePlayers
-            .map(p => {
-              const id = (p.Personagem || p.name || "").toLowerCase().trim();
-              const fData = firebaseData[id] || {};
-              return { ...p, ...fData, name: p.Personagem || p.name };
-            })
-            .filter(p => !p.deleted);
-
-          const googlePlayerIds = googlePlayers.map(p => (p.Personagem || p.name || "").toLowerCase().trim());
-          Object.keys(firebaseData).forEach(id => {
-              if (!googlePlayerIds.includes(id) && id !== 'mestre' && id !== 'sessao' && id !== 'globais') {
-                  if (!firebaseData[id].deleted) {
-                     mergedList.push({ ...firebaseData[id], name: firebaseData[id].name || id });
-                  }
-              }
-          });
-
-          setAllCharacters(mergedList);
-          setLoading(false);
-        }, (err) => {
-            console.error("Erro Snapshot:", err);
-            if (active) setLoading(false);
+          setAllCharacters(merged); setLoading(false);
         });
+      return unsub;
     };
-
-    initAppData();
-    return () => {
-        active = false;
-        if (unsubSnapshot) unsubSnapshot();
-    };
+    let unsubSnap = null;
+    init().then(u => unsubSnap = u);
+    return () => { active = false; if (unsubSnap) unsubSnap(); };
   }, [user, currentAppId]);
 
-  // --- 3. CARREGAMENTO DE DADOS (FIREBASE) ---
+  // Atualização local do personagem selecionado
   useEffect(() => {
     if (!characterName || allCharacters.length === 0) return;
+    const char = allCharacters.find(c => (c.name || c.Personagem || "").toLowerCase() === characterName.toLowerCase());
+    if (char) { setCharacterData(char); if (char.sheetData) setCharacterSheetData(char.sheetData); }
+  }, [allCharacters, characterName]);
 
-    // Procura a versão mais fresca do personagem na lista global
-    const updatedChar = allCharacters.find(c =>
-      (c.name || c.Personagem || "").toLowerCase() === characterName.toLowerCase()
-    );
-
-    if (updatedChar) {
-      setCharacterData(updatedChar);
-      if (updatedChar.sheetData) {
-        setCharacterSheetData(updatedChar.sheetData);
-      }
-    }
-  }, [allCharacters, characterName])
-
-  // --- ESCUTA DE ROLAGENS ---
+  // Rolagens
   useEffect(() => {
     if (!user) return;
-    const unsubRolls = db.collection('artifacts').doc(currentAppId)
-      .collection('public').doc('data').collection('rolls')
+    const unsub = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('rolls')
       .orderBy('timestamp', 'desc').limit(50)
       .onSnapshot(snap => {
         const rolls = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Filtro para jogadores normais: não vêem rolagens marcadas como secretas
-        const isMaster = characterName.toLowerCase() === 'mestre';
-        const filteredRolls = isMaster ? rolls : rolls.filter(r => !r.secret);
-        
-        setRollHistory(filteredRolls);
-        setRecentRolls(filteredRolls.slice(0, 5));
+        const isM = characterName.toLowerCase() === 'mestre';
+        const filtered = isM ? rolls : rolls.filter(r => !r.secret);
+        setRollHistory(filtered); setRecentRolls(filtered.slice(0, 5));
       });
-    return () => unsubRolls();
-  }, [user, characterName, currentAppId])
+    return () => unsub();
+  }, [user, characterName, currentAppId]);
 
-  // --- 1.4 MONITOR DE MORTES AUTOMÁTICO ---
+  // Handout Reset
+  useEffect(() => { setShowHandout(true); }, [sessionState.handout]);
+
+  // Bargain Tick (Days)
+  useEffect(() => {
+    if (sessionState.day > lastDayRef.current) {
+      const active = sessionState.devilsBargain?.activeBargains || [];
+      const updated = active.map(b => (b.unit === 'days' || b.unit === 'Dias') && b.unit !== 'permanent' ? { ...b, duration: b.duration - 1 } : b).filter(b => b.unit === 'permanent' || b.duration > 0);
+      if (JSON.stringify(active) !== JSON.stringify(updated)) updateSessionState({ devilsBargain: { ...sessionState.devilsBargain, activeBargains: updated } });
+    }
+    lastDayRef.current = sessionState.day;
+  }, [sessionState.day]);
+
+  // Monitor de Mortes (Grimório de Almas)
   useEffect(() => {
     if (allCharacters.length === 0) return;
-
+    
+    // Filtramos apenas personagens que realmente morreram nesta iteração
+    const newDeaths = [];
     allCharacters.forEach(char => {
-      // Ignora o Mestre
       if (char.name.toLowerCase() === 'mestre') return;
+      const id = char.name.toLowerCase();
+      const max = parseInt(char.sheetData?.recursos?.['PV Máximo']) || 10;
+      const perd = parseInt(char.sheetData?.recursos?.['PV Perdido']) || 0;
+      const tmp = parseInt(char.sheetData?.recursos?.['PV Temporário']) || 0;
+      const curr = (max - perd) + tmp;
 
-      const charId = char.name.toLowerCase();
-      const maxPV = parseInt(char.sheetData?.recursos?.['PV Máximo']) || 10;
-      const perdido = parseInt(char.sheetData?.recursos?.['PV Perdido']) || 0;
-      const temp = parseInt(char.sheetData?.recursos?.['PV Temporário']) || 0;
-      const atualPV = (maxPV - perdido) + temp;
-      
-      const prevHP = lastHPs.current[charId];
-      
-      // Se o HP atual for 0 e antes era maior que 0
-      if (atualPV <= 0 && (prevHP !== undefined && prevHP > 0)) {
-        handleAutoSoulDeath(char);
+      // Se morreu agora e antes estava vivo
+      if (curr <= 0 && lastHPs.current[id] > 0) {
+        newDeaths.push(char);
       }
-      
-      lastHPs.current[charId] = atualPV;
-    });
-  }, [allCharacters, souls]);
-
-  const handleAutoSoulDeath = async (char) => {
-    const charName = char.name;
-    const charClass = char.sheetData?.info?.['Classe'] || 'Aventureiro';
-    
-    const exists = souls.find(s => s.name.toLowerCase() === charName.toLowerCase());
-    let newList;
-    if (exists) {
-        newList = souls.map(s => s.name.toLowerCase() === charName.toLowerCase() ? { ...s, deaths: s.deaths + 1 } : s);
-    } else {
-        newList = [...souls, { id: Date.now(), name: charName, className: charClass, deaths: 1 }];
-    }
-    await updateSouls(newList);
-  };
-
-  // --- FUNÇÕES DE AÇÃO ---
-
-
-  // --- 2. ATUALIZA A FICHA (COMPLETA) ---
-  const onUpdateSheet = async (newData) => {
-    try {
-      // 1. Atualiza a tela imediatamente
-      setCharacterSheetData(newData);
-
-      // 2. Salva no Firebase
-      await db.collection('artifacts').doc(currentAppId)
-        .collection('public').doc('data')
-        .collection('characters')
-        .doc(characterName.toLowerCase())
-        .set({ sheetData: newData }, { merge: true });
-
-      // 3. BUSCA SEGURA DA URL (Baseada na imagem da sua planilha)
-      // Recarregamos a lista da planilha mestre para garantir o link atualizado
-      const googlePlayers = await loadPlayerList();
-
-      // Procuramos o herói testando todas as chaves possíveis de nome
-      const playerFromSheet = googlePlayers.find(p => {
-        // Pegamos todos os valores de cada linha e transformamos em minúsculo para comparar
-        const valoresDaLinha = Object.values(p).map(v => String(v).toLowerCase().trim());
-        return valoresDaLinha.includes(characterName.toLowerCase().trim());
-      });
-
-      // Se encontrou o player, tentamos pegar a URL de qualquer coluna que se pareça com "url"
-      let sheetUrl = null;
-      if (playerFromSheet) {
-        // Procura uma chave que contenha a palavra 'url' ou 'ficha' ou 'link'
-        const keyUrl = Object.keys(playerFromSheet).find(k =>
-          k.toLowerCase().includes('url') ||
-          k.toLowerCase().includes('ficha') ||
-          k.toLowerCase().includes('link')
-        );
-        sheetUrl = playerFromSheet[keyUrl];
-      }
-
-      const idPlanilha = extractSpreadsheetId(sheetUrl);
-
-      if (idPlanilha && scriptWebhook) {
-        await updateSheetViaScript(scriptWebhook, idPlanilha, newData);
-      } else {
-        console.error("❌ Erro: ID da planilha não encontrado para este herói.");
-      }
-    } catch (error) {
-      console.error("❌ Erro na sincronização:", error);
-    }
-  }
-  // --- 3. ROLAR DADOS ---
-  const rollDice = async (sides, forcedResult = null, extraLabel = '', isSecret = false) => {
-    const result = forcedResult !== null ? forcedResult : Math.floor(Math.random() * sides) + 1;
-    await db.collection('artifacts').doc(currentAppId).collection('public').doc('data')
-      .collection('rolls').add({
-        playerName: characterName || "Anônimo",
-        sides: sides, 
-        result: result,
-        label: extraLabel,
-        secret: isSecret, // Nova flag de segredo
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
-  }
-
-  // --- 4. SELECIONAR PERSONAGEM ---
-  // A função de selecionar personagem agora salva o personagem no Firebase, que por sua vez é ouvida em tempo real para atualizar o feed de personagens
-  const saveCharacter = async (name, data) => {
-    try {
-      // 1. Salva no Firebase
-      await db.collection('artifacts').doc(currentAppId)
-        .collection('public').doc('data')
-        .collection('characters').doc(name.toLowerCase())
-        .set(data, { merge: true });
-
-      // 2. Sincroniza com a Planilha via Apps Script
-      // Tentamos pegar a URL de qualquer lugar possível no objeto data
-      const urlOriginal = data.url || data.sheetUrl || (data.sheetData && data.sheetData.url);
-
-      if (urlOriginal && scriptWebhook) {
-        const idPlanilha = extractSpreadsheetId(urlOriginal);
-        if (idPlanilha) {
-          await updateSheetViaScript(scriptWebhook, idPlanilha, data.sheetData || data);
-        }
-      }
-    } catch (e) {
-      console.error("Erro na sincronização:", e);
-    }
-  }
-
-  // --- 5. ATUALIZAR TALENTOS ---
-  // A função de atualizar talento agora salva o talento no Firebase, que por sua vez é ouvida em tempo real para atualizar o feed de talentos
-  const upgradeTalent = (talentId, level) => {
-    const currentUnlocked = characterData?.unlocked || {};
-    const currentLv = currentUnlocked[talentId] || 0;
-    let updatedUnlocked = { ...currentUnlocked };
-
-    if (level === currentLv + 1) updatedUnlocked[talentId] = level;
-    else if (level === currentLv) updatedUnlocked[talentId] = level - 1;
-
-    if (updatedUnlocked[talentId] <= 0) delete updatedUnlocked[talentId];
-
-    // --- SINCRONIZAÇÃO AUTOMÁTICA COM A FICHA ---
-    let updatedSheetData = JSON.parse(JSON.stringify(characterSheetData || {}));
-    
-    if (updatedSheetData.outros) {
-        // 1. Mapeia todos os nomes possíveis de talentos de árvore (para identificar o que é automático)
-        const allTreeTalentNames = [];
-        Object.values(TALENT_TREES).forEach(tree => {
-            tree.talents.forEach(t => {
-                [1, 2, 3].forEach(lv => {
-                    allTreeTalentNames.push(`${t.name} ${levelToRoman(lv)}`.toUpperCase());
-                });
-            });
-        });
-
-        // 2. Separa características manuais de talentos de árvore
-        let currentTalentos = updatedSheetData.outros['Talentos'] || "";
-        let talentList = typeof currentTalentos === 'string' ? currentTalentos.split('/').map(s => s.trim()).filter(s => s) : [];
-        
-        const manualFeatures = [];
-        talentList.forEach((tName, idx) => {
-            if (!allTreeTalentNames.includes(tName.toUpperCase())) {
-                manualFeatures.push({
-                    name: tName,
-                    desc: updatedSheetData.outros[`desc_talento_${idx}`] || ""
-                });
-            }
-        });
-
-        // 3. Obtém os talentos de árvore desbloqueados atuais
-        const treeFeatures = [];
-        Object.entries(updatedUnlocked).forEach(([tId, lv]) => {
-            if (lv <= 0) return;
-            let found = null;
-            Object.values(TALENT_TREES).forEach(tree => {
-                const t = tree.talents.find(tt => tt.id === tId);
-                if (t) found = { talent: t, level: t.levels.find(l => l.lv === lv) };
-            });
-
-            if (found) {
-                treeFeatures.push({
-                    name: `${found.talent.name} ${levelToRoman(lv)}`.toUpperCase(),
-                    desc: `${found.level.effect} - ${found.level.desc}`
-                });
-            }
-        });
-
-        // 4. Combina e reconstrói a ficha
-        const finalFeatures = [...manualFeatures, ...treeFeatures];
-        updatedSheetData.outros['Talentos'] = finalFeatures.map(f => f.name).join(' / ');
-        
-        // Limpamos descs antigos primeiro para não sobrar lixo
-        for (let i = 0; i < 20; i++) {
-            if (updatedSheetData.outros[`desc_talento_${i}`]) {
-                updatedSheetData.outros[`desc_talento_${i}`] = "";
-            }
-        }
-
-        finalFeatures.forEach((f, idx) => {
-            updatedSheetData.outros[`desc_talento_${idx}`] = f.desc;
-        });
-    }
-
-    const updatedData = { ...characterData, unlocked: updatedUnlocked, sheetData: updatedSheetData };
-    
-    // Atualiza estados locais
-    setCharacterData(updatedData);
-    setCharacterSheetData(updatedSheetData);
-    
-    // Salva globalmente
-    saveCharacter(characterName, updatedData);
-  }
-
-  // --- 6. SELECIONAR ÁRVORE DE TALENTOS ---
-  //  A função de selecionar árvore agora salva a árvore no Firebase, que por sua vez é ouvida em tempo real para atualizar o feed de árvores
-  const selectCharacter = async (charName) => {
-    if (charName.toLowerCase() === 'mestre') {
-      try {
-        // 1. Busca a senha específica desta campanha
-        const campaignVaultSnap = await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('vault').get();
-        
-        let targetVaultData = null;
-
-        if (campaignVaultSnap.exists && campaignVaultSnap.data()?.password) {
-            // Existe senha específica para esta sala
-            targetVaultData = campaignVaultSnap.data();
-        } else if (currentAppId === DEFAULT_APP_ID) {
-            // É a sala original e não tem senha local, tenta a global (legado)
-            const globalVaultSnap = await db.collection('artifacts').doc('global_directory').collection('public').doc('vault').get();
-            if (globalVaultSnap.exists && globalVaultSnap.data()?.password) {
-                targetVaultData = globalVaultSnap.data();
-            }
-        }
-
-        // Se encontrou alguma senha válida (local ou fallback global para sala original)
-        if (targetVaultData && targetVaultData.password) {
-            const typedPass = prompt("Digite a senha de Mestre para acessar o Painel desta sala:");
-            if (typedPass !== targetVaultData.password) {
-                alert("Acesso Negado: Senha incorreta.");
-                return;
-            }
-        }
-      } catch (e) {
-        console.error("Erro ao validar cofre:", e);
-      }
-      setCharacterName('Mestre');
-      setView('master');
-      return;
-    }
-
-    setCharacterName(charName);
-
-    // 1. Busca o personagem na lista carregada (que já veio do Firebase no useEffect)
-    const charFromFirebase = allCharacters.find(c => {
-      const n = c.name || c.Personagem || "";
-      return n.toLowerCase().trim() === charName.toLowerCase().trim();
+      lastHPs.current[id] = curr;
     });
 
-    try {
-      // ESTRATÉGIA: Usar Firebase se os dados da ficha já existirem lá
-      if (charFromFirebase && charFromFirebase.sheetData) {
-        setCharacterData(charFromFirebase);
-        setCharacterSheetData(charFromFirebase.sheetData);
-        setView('sheet');
-
-        // VERIFICAÇÃO BACKGROUND (Silenciosa)
-        const sheetUrl = charFromFirebase?.url || charFromFirebase?.URL;
-        if (sheetUrl) {
-           loadCharacterSheet(sheetUrl).then(async dataFromSheet => {
-             if (dataFromSheet) {
-                // 1. Pega a versão MAIS FRESCA do Firebase para evitar sobrescrever edições recentes (Race Condition)
-                const charRef = db.collection('artifacts').doc(currentAppId).collection('public')
-                                  .doc('data').collection('characters').doc(charName.toLowerCase());
-                const freshSnap = await charRef.get();
-                const freshData = freshSnap.exists ? freshSnap.data() : charFromFirebase;
-                
-                const fbDataStr = JSON.stringify(freshData.sheetData);
-                const shDataStr = JSON.stringify(dataFromSheet);
-
-                if (fbDataStr !== shDataStr) {
-                    // 2. Mescla Inteligente:
-                    // A planilha serve como base de fallback, mas TUDO que houver no Firebase 
-                    // (estado atual e em tempo real do jogo) tem prioridade absoluta.
-                    // Isso evita que o cache da planilha (que pode demorar até 5 min)
-                    // desfaça edições recentes como tomada de dano, uso de poções e moedas.
-                    const mergedSheetData = {
-                        ...dataFromSheet, 
-                        ...freshData.sheetData, // Firebase domina, preservando campos avulsos
-
-                        // Mesclagem profunda para garantir que novos campos da planilha não
-                        // apaguem os dados salvos previamente no Firebase
-                        info: {
-                            ...(dataFromSheet.info || {}),
-                            ...(freshData.sheetData?.info || {})
-                        },
-                        atributos: {
-                            ...(dataFromSheet.atributos || {}),
-                            ...(freshData.sheetData?.atributos || {})
-                        },
-                        recursos: {
-                            ...(dataFromSheet.recursos || {}),
-                            ...(freshData.sheetData?.recursos || {})
-                        },
-                        outros: {
-                            ...(dataFromSheet.outros || {}),
-                            ...(freshData.sheetData?.outros || {})
-                        },
-                        magias: {
-                            ...(dataFromSheet.magias || {}),
-                            ...(freshData.sheetData?.magias || {})
-                        },
-                        pericias: {
-                            ...(dataFromSheet.pericias || {}),
-                            ...(freshData.sheetData?.pericias || {})
-                        },
-                        statsMagia: {
-                            ...(dataFromSheet.statsMagia || {}),
-                            ...(freshData.sheetData?.statsMagia || {})
-                        },
-                        ataques: freshData.sheetData?.ataques || dataFromSheet.ataques || []
-                    };
-
-                    const mergedData = { ...freshData, sheetData: mergedSheetData };
-                    
-                    // 3. Atualiza Local e Firebase
-                    setCharacterData(mergedData);
-                    setCharacterSheetData(mergedSheetData);
-                    
-                    await charRef.set(mergedData, { merge: true });
-                    console.log(`✅ Sincronização em segundo plano concluída para ${charName}.`);
-                }
-             }
-           }).catch(console.error);
-        }
-        return;
-      }
-
-    
-
-      // 2. Se não tem no Firebase, busca na Planilha (Primeira vez do herói)
-      const sheetUrl = charFromFirebase?.url || charFromFirebase?.URL;
-      if (sheetUrl) {
-        const dataFromSheet = await loadCharacterSheet(sheetUrl);
-
-        if (dataFromSheet) {
-          const mergedData = {
-            ...charFromFirebase,
-            name: charName,
-            sheetData: dataFromSheet
-          };
-
-          // 3. Salva no Firebase para que no próximo F5 não precise ler a planilha
-          await saveCharacter(charName, mergedData);
-
-          setCharacterData(mergedData);
-          setCharacterSheetData(dataFromSheet);
-          setView('sheet');
-        }
-      }
-    } catch (e) {
-      console.error("❌ Erro ao carregar personagem:", e);
-      setView('character');
-    }
-  };
-
-  // --- 7. CRIAR NOVO HERÓI ---
-  // A criação de heróis agora salva o herói no Firebase, que por sua vez é ouvida em tempo real para atualizar o feed de heróis
-  const createNewCharacter = async (name) => {
-    if (name === null) {
-      setCreatingCharacter(true);
-      return;
-    }
-    if (name === false) {
-      setCreatingCharacter(false);
-      return;
-    }
-
-    setIsCreating(true);
-    try {
-      // 1. Prepara o objeto para o Firebase (molde inicial)
-      const newHero = {
-        name: name,
-        selectedTree: null,
-        unlocked: {},
-        isFirebaseOnly: true, // Indica que não tem planilha atrelada
-        deleted: false, // Força a recuperar caso tenha sido excluído antes
-        url: '',
-        sheetData: {
-          info: {
-            'Nome do Personagem': name,
-            'Classe': '---',
-            'Antecedente': '---',
-            'Jogador': user?.displayName || 'Jogador',
-            'Raça': '---',
-            'XP': '0',
-            'Nivel': '1',
-            'Alinhamento': '---'
-          },
-          atributos: { 'FOR': '10', 'DES': '10', 'CON': '10', 'INT': '10', 'SAB': '10', 'CAR': '10' },
-          modificadores: { 'FOR': '0', 'DES': '0', 'CON': '0', 'INT': '0', 'SAB': '0', 'CAR': '0' },
-          recursos: {
-            'CA': '10',
-            'Iniciativa': '0',
-            'Deslocamento': '9m',
-            'PV Máximo': '10',
-            'PV Atual': '10',
-            'PV Temporário': '0',
-            'PV Perdido': '0'
-          },
-          magias: {
-            "Infusões": ["", "", "", ""],
-            "Círculo 0 (Truques)": ["", "", "", ""],
-            "Círculo 1": ["", "", "", ""],
-            "Círculo 2": ["", "", "", ""],
-            "Círculo 3": ["", "", "", ""],
-            "Círculo 4": ["", "", "", ""],
-            "Círculo 5": ["", "", "", ""],
-            "Círculo 6": ["", "", "", ""],
-            "Círculo 7": ["", "", "", ""],
-            "Círculo 8": ["", "", "", ""],
-            "Círculo 9": ["", "", "", ""]
-          },
-          statsMagia: {
-            'Modificador': '0',
-            'Salvaguarda': '8',
-            'Bônus de Ataque': '0',
-          },
-          outros: {
-            'Talentos': [],
-            'Equipamento': "",
-            'PO': '0', 'PP': '0', 'PC': '0',
-          },
-          pericias: {
-             'Acrobacia': { val: '+0', prof: false },
-             'Arcanismo': { val: '+0', prof: false },
-             'Atletismo': { val: '+0', prof: false },
-             'Atuação': { val: '+0', prof: false },
-             'Enganação': { val: '+0', prof: false },
-             'Furtividade': { val: '+0', prof: false },
-             'História': { val: '+0', prof: false },
-             'Intimidação': { val: '+0', prof: false },
-             'Intuição': { val: '+0', prof: false },
-             'Investigação': { val: '+0', prof: false },
-             'Lidar com Animais': { val: '+0', prof: false },
-             'Medicina': { val: '+0', prof: false },
-             'Natureza': { val: '+0', prof: false },
-             'Percepção': { val: '+0', prof: false },
-             'Persuasão': { val: '+0', prof: false },
-             'Prestidigitação': { val: '+0', prof: false },
-             'Religião': { val: '+0', prof: false },
-             'Sobrevivência': { val: '+0', prof: false }
-          },
-          personalidade: { 'Traços': '', 'Ideais': '', 'Vínculos': '', 'Defeitos': '' },
-          ataques: []
-        }
-      };
-
-      // 2. Salva no Firebase
-      await saveCharacter(name, newHero);
-      
-      setCreatingCharacter(false);
-      setIsCreating(false);
-      alert('✨ Herói criado!');
-      
-      // 4. Seleciona o personagem automaticamente (com flag de novo)
-      setIsNewCharacter(true);
-      
-      // Atualiza localmente a lista para garantir que ele apareça imediatamente no menu
-      setAllCharacters(prev => {
-         const exists = prev.find(p => p.name.toLowerCase() === name.toLowerCase());
-         if (exists) {
-            return prev.map(p => p.name.toLowerCase() === name.toLowerCase() ? newHero : p);
-         }
-         return [...prev, newHero];
-      });
-
-      setCharacterName(name);
-      setCharacterData(newHero);
-      setCharacterSheetData(newHero.sheetData);
-      setView('sheet');
-      
-    } catch (e) { 
-      console.error(e);
-      alert('Erro ao criar herói: ' + e.message); 
-      setIsCreating(false);
-    }
-  }
-  // --- 8. ATUALIZAR XP DO PERSONAGEM ---
-  // A função de atualizar XP agora salva o XP no Firebase, que por sua vez é ouvida em tempo real para atualizar a ficha do personagem
-  const updateCharacterXP = async (name, newXP) => {
-    try {
-      const charRef = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters').doc(name.toLowerCase());
-      const snap = await charRef.get();
-      if (snap.exists) {
-        const data = snap.data();
-        if (!data.sheetData) return;
-        if (!data.sheetData.info) data.sheetData.info = {};
+    if (newDeaths.length > 0) {
+      // Usamos uma função assíncrona para buscar o estado atual e atualizar
+      const processDeaths = async () => {
+        const snap = await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('souls').get();
+        let currentSouls = snap.exists ? (snap.data().list || []) : [];
         
-        data.sheetData.info['XP'] = newXP.toString();
-        
-        // 1. Salvar no Firebase
-        await charRef.set(data);
-
-        // 2. Tentar Sincronizar na Planilha Google
-        const sheetUrl = data.url || data.sheetUrl || (data.sheetData && data.sheetData.url);
-        const idPlanilha = extractSpreadsheetId(sheetUrl);
-        if (idPlanilha && typeof scriptWebhook !== 'undefined') {
-          updateSheetViaScript(scriptWebhook, idPlanilha, data.sheetData);
-        }
-      }
-    } catch(e) {
-      console.error("Erro ao atualizar XP:", e);
-    }
-  }
-
-  // --- 8.1 ATUALIZAR CONDIÇÕES DO PERSONAGEM ---
-  const updateCharacterConditions = async (name, conditionsArray) => {
-    try {
-      const charRef = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters').doc(name.toLowerCase());
-      const snap = await charRef.get();
-      if (snap.exists) {
-        const data = snap.data();
-        if (!data.sheetData) return;
-        if (!data.sheetData.info) data.sheetData.info = {};
-        
-        // Salvamos as condições ativas na aba info como JSON string pra manter os objetos
-        data.sheetData.info['Condicoes'] = JSON.stringify(conditionsArray);
-        
-        await charRef.set(data);
-
-        const sheetUrl = data.url || data.sheetUrl || (data.sheetData && data.sheetData.url);
-        const idPlanilha = extractSpreadsheetId(sheetUrl);
-        if (idPlanilha && typeof scriptWebhook !== 'undefined') {
-          updateSheetViaScript(scriptWebhook, idPlanilha, data.sheetData);
-        }
-      }
-    } catch(e) {
-      console.error("Erro ao atualizar Condições:", e);
-    }
-  }
-
-  // --- 8.2 AVANÇAR TURNO / GERENCIAR RODADA ---
-  const advanceTurn = async (targetCharName) => {
-    try {
-      const turnRef = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('turnState');
-      
-      // Se clicar no personagem que já tem a vez, remove a vez dele (Limpa o estado)
-      // Ou se passar null (botão Limpar Turnos)
-      if (!targetCharName || turnState?.activeChar === targetCharName) {
-        await turnRef.set({
-          activeChar: null,
-          lastUpdate: Date.now()
-        }, { merge: true });
-        return;
-      }
-
-      // 1. Atualiza quem é o personagem ativo
-      await turnRef.set({
-        activeChar: targetCharName,
-        lastUpdate: Date.now()
-      }, { merge: true });
-
-      // 2. Decrementa turnos das condições do personagem que acabou de começar o turno
-      const charId = targetCharName.toLowerCase();
-      const charRef = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters').doc(charId);
-      const snap = await charRef.get();
-      
-      if (snap.exists) {
-        const data = snap.data();
-        let conds = [];
-        try {
-          conds = JSON.parse(data.sheetData?.info?.['Condicoes'] || '[]');
-        } catch(e) { conds = []; }
-
-        if (conds.length > 0) {
-          // Decrementa e remove quem chegou a 0
-          const updatedConds = conds.map(c => ({ ...c, turns: parseInt(c.turns) - 1 }))
-                                   .filter(c => c.turns > 0);
-          
-          if (JSON.stringify(conds) !== JSON.stringify(updatedConds)) {
-            await updateCharacterConditions(targetCharName, updatedConds);
+        newDeaths.forEach(char => {
+          const id = char.name.toLowerCase();
+          const exists = currentSouls.find(s => s.name.toLowerCase() === id);
+          if (exists) {
+            currentSouls = currentSouls.map(s => s.name.toLowerCase() === id ? { ...s, deaths: s.deaths + 1 } : s);
+          } else {
+            currentSouls.push({ id: Date.now(), name: char.name, className: char.sheetData?.info?.['Classe'] || 'Aventureiro', deaths: 1 });
           }
-        }
-      }
-
-      // 3. Decrementa barganhas (Rounds)
-      if (sessionState.devilsBargain?.activeBargains?.length > 0) {
-        const updatedBargains = sessionState.devilsBargain.activeBargains.map(b => {
-            // Só decrementa se for o personagem alvo, tipo 'rounds' e não for permanente
-            if (b.player === targetCharName && b.unit === 'rounds' && b.unit !== 'permanent') {
-                return { ...b, duration: b.duration - 1 };
-            }
-            return b;
-        }).filter(b => b.unit === 'permanent' || b.duration > 0);
-
-        if (JSON.stringify(sessionState.devilsBargain.activeBargains) !== JSON.stringify(updatedBargains)) {
-            await updateSessionState({
-                devilsBargain: {
-                    ...sessionState.devilsBargain,
-                    activeBargains: updatedBargains
-                }
-            });
-        }
-      }
-    } catch(e) {
-      console.error("Erro ao avançar turno:", e);
-    }
-  }
-
-  // --- 8.5 ATUALIZAR HP DO MESTRE ---
-  const updateCharacterHP = async (charName, delta) => {
-    const char = allCharacters.find(c => c.name.toLowerCase() === charName.toLowerCase());
-    if (!char) return;
-    const newData = JSON.parse(JSON.stringify(char));
-    
-    // Assegura que recursos existe
-    if (!newData.sheetData) newData.sheetData = {};
-    if (!newData.sheetData.recursos) newData.sheetData.recursos = {};
-    
-    let perdido = parseInt(newData.sheetData.recursos['PV Perdido']) || 0;
-    let temp = parseInt(newData.sheetData.recursos['PV Temporário']) || 0;
-    const maxPV = parseInt(newData.sheetData.recursos['PV Máximo']) || 10;
-    
-    if (delta > 0) { // Curar (diminui PV perdido)
-       perdido = Math.max(0, perdido - delta);
-    } else { // Dano
-       const damage = Math.abs(delta);
-       if (temp >= damage) {
-           temp -= damage;
-       } else {
-           const remaining = damage - temp;
-           temp = 0;
-           perdido += remaining;
-       }
-    }
-    
-    newData.sheetData.recursos['PV Perdido'] = perdido;
-    newData.sheetData.recursos['PV Temporário'] = temp;
-    newData.sheetData.recursos['PV Atual'] = (maxPV - perdido) + temp;
-    
-    await saveCharacter(charName, newData);
-  };
-
-  // --- 9. ATUALIZAR CAMPO DA FICHA ---
-  // Esta função é chamada toda vez que um campo da ficha é editado
-  const updateSheetField = (section, field, value) => {
-    // 1. Cópia profunda dos dados atuais
-    let updatedSheetData = { ...characterSheetData };
-
-    if (field === null) {
-      // Se 'field' for null, significa que estamos substituindo a seção INTEIRA
-      // (Útil para apagar círculos de magia ou resetar blocos)
-      updatedSheetData[section] = value;
-    } else {
-      // Caso contrário, atualiza apenas o campo específico dentro da seção
-      updatedSheetData[section] = {
-        ...characterSheetData[section],
-        [field]: value
-      };
-    }
-
-    // 2. Atualiza o estado visual (React)
-    setCharacterSheetData(updatedSheetData);
-
-    const updatedFullData = {
-      ...characterData,
-      sheetData: updatedSheetData
-    };
-    setCharacterData(updatedFullData);
-
-    // 3. Salva no Firebase (Fonte de verdade do App)
-    saveCharacter(characterName, updatedFullData);
-
-    // 4. Sincroniza com a Planilha Google
-    const sheetId = extractSpreadsheetId(characterData.url || characterData.URL);
-
-    if (sheetId && typeof scriptWebhook !== 'undefined') {
-      // Enviamos a ação de UPDATE para o Apps Script processar
-      // Passamos o objeto completo para que a planilha reflita o estado atual
-      updateSheetViaScript(scriptWebhook, sheetId, updatedSheetData);
-    } else {
-      console.warn("⚠️ Sincronização pendente: scriptWebhook ou sheetId não encontrados.");
-    }
-  };
-
-  // --- RENDERIZAÇÃO ---
-
-  // Se estivermos na visão da árvore de talentos, renderizamos a TreeView
-  // Se estivermos na visão da ficha e tivermos os dados da ficha, renderizamos a SheetView
-  // Se estivermos na visão de login, renderizamos a LoginView
-  // A ordem de prioridade é: MasterView > SheetView > TreeView > LoginView
-
-  if (loading) return React.createElement(LoadingScreen);
-
-  // --- 8.4 INICIATIVA ---
-  const updateInitiative = async (newOrder) => {
-    try {
-      await db.collection('artifacts').doc(currentAppId)
-        .collection('public').doc('data').collection('global').doc('turnState')
-        .set({ 
-          ...turnState,
-          initiativeOrder: newOrder 
-        }, { merge: true });
-    } catch (e) { console.error("Erro ao salvar iniciativa:", e); }
-  };
-
-  // --- 8.5 GRIMÓRIO DE ALMAS ---
-  const updateSouls = async (newList) => {
-    try {
-      await db.collection('artifacts').doc(currentAppId)
-        .collection('public').doc('data').collection('global').doc('souls')
-        .set({ list: newList }, { merge: true });
-    } catch (e) { console.error("Erro ao salvar almas:", e); }
-  };
-
-  // --- 8.6 PERMISSÃO DE EDIÇÃO ---
-  const updateEditPermission = async (targetCharName, allow) => {
-    try {
-      const charId = targetCharName.toLowerCase();
-      const charRef = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters').doc(charId);
-      await charRef.set({
-        sheetData: { allowEditing: allow }
-      }, { merge: true });
-    } catch (e) { console.error("Erro ao atualizar permissão:", e); }
-  };
-
-  // --- 8.7 DISPARAR ROLAGEM EXTERNA (MESA) ---
-  const triggerExternalRoll = (sides, secret = false, modifier = 0, mode = 'normal', quantity = 1) => {
-    setExternalRoll({ sides, secret, modifier, mode, quantity, timestamp: Date.now() });
-  };
-
-  // --- 8.3 INTEGRAÇÃO GEMINI ---
-  const askGemini = async (prompt) => {
-    if (!geminiApiKey) throw new Error("API Key do Gemini não configurada!");
-
-    const systemInstruction = "Você é um mestre de RPG baseado em todos os livros de dungeon and dragons, principalmente na edição 5e. Responda de forma útil, mística e em português brasileiro.";
-    
-    // Lista de modelos atualizada conforme diagnóstico de 2026
-    const MODELS_TO_TRY = [
-      'gemini-2.5-flash',
-      'gemini-flash-latest',
-      'gemini-2.5-pro',
-      'gemini-pro-latest'
-    ];
-
-    let lastError = null;
-
-    for (const modelId of MODELS_TO_TRY) {
-      try {
-        console.log(`Tentando Gemini com modelo: ${modelId}...`);
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${geminiApiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: systemInstruction }] },
-            contents: [{ role: 'user', parts: [{ text: prompt }] }]
-          })
         });
+        
+        await updateSouls(currentSouls);
+      };
+      processDeaths();
+    }
+  }, [allCharacters]); // Removemos 'souls' da dependência para evitar loop
 
-        const data = await response.json();
-        
-        if (data.error) {
-           console.warn(`Modelo ${modelId} falhou:`, data.error.message);
-           lastError = data.error.message;
-           continue; // Tenta o próximo
-        }
-        
-        if (data.candidates && data.candidates[0].content) {
-          return data.candidates[0].content.parts[0].text;
-        }
-      } catch (e) {
-        console.warn(`Erro na tentativa com ${modelId}:`, e.message);
-        lastError = e.message;
+  // --- 3. FUNÇÕES DE LÓGICA ---
+
+  const updateSessionState = async (updates) => {
+    try { await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('session').set(updates, { merge: true }); }
+    catch (e) { console.error(e); }
+  };
+
+  const onEnterRoom = async (roomId) => {
+    const campaign = campaigns.find(c => c.id === roomId);
+    if (!campaign) return;
+    if (campaign.hasPassword) {
+        const snap = await db.collection('artifacts').doc(roomId).collection('public').doc('data').collection('global').doc('session').get();
+        const correct = snap.data()?.roomPassword;
+        if (correct && prompt("Senha da Sala:") !== correct) return alert("Senha Incorreta!");
+    }
+    setCurrentAppId(roomId); setView('login');
+  };
+
+  const createNewCampaign = async (name, password = '') => {
+    const id = 'rpg-' + name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    const doc = await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list').get();
+    let list = doc.exists ? (doc.data().list || []) : [];
+    if (list.some(c => c.id === id)) return setCurrentAppId(id);
+    list.push({ id, name, hasPassword: !!password });
+    await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list').set({ list }, { merge: true });
+    if (password) await db.collection('artifacts').doc(id).collection('public').doc('data').collection('global').doc('session').set({ roomPassword: password }, { merge: true });
+    setCurrentAppId(id); setView('login');
+  };
+
+  const importCampaign = async (campaignId) => {
+    if (!campaignId.startsWith('rpg-')) return alert("ID inválido. Deve começar com 'rpg-'");
+    const doc = await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list').get();
+    let list = doc.exists ? (doc.data().list || []) : [];
+    if (list.some(c => c.id === campaignId)) { alert("Já está na lista."); return setCurrentAppId(campaignId); }
+    const charSnap = await db.collection('artifacts').doc(campaignId).collection('public').doc('data').collection('characters').limit(1).get();
+    if (charSnap.empty && !confirm("Nenhum personagem encontrado. Importar mesmo assim?")) return;
+    const newList = [...list, { id: campaignId, name: campaignId.replace('rpg-', '').toUpperCase() }];
+    await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list').set({ list: newList }, { merge: true });
+    setCurrentAppId(campaignId); setView('login'); alert("Importada!");
+  };
+
+  const deleteCampaign = async (id) => {
+    if (id === DEFAULT_APP_ID) return alert("A sala padrão não pode ser excluída.");
+    
+    const snap = await db.collection('artifacts').doc(id).collection('public').doc('data').collection('global').doc('session').get();
+    const correct = snap.data()?.roomPassword;
+    const campaign = campaigns.find(c => c.id === id);
+    const campaignName = campaign ? campaign.name : id;
+
+    if (correct) {
+      if (prompt(`CUIDADO! Para apagar a sala "${campaignName}", digite a SENHA DA SALA:`) !== correct) {
+        return alert("Senha incorreta. Operação cancelada.");
+      }
+    } else {
+      if (prompt(`CUIDADO! Esta sala não tem senha. Para apagar tudo permanentemente, digite "CONFIRMAR":`) !== "CONFIRMAR") {
+        return alert("Confirmação inválida. Operação cancelada.");
       }
     }
 
-    throw new Error(`O Oráculo está silenciando... (Nenhum modelo compatível encontrado. Último erro: ${lastError})`);
+    if (!confirm(`TEM CERTEZA? Isso apagará todos os personagens, mensagens e dados da sala "${campaignName}" para SEMPRE.`)) return;
+
+    const batch = db.batch();
+    const chars = await db.collection('artifacts').doc(id).collection('public').doc('data').collection('characters').get();
+    chars.forEach(d => batch.delete(d.ref));
+    batch.delete(db.collection('artifacts').doc(id).collection('public').doc('data').collection('global').doc('session'));
+    // Também apaga o vault se existir
+    batch.delete(db.collection('artifacts').doc(id).collection('public').doc('data').collection('global').doc('vault'));
+    
+    await batch.commit();
+    const newList = campaigns.filter(c => c.id !== id);
+    await db.collection('artifacts').doc('global_directory').collection('public').doc('campaign_list').set({ list: newList }, { merge: true });
+    if (currentAppId === id) { setCurrentAppId(DEFAULT_APP_ID); setView('landing'); }
+    alert("Sala excluída com sucesso.");
   };
 
-  // --- DELETE PERSONAGEM ---
-  const deleteCharacter = async (name) => {
-    try {
-      // Marca como excluído no Firebase (não remove o doc, apenas oculta)
-      await db.collection('artifacts').doc(currentAppId)
-        .collection('public').doc('data')
-        .collection('characters').doc(name.toLowerCase())
-        .set({ deleted: true }, { merge: true });
-      console.log(`Personagem "${name}" marcado como excluído.`);
-    } catch (e) {
-      console.error('Erro ao excluir personagem:', e);
-      alert('Erro ao excluir: ' + e.message);
+  const selectCharacter = async (name) => {
+    if (name.toLowerCase() === 'mestre') {
+      if (isMasterAuthenticated) {
+        setCharacterName('Mestre'); setView('master'); return;
+      }
+
+      const vaultSnap = await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('vault').get();
+      const masterPass = vaultSnap.data()?.password;
+      
+      let passCorrect = false;
+      if (masterPass) {
+        if (prompt("Senha do Mestre:") === masterPass) passCorrect = true;
+        else return alert("Senha Incorreta!");
+      } else {
+        const sessionSnap = await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('session').get();
+        const roomPass = sessionSnap.data()?.roomPassword;
+        if (!roomPass || prompt("Senha do Mestre (Senha da Sala):") === roomPass) passCorrect = true;
+        else return alert("Senha Incorreta!");
+      }
+      
+      if (passCorrect) {
+        setIsMasterAuthenticated(true);
+        setCharacterName('Mestre'); setView('master'); 
+      }
+      return;
+    }
+
+    const char = allCharacters.find(c => (c.name || c.Personagem || "").toLowerCase() === name.toLowerCase());
+    if (!char) return;
+
+    // Se NÃO for o mestre autenticado e o personagem NÃO estiver autenticado nesta sessão, exige o PIN
+    if (!isMasterAuthenticated && !authenticatedCharacters.includes(name) && char.pin) {
+      if (prompt(`PIN de ${char.name}:`) === char.pin) {
+        setAuthenticatedCharacters(prev => [...prev, name]);
+      } else {
+        return alert("PIN Incorreto!");
+      }
+    }
+
+    setCharacterName(name);
+    if (char.sheetData) { setCharacterData(char); setCharacterSheetData(char.sheetData); setView('sheet'); }
+    else {
+      const url = char.url || char.URL;
+      if (url) {
+        const data = await loadCharacterSheet(url);
+        if (data) { saveCharacter(name, { ...char, name, sheetData: data }); setCharacterData({ ...char, sheetData: data }); setCharacterSheetData(data); setView('sheet'); }
+      }
     }
   };
 
+  const createNewCharacter = async (name) => {
+    if (name === null) return setCreatingCharacter(true);
+    if (name === false) return setCreatingCharacter(false);
+    setIsCreating(true);
+    const hero = { name, isFirebaseOnly: true, deleted: false, sheetData: { info: { 'Nome do Personagem': name, Classe: '---', XP: '0', Nivel: '1' }, atributos: {FOR:'10',DES:'10',CON:'10',INT:'10',SAB:'10',CAR:'10'}, recursos: {CA:'10',Iniciativa:'0','PV Máximo':'10','PV Atual':'10','PV Temporário':'0','PV Perdido':'0'}, outros: {Talentos:[], PO:'0'} } };
+    await saveCharacter(name, hero);
+    setIsNewCharacter(true); setCharacterName(name); setCharacterData(hero); setCharacterSheetData(hero.sheetData); setView('sheet'); setIsCreating(false); setCreatingCharacter(false);
+  };
 
+  const saveCharacter = async (name, data) => {
+    await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters').doc(name.toLowerCase()).set(data, { merge: true });
+    const url = data.url || data.sheetUrl || data.sheetData?.url;
+    const sid = extractSpreadsheetId(url);
+    if (sid) updateSheetViaScript(scriptWebhook, sid, data.sheetData || data);
+  };
 
-  // --- SISTEMA DE CLIMA E AMBIENTE (OVERLAY GLOBAL) ---
+  const onUpdateSheet = async (newData) => {
+    setCharacterSheetData(newData);
+    await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters').doc(characterName.toLowerCase()).set({ sheetData: newData }, { merge: true });
+    const list = await loadPlayerList();
+    const p = list.find(x => Object.values(x).some(v => String(v).toLowerCase() === characterName.toLowerCase()));
+    const url = p ? p[Object.keys(p).find(k => k.toLowerCase().includes('url'))] : null;
+    const sid = extractSpreadsheetId(url);
+    if (sid) updateSheetViaScript(scriptWebhook, sid, newData);
+  };
+
+  const updateSheetField = (sec, field, val) => {
+    let next = { ...characterSheetData };
+    if (field === null) next[sec] = val; else next[sec] = { ...next[sec], [field]: val };
+    setCharacterSheetData(next);
+    const full = { ...characterData, sheetData: next };
+    setCharacterData(full);
+    saveCharacter(characterName, full);
+  };
+
+  const rollDice = async (sides, force = null, label = '', secret = false) => {
+    const res = force !== null ? force : Math.floor(Math.random() * sides) + 1;
+    await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('rolls').add({ playerName: characterName || "Anônimo", sides, result: res, label, secret, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+  };
+
+  const upgradeTalent = (tid, lv) => {
+    const cur = characterData?.unlocked || {};
+    const nextU = { ...cur };
+    if (lv === (cur[tid] || 0) + 1) nextU[tid] = lv; else if (lv === cur[tid]) nextU[tid] = lv - 1;
+    if (nextU[tid] <= 0) delete nextU[tid];
+    const full = { ...characterData, unlocked: nextU };
+    setCharacterData(full);
+    saveCharacter(characterName, full);
+  };
+
+  const advanceTurn = async (target) => {
+    const ref = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('turnState');
+    if (!target || turnState?.activeChar === target) return await ref.set({ activeChar: null, lastUpdate: Date.now() }, { merge: true });
+    await ref.set({ activeChar: target, lastUpdate: Date.now() }, { merge: true });
+    const snap = await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters').doc(target.toLowerCase()).get();
+    if (snap.exists) {
+      const d = snap.data(); let conds = JSON.parse(d.sheetData?.info?.['Condicoes'] || '[]');
+      if (conds.length > 0) {
+        const nextC = conds.map(c => ({ ...c, turns: parseInt(c.turns) - 1 })).filter(c => c.turns > 0);
+        if (JSON.stringify(conds) !== JSON.stringify(nextC)) updateCharacterConditions(target, nextC);
+      }
+    }
+    const bargains = sessionState.devilsBargain?.activeBargains || [];
+    const nextB = bargains.map(b => b.player === target && b.unit === 'rounds' ? { ...b, duration: b.duration - 1 } : b).filter(b => b.unit === 'permanent' || b.duration > 0);
+    if (JSON.stringify(bargains) !== JSON.stringify(nextB)) updateSessionState({ devilsBargain: { ...sessionState.devilsBargain, activeBargains: nextB } });
+  };
+
+  const updateCharacterHP = async (name, delta) => {
+    const c = allCharacters.find(x => x.name.toLowerCase() === name.toLowerCase());
+    if (!c) return;
+    const next = JSON.parse(JSON.stringify(c));
+    if (!next.sheetData) next.sheetData = { recursos: {} };
+    let perd = parseInt(next.sheetData.recursos['PV Perdido']) || 0;
+    let tmp = parseInt(next.sheetData.recursos['PV Temporário']) || 0;
+    const max = parseInt(next.sheetData.recursos['PV Máximo']) || 10;
+    if (delta > 0) perd = Math.max(0, perd - delta);
+    else { const d = Math.abs(delta); if (tmp >= d) tmp -= d; else { perd += (d - tmp); tmp = 0; } }
+    next.sheetData.recursos['PV Perdido'] = perd; next.sheetData.recursos['PV Temporário'] = tmp;
+    next.sheetData.recursos['PV Atual'] = (max - perd) + tmp;
+    await saveCharacter(name, next);
+  };
+
+  const updateInitiative = async (order) => { await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('turnState').set({ ...turnState, initiativeOrder: order }, { merge: true }); };
+  const updateSouls = async (list) => { await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('souls').set({ list }, { merge: true }); };
+  const updateEditPermission = async (name, allow) => { await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters').doc(name.toLowerCase()).set({ sheetData: { allowEditing: allow } }, { merge: true }); };
+  const triggerExternalRoll = (sides, secret=false, modifier=0, mode='normal', quantity=1) => setExternalRoll({ sides, secret, modifier, mode, quantity, timestamp: Date.now() });
+  const sendChatMessage = (text, sender, recipient = null) => db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('messages').add({ text, sender, recipient, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+  const shareNote = async (text, sender) => { const n = { id: Date.now(), text, sender, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }; const notes = [...(sessionState.groupNotes || []), n]; await updateSessionState({ groupNotes: notes }); AudioManager.play('page'); };
+  const deleteNote = async (id) => updateSessionState({ groupNotes: (sessionState.groupNotes || []).filter(n => n.id !== id) });
+  const generateLoot = (lv) => updateSessionState({ activeLoot: { ...getRandomLoot(lv), approved: false } });
+  const approveLoot = () => { if (sessionState.activeLoot) { updateSessionState({ activeLoot: { ...sessionState.activeLoot, approved: true } }); AudioManager.play('chest_open'); } };
+  const clearLoot = () => updateSessionState({ activeLoot: null });
+  const claimLootItem = async (item) => {
+    const cur = characterSheetData.outros?.Equipamento || "";
+    const next = cur ? `${cur}, ${item.name}` : item.name;
+    const sheet = { ...characterSheetData, outros: { ...characterSheetData.outros, Equipamento: next } };
+    setCharacterSheetData(sheet); saveCharacter(characterName, { ...characterData, sheetData: sheet });
+    updateSessionState({ activeLoot: { ...sessionState.activeLoot, items: sessionState.activeLoot.items.filter(i => i.id !== item.id) } });
+    AudioManager.play('coins');
+  };
+  const claimLootGold = async (amt) => {
+    const nextG = (parseInt(characterSheetData.outros?.PO || '0') + amt).toString();
+    const sheet = { ...characterSheetData, outros: { ...characterSheetData.outros, PO: nextG } };
+    setCharacterSheetData(sheet); saveCharacter(characterName, { ...characterData, sheetData: sheet });
+    updateSessionState({ activeLoot: { ...sessionState.activeLoot, gold: Math.max(0, sessionState.activeLoot.gold - amt) } });
+    AudioManager.play('coins');
+  };
+
+  const askGemini = async (prompt) => {
+    if (!geminiApiKey) throw new Error("Key faltante");
+    const sys = "Você é um mestre de RPG 5e brasileiro.";
+    const models = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-pro', 'gemini-pro-latest'];
+    for (const m of models) {
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${geminiApiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ system_instruction: { parts: [{ text: sys }] }, contents: [{ role: 'user', parts: [{ text: prompt }] }] }) });
+        const data = await res.json();
+        if (data.candidates?.[0]?.content) return data.candidates[0].content.parts[0].text;
+      } catch(e){}
+    }
+    throw new Error("Falha no oráculo");
+  };
+
+  const generateNPC = async (theme) => {
+    const p = `Gere um NPC de ${theme} em JSON: {name, race, class, appearance, personality, secret, stats: {HP, CA, Atributos: {FOR, DES, CON, INT, SAB, CAR}}}`;
+    const res = await askGemini(p);
+    return JSON.parse(res.replace(/```json|```/g, '').trim());
+  };
+
+  const deleteCharacter = async (name) => { await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters').doc(name.toLowerCase()).set({ deleted: true }, { merge: true }); };
+  const updateCharacterConditions = async (name, conds) => {
+    const ref = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters').doc(name.toLowerCase());
+    const snap = await ref.get();
+    if (snap.exists) {
+      const d = snap.data(); d.sheetData.info['Condicoes'] = JSON.stringify(conds);
+      await ref.set(d);
+      const sid = extractSpreadsheetId(d.url || d.sheetUrl || d.sheetData?.url);
+      if (sid) updateSheetViaScript(scriptWebhook, sid, d.sheetData);
+    }
+  };
+
+  const updateCharacterXP = async (name, xp) => {
+    const c = allCharacters.find(x => x.name.toLowerCase() === name.toLowerCase());
+    if (!c) return;
+    const next = JSON.parse(JSON.stringify(c));
+    next.sheetData.info['XP'] = xp;
+    await saveCharacter(name, next);
+  };
+
+  // --- 4. RENDERIZAÇÃO ---
+
+  if (loading) return el(LoadingScreen);
+
   const WeatherOverlay = (() => {
     const env = sessionState.environment || 'none';
     if (env === 'none' || view === 'master') return null;
-
-    const particles = [];
-    if (env === 'rain') {
-        for(let i=0; i<50; i++) {
-            particles.push(el('div', { 
-                key: `drop-${i}`, 
-                className: "drop", 
-                style: { left: `${Math.random()*100}%`, top: `-${Math.random()*100}px`, '--duration': `${0.5 + Math.random()*0.5}s` } 
-            }));
-        }
-    } else if (env === 'snow') {
-        for(let i=0; i<30; i++) {
-            particles.push(el('div', { 
-                key: `snow-${i}`, 
-                className: "snowflake", 
-                style: { left: `${Math.random()*100}%`, '--duration': `${3 + Math.random()*5}s`, fontSize: `${10 + Math.random()*20}px` } 
-            }, '❄'));
-        }
-    } else if (env === 'mist') {
-        for(let i=0; i<5; i++) {
-            particles.push(el('div', { key: `mist-${i}`, className: "mist", style: { top: `${Math.random()*100}%`, opacity: 0.3 } }));
-        }
-    } else if (env === 'fire') {
-        for(let i=0; i<40; i++) {
-            particles.push(el('div', { 
-                key: `ember-${i}`, 
-                className: "ember", 
-                style: { left: `${Math.random()*100}%`, '--duration': `${2 + Math.random()*3}s`, '--drift': `${Math.random()*100 - 50}px` } 
-            }));
-        }
-    } else if (env === 'storm') {
-        particles.push(el('div', { key: 'lightning', className: "lightning-effect" }));
-        for(let i=0; i<60; i++) {
-            particles.push(el('div', { 
-                key: `drop-${i}`, 
-                className: "drop", 
-                style: { left: `${Math.random()*100}%`, top: `-${Math.random()*100}px`, '--duration': `${0.3 + Math.random()*0.3}s` } 
-            }));
-        }
-    } else if (env === 'petals') {
-        for(let i=0; i<20; i++) {
-            particles.push(el('div', { 
-                key: `petal-${i}`, 
-                className: "petal", 
-                style: { left: `${Math.random()*100}%`, '--duration': `${5 + Math.random()*5}s` } 
-            }));
-        }
-    } else if (env === 'sandstorm') {
-        for(let i=0; i<100; i++) {
-            particles.push(el('div', { 
-                key: `sand-${i}`, 
-                className: "sand", 
-                style: { 
-                    top: `${Math.random()*100}vh`,
-                    '--y': `${(Math.random() - 0.5) * 60}px`,
-                    '--duration': `${(0.4 + Math.random() * 0.8).toFixed(2)}s`,
-                    animationDelay: `${(Math.random() * 1).toFixed(2)}s`,
-                    opacity: 0.6 + Math.random() * 0.4,
-                    width: `${1 + Math.round(Math.random() * 3)}px`,
-                    height: `${1 + Math.round(Math.random() * 3)}px`
-                } 
-            }));
-        }
-    }
-
-    return el('div', { key: 'env-overlay', className: "environment-overlay" }, particles);
+    const parts = [];
+    if (env === 'rain') for(let i=0; i<50; i++) parts.push(el('div', { key: i, className: "drop", style: { left: `${Math.random()*100}%`, top: `-${Math.random()*100}px`, '--duration': `${0.5 + Math.random()*0.5}s` } }));
+    else if (env === 'snow') for(let i=0; i<30; i++) parts.push(el('div', { key: i, className: "snowflake", style: { left: `${Math.random()*100}%`, '--duration': `${3 + Math.random()*5}s` } }, '❄'));
+    return el('div', { key: 'env', className: "environment-overlay" }, parts);
   })();
 
   const envClass = (view !== 'master') ? (
-                   (sessionState.environment === 'night') ? 'env-night' : 
-                   (sessionState.environment === 'blood-moon') ? 'env-blood-moon' :
-                   (sessionState.environment === 'poison') ? 'env-poison' : 
-                   (sessionState.environment === 'sandstorm') ? 'env-sandstorm' : ''
+    (sessionState.environment === 'night') ? 'env-night' : 
+    (sessionState.environment === 'blood-moon') ? 'env-blood-moon' :
+    (sessionState.environment === 'poison') ? 'env-poison' : 
+    (sessionState.environment === 'sandstorm') ? 'env-sandstorm' : ''
   ) : '';
 
-  // --- COMPONENTE DE BIBLIOTECA (OVERLAY GLOBAL) ---
-  const LibraryOverlay = isLibraryOpen && el(LibraryView, {
-    key: 'library-overlay-global',
-    mode: view === 'master' ? 'master' : 'player',
-    libraryData: sessionState.library || {},
-    updateSessionState,
-    onBack: () => setIsLibraryOpen(false)
-  });
-
-  // --- COMPONENTE DE MAPA DE BATALHA (OVERLAY GLOBAL) ---
-  const BattlemapOverlay = isBattlemapOpen && el(BattlemapView, {
-    key: 'battlemap-overlay-global',
-    mode: view === 'master' ? 'master' : 'player',
-    battlemapData: sessionState.battlemap || {},
-    monsters: sessionState.monsters || [],
-    libraryData: sessionState.library || {},
-    allCharacters,
-    characterName,
-    turnState: sessionState.turnState || { activeChar: null, round: 1 },
-    advanceTurn,
-    updateSessionState,
-    onBack: () => setIsBattlemapOpen(false)
-  });
-
-  const LetterOverlay = showLetter && el('div', {
-    key: 'letter-notif',
-    onClick: () => {
-      setShowLetter(false);
-    },
-    className: "fixed top-24 right-8 z-[500] cursor-pointer animate-bounce-in group"
-  }, [
-    el('div', { key: 'letter-box', className: "bg-[#fdf6e3] p-5 rounded-2xl shadow-2xl border-4 border-[#d35400] relative overflow-hidden flex flex-col items-center gap-2 transform transition-transform group-hover:scale-110 active:scale-95" }, [
-        el('span', { key: 'icon', className: "text-4xl" }, "✉️"),
-        el('p', { key: 'text', className: "text-[10px] font-black uppercase text-[#d35400] tracking-widest text-center" }, [
-            el('span', { key: 't1' }, "Nova Carta"),
-            el('br', { key: 'br' }),
-            el('span', { key: 't2' }, "do Grupo")
-        ])
-    ])
-  ]);
-
-  const BargainOverlay = isBargainOpen && el(DevilsBargain, {
-    key: 'bargain-overlay-global',
-    mode: view === 'master' ? 'master' : 'player',
-    bargainData: sessionState.devilsBargain || { categories: BARGAIN_EFFECTS, activeBargains: [] },
-    updateSessionState,
-    onBack: () => setIsBargainOpen(false),
-    allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name),
-    characterName: characterName
-  });
-
-  // --- MURAL E HANDOUTS GLOBAIS ---
-  const AnnouncementOverlay = (sessionState.announcement && (sessionState.announcementTarget === 'all' || sessionState.announcementTarget === characterName || view === 'master')) && el('div', {
-    key: 'announcement-overlay',
-    className: "fixed top-0 left-0 right-0 z-[200] bg-gradient-to-r from-purple-700 to-indigo-800 text-white p-4 text-center shadow-[0_4px_30px_rgba(0,0,0,0.5)] border-b border-purple-500/30 animate-slide-down flex items-center justify-center gap-4"
-  }, [
-    el('span', { key: 'icon', className: "text-lg" }, "📢"),
-    el('p', { key: 'text', className: "text-[11px] font-bold uppercase tracking-[0.2em] drop-shadow-md" }, sessionState.announcement)
-  ]);
-
-  const CutsceneOverlay = sessionState.cutscene?.url && el('div', {
-    key: 'cutscene-overlay',
-    className: "fixed inset-0 z-[2000] bg-black flex flex-col items-center justify-center p-0 transition-all duration-1000 animate-fade-in pointer-events-none"
-  }, [
-    el('div', { key: 'top-bar', className: "absolute top-0 left-0 w-full h-[15vh] bg-black z-10" }),
-    el('div', { key: 'bottom-bar', className: "absolute bottom-0 left-0 w-full h-[15vh] bg-black z-10" }),
-    el('img', { 
-        key: 'cutscene-img',
-        src: sessionState.cutscene.url, 
-        className: "w-full h-full object-contain animate-slow-zoom" 
-    }),
-    view === 'master' && el('button', {
-        key: 'close-cutscene',
-        onClick: (e) => {
-            e.stopPropagation();
-            updateSessionState({ cutscene: null });
-        },
-        className: "absolute top-8 right-8 w-14 h-14 bg-red-600/40 hover:bg-red-600 text-white rounded-2xl flex items-center justify-center text-4xl pointer-events-auto transition-all backdrop-blur-md border border-white/20 shadow-2xl z-20 active:scale-90"
-    }, "×")
-  ]);
-
-  const HandoutOverlay = (sessionState.handout && showHandout && (sessionState.handoutTarget === 'all' || sessionState.handoutTarget === characterName || view === 'master')) && el('div', {
-    key: 'handout-overlay',
-    className: "fixed inset-0 z-[250] bg-black/90 backdrop-blur-md flex items-center justify-center p-8 md:p-20 transition-all animate-fade-in"
-  }, [
-    el('div', { key: 'image-container', className: "relative max-w-7xl max-h-full group" }, [
-        el('img', { 
-            key: 'handout-img',
-            src: sessionState.handout, 
-            className: "max-w-full max-h-[85vh] rounded-[2rem] shadow-[0_0_80px_rgba(0,0,0,0.8)] border-4 border-white/5 object-contain" 
-        }),
-        el('button', {
-            key: 'close-handout',
-            onClick: () => setShowHandout(false),
-            className: "absolute -top-6 -right-6 w-14 h-14 bg-white text-slate-900 rounded-2xl flex items-center justify-center text-4xl font-light hover:bg-red-500 hover:text-white transition-all shadow-2xl active:scale-90"
-        }, "×")
-    ])
-  ]);
-
-  const LootOverlay = (sessionState.activeLoot?.approved && 
-                        (sessionState.activeLoot.target === 'all' || sessionState.activeLoot.target === characterName)) && el(LootChest, {
-    key: 'loot-chest-overlay',
-    loot: sessionState.activeLoot,
-    characterName,
-    onClaimItem: claimLootItem,
-    onClaimGold: claimLootGold,
-    onClose: clearLoot
-  });
-
-  const WorldMapOverlay = isWorldMapOpen && el(WorldMapView, {
-    key: 'worldmap-overlay',
-    mode: view === 'master' ? 'master' : 'player',
-    worldMapData: sessionState.worldMap || {},
-    updateSessionState,
-    onBack: () => setIsWorldMapOpen(false),
-    battlemaps: sessionState.battlemap?.maps || [],
-    onOpenBattlemap: (mapId) => {
-        updateSessionState({ battlemap: { ...sessionState.battlemap, activeMapId: mapId } });
-        setIsWorldMapOpen(false);
-        setIsBattlemapOpen(true);
-    }
-  });
-
-  const CraftingOverlay = isCraftingOpen && el(CraftingView, {
-    key: 'crafting-overlay',
-    sheetData: characterSheetData,
-    onUpdateSheet: (newData) => {
-        Object.keys(newData).forEach(key => {
-            updateSheetField(key, null, newData[key]);
-        });
-    },
-    onBack: () => setIsCraftingOpen(false),
-    askGemini: askGemini,
-    isMaster: view === 'master'
-  });
-
-  const ShopOverlay = isShopOpen && (view === 'master' || sessionState.isShopEnabled) && el(TradingSystem, {
-    key: 'shop-overlay',
-    sheetData: characterSheetData,
-    sessionState: sessionState,
-    updateSessionState: updateSessionState,
-    onUpdateSheet: (newData) => {
-        Object.keys(newData).forEach(key => {
-            updateSheetField(key, null, newData[key]);
-        });
-    },
-    onBack: () => setIsShopOpen(false),
-    isMaster: view === 'master',
-    characterName: characterName,
-    askGemini: askGemini
-  });
-
-  const DiceOverlay = view !== 'login' && el(DiceRoller, {
-    key: 'global-dice-roller',
-    rollDice: (sides, result, label, secret) => rollDice(sides, result, label, secret),
-    recentRolls,
-    characterName: view === 'master' ? 'Mestre' : characterName,
-    view,
-    isRollingModalOpen,
-    setRollingModalOpen,
-    tabletopMode: true,
-    externalRoll,
-    isBattlemapOpen: isBattlemapOpen
-  });
-
-  const ClockOverlay = view !== 'login' && (() => {
-    const day = sessionState.day || 1;
-    const time = sessionState.timeMinutes !== undefined ? sessionState.timeMinutes : 480;
-    const h = Math.floor(time / 60).toString().padStart(2, '0');
-    const m = (time % 60).toString().padStart(2, '0');
-    
-    // Identifica visual baseado no horário (Dia vs Noite)
-    let icon = "☀️";
-    let bgClass = "bg-sky-900/40 border-sky-400/50 text-sky-100";
-    if (time < 360 || time >= 1080) { // Noite: antes das 6h ou depois das 18h
-        icon = "🌙";
-        bgClass = "bg-indigo-950/60 border-indigo-500/50 text-indigo-200";
-    }
-
-    return el('div', {
-        key: 'clock-overlay',
-        className: `fixed bottom-0 left-0 right-0 z-[100] ${bgClass} border-t-2 md:border-2 backdrop-blur-md md:bottom-8 md:left-8 md:right-auto md:px-4 md:py-2 md:rounded-2xl shadow-2xl flex items-center justify-center md:justify-start gap-4 md:gap-3 transition-all hover:scale-105 pointer-events-none h-10 md:h-auto`
-    }, [
-        el('span', { key: 'icon', className: "text-lg md:text-2xl drop-shadow-md" }, icon),
-        el('div', { key: 'text-container', className: "flex items-center md:flex-col gap-3 md:gap-0" }, [
-            el('span', { key: 'day-label', className: "text-[9px] md:text-[9px] font-black uppercase tracking-[0.2em] opacity-80" }, `Dia ${day}`),
-            el('span', { key: 'time-label', className: "text-sm md:text-lg font-black font-mono leading-none tracking-tighter" }, `${h}:${m}`)
-        ])
+  const LibraryOverlay = isLibraryOpen && el(LibraryView, { key: 'lib', mode: view === 'master' ? 'master' : 'player', libraryData: sessionState.library || {}, updateSessionState, onBack: () => setIsLibraryOpen(false) });
+  const BattlemapOverlay = isBattlemapOpen && el(BattlemapView, { key: 'map', mode: view === 'master' ? 'master' : 'player', battlemapData: sessionState.battlemap || {}, monsters: sessionState.monsters || [], libraryData: sessionState.library || {}, allCharacters, characterName, turnState, advanceTurn, updateSessionState, onBack: () => setIsBattlemapOpen(false) });
+  const BargainOverlay = isBargainOpen && el(DevilsBargain, { key: 'barg', mode: view === 'master' ? 'master' : 'player', bargainData: sessionState.devilsBargain || { categories: BARGAIN_EFFECTS, activeBargains: [] }, updateSessionState, onBack: () => setIsBargainOpen(false), allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name), characterName });
+  const LetterOverlay = showLetter && el('div', { key: 'let', onClick: () => setShowLetter(false), className: "fixed top-24 right-8 z-[500] cursor-pointer animate-bounce-in" }, el('div', { className: "bg-[#fdf6e3] p-5 rounded-2xl shadow-2xl border-4 border-[#d35400]" }, "✉️ Nova Carta"));
+  const LootOverlay = (sessionState.activeLoot?.approved && (sessionState.activeLoot.target === 'all' || sessionState.activeLoot.target === characterName)) && el(LootChest, { key: 'loot', loot: sessionState.activeLoot, characterName, onClaimItem: claimLootItem, onClaimGold: claimLootGold, onClose: clearLoot });
+  const WorldMapOverlay = isWorldMapOpen && el(WorldMapView, { key: 'wmap', mode: view === 'master' ? 'master' : 'player', worldMapData: sessionState.worldMap || {}, updateSessionState, onBack: () => setIsWorldMapOpen(false), battlemaps: sessionState.battlemap?.maps || [], onOpenBattlemap: (mid) => { updateSessionState({ battlemap: { ...sessionState.battlemap, activeMapId: mid } }); setIsWorldMapOpen(false); setIsBattlemapOpen(true); } });
+  const CraftingOverlay = isCraftingOpen && el(CraftingView, { key: 'craft', sheetData: characterSheetData, onUpdateSheet: (d) => Object.keys(d).forEach(k => updateSheetField(k, null, d[k])), onBack: () => setIsCraftingOpen(false), askGemini, isMaster: view === 'master' });
+  const ShopOverlay = isShopOpen && (view === 'master' || sessionState.isShopEnabled) && el(TradingSystem, { key: 'shop', sheetData: characterSheetData, sessionState, updateSessionState, onUpdateSheet: (d) => Object.keys(d).forEach(k => updateSheetField(k, null, d[k])), onBack: () => setIsShopOpen(false), isMaster: view === 'master', characterName, askGemini });
+  const DiceOverlay = view !== 'login' && view !== 'landing' && el(DiceRoller, { key: 'dice', rollDice, recentRolls, characterName: view === 'master' ? 'Mestre' : characterName, view, isRollingModalOpen, setRollingModalOpen, tabletopMode: true, externalRoll, isBattlemapOpen });
+  
+  const ClockOverlay = view !== 'login' && view !== 'landing' && (() => {
+    const day = sessionState.day || 1; const time = sessionState.timeMinutes || 480;
+    const h = Math.floor(time/60).toString().padStart(2,'0'); const m = (time%60).toString().padStart(2,'0');
+    const night = (time < 360 || time >= 1080);
+    return el('div', { key: 'clock', className: `fixed bottom-8 left-8 z-[100] p-2 rounded-2xl backdrop-blur-md border-2 ${night ? 'bg-indigo-950/60 border-indigo-500 text-indigo-200' : 'bg-sky-900/40 border-sky-400 text-sky-100'}` }, [
+      el('span', { key: 'icon' }, night ? "🌙 " : "☀️ "),
+      el('span', { key: 'day' }, `Dia ${day} - ${h}:${m}`)
     ]);
   })();
 
-  const AllOverlays = React.createElement(React.Fragment, null, 
-    ClockOverlay,
-    AnnouncementOverlay,
-    HandoutOverlay,
-    LibraryOverlay,
-    BargainOverlay,
-    LetterOverlay,
-    LootOverlay,
-    WeatherOverlay,
-    BattlemapOverlay,
-    WorldMapOverlay,
-    CraftingOverlay,
-    ShopOverlay,
-    CutsceneOverlay,
-    DiceOverlay
-  );
-
-  // Se estivermos na visão do mestre, renderizamos a MasterView
-  if (view === 'master') {
-    return el('div', { key: 'master-wrapper', className: envClass }, [
-      el(MasterView, {
-        key: 'master-view-node',
-        allCharacters, rollHistory, onBack: () => setView('login'),
-        updateCharacterXP,
-        updateCharacterConditions,
-        updateCharacterHP,
-        advanceTurn,
-        turnState,
-        geminiApiKey,
-        setGeminiApiKey: (key) => { setGeminiApiKey(key); localStorage.setItem('gemini_api_key', key); },
-        askGemini,
-        updateInitiative,
-        souls,
-        updateSouls,
-        updateEditPermission,
-        onViewSheet: (char) => { setCharacterSheetData(char.sheetData); setCharacterName(char.name); setView('sheet'); },
-        saveCharacter,
-        rollDice,
-        triggerExternalRoll,
-        deleteCharacter,
-        sessionState,
-        updateSessionState,
-        currentAppId,
-        deleteCampaign,
-        onOpenShop: () => setIsShopOpen(true),
-        generateLoot,
-        approveLoot,
-        clearLoot,
-        generateNPC,
-        updateMasterPassword: async (newPass) => {
-            await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('vault').set({ password: newPass }, { merge: true });
-        },
-        setIsLibraryOpen,
-        setIsBattlemapOpen,
-        setIsWorldMapOpen,
-        setIsBargainOpen,
-        allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name),
-        chatMessages,
-        sendChatMessage,
-        clearRollHistory: async () => {
-          if (!confirm("Deseja limpar todo o histórico de rolagens?")) return;
-          const snap = await db.collection('artifacts').doc(currentAppId)
-            .collection('public').doc('data').collection('rolls').get();
-          const batch = db.batch();
-          snap.forEach(doc => batch.delete(doc.ref));
-          await batch.commit();
-        },
-        hasNewMessage,
-        setHasNewMessage
-      }),
-      AllOverlays
-    ]);
-  }
-  // Se estivermos na visão da ficha e tivermos os dados da ficha, renderizamos a SheetView
-  if (view === 'sheet' && characterSheetData) {
-    return el('div', { key: 'sheet-wrapper', className: envClass }, [
-      // 1. A Ficha de Personagem
-      el(SheetView, {
-        key: 'sheet-view',
-        characterName,
-        characterSheetData,
-        characterImageUrl: characterData?.imageUrl,
-        onUpdateImage: (url) => saveCharacter(characterName, { ...characterData, imageUrl: url }),
-        onBack: () => { setIsNewCharacter(false); setView('login'); },
-        groupNotes: sessionState.groupNotes || [],
-        shareNote: (text) => shareNote(text, characterName),
-        deleteNote: deleteNote,
-        onOpenCrafting: () => setIsCraftingOpen(true),
-        onRequestDelete: async () => {
-          if(confirm('Tem certeza que deseja solicitar a exclusão deste personagem?')) {
-            await saveCharacter(characterName, { ...characterData, pendingDeletion: true });
-            setView('login');
-            alert('Solicitação enviada ao Mestre.');
-          }
-        },
-        onToggleTree: () => setView('character'),
-        rollDice,
-        iconMap,
-        updateSheetField: updateSheetField,
-        onUpdateSheet: onUpdateSheet,
-        turnState,
-        sessionState,
-        updateSessionState,
-        handleDescansoLongo: async () => {
-          if (!confirm("Realizar Descanso Longo? Isso zerará o dano acumulado e escudos.")) return;
-
-          const newData = JSON.parse(JSON.stringify(characterSheetData));
-
-          newData.recursos['PV Perdido'] = 0;
-          newData.recursos['PV Temporário'] = 0;
-
-          // Zera os slots de magia usados
-          if (newData.magias && newData.magias.slots) {
-            Object.keys(newData.magias.slots).forEach(circle => {
-              newData.magias.slots[circle].used = 0;
-            });
-          }
-
-          const max = parseInt(newData.recursos['PV Máximo']) || 0;
-          newData.recursos['PV Atual'] = max;
-
-          await onUpdateSheet(newData);
-          AudioManager.play('rest');
-
-          alert("🌙Foi uma noite tranquila. Descanso realizado!");
-        },
-        isRollingModalOpen,
-        setRollingModalOpen,
-        setEditableSheetData,
-        triggerExternalRoll,
-        recentRolls,
-        isNewCharacter,
-        sessionState,
-        setIsLibraryOpen,
-        setIsBattlemapOpen,
-        setIsWorldMapOpen,
-        setIsBargainOpen,
-        onOpenShop: () => setIsShopOpen(true),
-        sendChatMessage,
-        chatMessages: chatMessages.filter(m => 
-          m.sender === characterName || 
-          (m.sender === 'Mestre' && (m.recipient === characterName || !m.recipient))
-        )
-      }),
-
-
-      // 2. Editor de Dados Brutos (Lápis) - EXTRAÍDO
-      editableSheetData && el(RawDataEditor, {
-        key: 'raw-data-editor',
-        data: editableSheetData,
-        onSave: onUpdateSheet,
-        onClose: () => setEditableSheetData(null)
-      }),
-
-      AllOverlays
-    ]);
-  }
-
-  // Se estivermos na visão da árvore de talentos, renderizamos a TreeView
-  if (view === 'character') {
-    return el('div', { key: 'character-wrapper', className: envClass }, [
-      // 1. Árvore de Talentos
-      el(TreeView, {
-        TALENT_TREES, characterData, characterName, characterSheetData,
-        onBack: () => setView('login'), onToggleSheet: () => setView('sheet'),
-        iconMap, upgradeTalent, saveCharacter,
-        showTooltip: (e, n, l) => {
-          if (!e) {
-            setTooltip({ show: false, content: null, x: 0, y: 0 });
-            return;
-          }
-          // Calcula se o mouse está muito baixo na tela (menos de 250px do fundo)
-          const shouldShowAbove = (window.innerHeight - e.clientY) < 250;
-          setTooltip({
-            show: true,
-            content: { talentName: n, ...l },
-            x: e.clientX,
-            y: e.clientY,
-            above: shouldShowAbove
-          });
-        }
-      }),
-
-      // 3. O TOOLTIP COM POSICIONAMENTO INTELIGENTE - EXTRAÍDO
-      el(TalentTooltip, { key: 'talent-tooltip', tooltip }),
-
-      AllOverlays
-    ]);
-  }
-
-  return el('div', { key: 'login-wrapper', className: envClass }, [
-    el(LoginView, {
-      key: 'login-view',
-      allCharacters, 
-      onSelectCharacter: selectCharacter,
-      onCreateCharacter: createNewCharacter,
-      creatingCharacter: creatingCharacter,
-      isCreating: isCreating,
-      TALENT_TREES, 
-      iconMap,
-      campaigns,
-      currentAppId,
-      setCurrentAppId,
-      createNewCampaign,
-      importCampaign
-    }),
-    AllOverlays
+  const AnnouncementOverlay = (sessionState.announcement && (sessionState.announcementTarget === 'all' || sessionState.announcementTarget === characterName || view === 'master')) && el('div', { key: 'ann', className: "fixed top-0 left-0 right-0 z-[200] bg-indigo-800 text-white p-2 text-center" }, sessionState.announcement);
+  const HandoutOverlay = (sessionState.handout && showHandout && (sessionState.handoutTarget === 'all' || sessionState.handoutTarget === characterName || view === 'master')) && el('div', { key: 'hand', className: "fixed inset-0 z-[250] bg-black/90 flex items-center justify-center p-10" }, [
+    el('img', { src: sessionState.handout, className: "max-h-full object-contain" }),
+    el('button', { onClick: () => setShowHandout(false), className: "absolute top-4 right-4 text-white text-4xl" }, "×")
   ]);
+  const CutsceneOverlay = sessionState.cutscene?.url && el('div', { key: 'cut', className: "fixed inset-0 z-[2000] bg-black flex items-center justify-center" }, [
+    el('img', { src: sessionState.cutscene.url, className: "w-full h-full object-contain animate-slow-zoom" }),
+    view === 'master' && el('button', { onClick: () => updateSessionState({ cutscene: null }), className: "absolute top-4 right-4 text-white text-4xl" }, "×")
+  ]);
+
+  const AllOverlays = el(React.Fragment, null, ClockOverlay, AnnouncementOverlay, HandoutOverlay, LibraryOverlay, BargainOverlay, LetterOverlay, LootOverlay, WeatherOverlay, BattlemapOverlay, WorldMapOverlay, CraftingOverlay, ShopOverlay, CutsceneOverlay, DiceOverlay);
+
+  if (view === 'landing') return el('div', { key: 'lw-base', className: envClass }, el(LandingView, { campaigns, currentAppId, setCurrentAppId, createNewCampaign, importCampaign, deleteCampaign, onEnterRoom, onSync: () => window.location.reload() }), AllOverlays);
+  if (view === 'master') return el('div', { key: 'mw', className: envClass }, el(MasterView, { allCharacters, rollHistory, onBack: () => setView('login'), updateCharacterXP, updateCharacterConditions, updateCharacterHP, advanceTurn, turnState, geminiApiKey, setGeminiApiKey: (k) => { setGeminiApiKey(k); localStorage.setItem('gemini_api_key', k); }, askGemini, updateInitiative, souls, updateSouls, updateEditPermission, onViewSheet: (c) => { setCharacterSheetData(c.sheetData); setCharacterName(c.name); setView('sheet'); }, saveCharacter, rollDice, triggerExternalRoll, deleteCharacter, sessionState, updateSessionState, currentAppId, deleteCampaign, onOpenShop: () => setIsShopOpen(true), generateLoot, approveLoot, clearLoot, generateNPC, updateMasterPassword: (p) => db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('vault').set({ password: p }, { merge: true }), setIsLibraryOpen, setIsBattlemapOpen, setIsWorldMapOpen, setIsBargainOpen, allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name), chatMessages, sendChatMessage, clearRollHistory: async () => { if (confirm("Limpar?")) { const snap = await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('rolls').get(); const b = db.batch(); snap.forEach(d => b.delete(d.ref)); await b.commit(); } }, hasNewMessage, setHasNewMessage }), AllOverlays);
+  if (view === 'sheet' && characterSheetData) return el('div', { key: 'sw', className: envClass }, el(SheetView, { characterName, characterSheetData, characterImageUrl: characterData?.imageUrl, onUpdateImage: (u) => saveCharacter(characterName, { ...characterData, imageUrl: u }), onBack: () => { setIsNewCharacter(false); setView('login'); }, groupNotes: sessionState.groupNotes || [], shareNote, deleteNote, onOpenCrafting: () => setIsCraftingOpen(true), onRequestDelete: async () => { if(confirm('Excluir?')) { await saveCharacter(characterName, { ...characterData, pendingDeletion: true }); setView('login'); } }, onToggleTree: () => setView('character'), rollDice, iconMap, updateSheetField, onUpdateSheet, turnState, sessionState, updateSessionState, handleDescansoLongo: async () => { if (confirm("Descanso?")) { const n = JSON.parse(JSON.stringify(characterSheetData)); n.recursos['PV Perdido'] = 0; n.recursos['PV Temporário'] = 0; if (n.magias?.slots) Object.keys(n.magias.slots).forEach(c => n.magias.slots[c].used = 0); n.recursos['PV Atual'] = parseInt(n.recursos['PV Máximo']) || 0; await onUpdateSheet(n); AudioManager.play('rest'); } }, isRollingModalOpen, setRollingModalOpen, setEditableSheetData, triggerExternalRoll, recentRolls, isNewCharacter, setIsLibraryOpen, setIsBattlemapOpen, setIsWorldMapOpen, setIsBargainOpen, onOpenShop: () => setIsShopOpen(true), sendChatMessage, chatMessages: chatMessages.filter(m => m.sender === characterName || (m.sender === 'Mestre' && (m.recipient === characterName || !m.recipient))), onUpdatePIN: (pin) => saveCharacter(characterName, { ...characterData, pin }) }), editableSheetData && el(RawDataEditor, { key: 'editor', data: editableSheetData, onSave: onUpdateSheet, onClose: () => setEditableSheetData(null) }), AllOverlays);
+  if (view === 'character') return el('div', { key: 'cw', className: envClass }, el(TreeView, { TALENT_TREES, characterData, characterName, characterSheetData, onBack: () => setView('login'), onToggleSheet: () => setView('sheet'), iconMap, upgradeTalent, saveCharacter, showTooltip: (e, n, l) => e ? setTooltip({ show: true, content: { talentName: n, ...l }, x: e.clientX, y: e.clientY, above: (window.innerHeight - e.clientY) < 250 }) : setTooltip({ show: false }) }), el(TalentTooltip, { key: 'tt', tooltip: tooltip }), AllOverlays);
+
+  return el('div', { key: 'lw-wrap', className: envClass }, el(LoginView, { allCharacters, onSelectCharacter: selectCharacter, onCreateCharacter: createNewCharacter, creatingCharacter, isCreating, TALENT_TREES, iconMap, campaigns, currentAppId, setCurrentAppId, createNewCampaign, importCampaign, onBackToLanding: () => setView('landing') }), AllOverlays);
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
 
-export const PLAYER_TUTORIAL_VERSION = '2.0';
+export const PLAYER_TUTORIAL_VERSION = '2.1';
 
 export function PlayerTutorialPopup({ onClose }) {
     const [activeTab, setActiveTab] = useState('novidades'); // Abre direto nas novidades quando há update
@@ -24,21 +24,21 @@ export function PlayerTutorialPopup({ onClose }) {
         switch (activeTab) {
             case 'novidades':
                 return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
-                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 2.0 - Otimização & Imersão"),
+                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 2.1 - Proteção de Ficha"),
                     
+                    el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2" }, "🔐 PIN de Segurança"),
+                        el('p', { className: "text-xs" }, "Agora você pode proteger sua ficha com um PIN de 4 dígitos. Clique no ícone de cadeado na sua ficha para definir sua senha pessoal.")
+                    ]),
+
                     el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "📌 Barra de Atalhos (Hotbar)"),
-                        el('p', { className: "text-xs" }, "Agora você pode fixar seus ataques e magias favoritos na base da tela! Clique no ícone de tachinha (📌) na sua lista de ataques ou no grimório para criar um atalho rápido.")
+                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "⚡ Autenticação Persistente"),
+                        el('p', { className: "text-xs" }, "Não precisa digitar o PIN toda hora! Uma vez logado no seu personagem, o sistema lembrará de você até que a página seja recarregada ou você mude de sala.")
                     ]),
 
                     el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🎬 Cenas Cinematográficas"),
-                        el('p', { className: "text-xs" }, "Prepare-se para o drama! O mestre agora pode revelar cenários e chefes em tela cheia com trilha sonora de impacto sincronizada para todo o grupo.")
-                    ]),
-
-                    el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2" }, "📱 Experiência Mobile"),
-                        el('p', { className: "text-xs" }, "Corrigimos o alinhamento de tokens e mapas no celular. Agora a visão tática está perfeitamente sincronizada entre PC e dispositivos móveis.")
+                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🎬 Cenas em Tempo Real"),
+                        el('p', { className: "text-xs" }, "Fique atento às 'Cutscenes' do mestre! Elas agora trazem som e imagem sincronizados para uma experiência mais imersiva.")
                     ])
                 ]);
             case 'geral':

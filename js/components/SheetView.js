@@ -41,7 +41,8 @@ export function SheetView({
     setIsWorldMapOpen,
     onOpenCrafting,
     onOpenShop,
-    setRollingModalOpen
+    setRollingModalOpen,
+    onUpdatePIN
 }) {
     const charData = characterSheetData; // Alias para compatibilidade com código legado
 
@@ -60,6 +61,7 @@ export function SheetView({
     const [useVisualInventory, setUseVisualInventory] = useState(true);
     const [showSoundboard, setShowSoundboard] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isPinModalOpen, setIsPinModalOpen] = useState(false);
 
     // --- CÁLCULO DE BÔNUS DE INVENTÁRIO ---
     const getInventoryBonuses = () => {
@@ -1599,6 +1601,13 @@ export function SheetView({
                             title: "Alquimia e Crafting"
                         }, "⚗️"),
 
+                        // Botão Segurança (PIN)
+                        el('button', {
+                            onClick: () => setIsPinModalOpen(true),
+                            className: "w-14 h-14 bg-slate-800 hover:bg-indigo-900 text-indigo-400 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl",
+                            title: "Segurança da Ficha (PIN)"
+                        }, "🔒"),
+
                         // Botão Loja
                         el('button', {
                             onClick: () => {
@@ -2011,6 +2020,39 @@ export function SheetView({
                     ]),
                     el('span', { className: "text-[8px] font-black text-slate-500 uppercase tracking-tighter truncate w-16 text-center group-hover:text-amber-500" }, item.name)
                 ]))
+            ])
+        ]),
+        
+        // --- MODAL DE PIN ---
+        isPinModalOpen && el('div', { className: "fixed inset-0 z-[1000] bg-black/90 flex items-center justify-center p-6 backdrop-blur-md animate-fade-in" }, [
+            el('div', { className: "bg-slate-900 border-2 border-indigo-500/30 p-8 rounded-[2.5rem] max-w-sm w-full shadow-3xl animate-slide-up" }, [
+                el('h3', { className: "text-indigo-400 font-black uppercase italic tracking-tight text-xl mb-4" }, "Segurança da Ficha"),
+                el('p', { className: "text-slate-400 text-xs mb-8" }, "Defina um PIN de 4 dígitos para impedir que outros jogadores entrem na sua ficha. Deixe em branco para remover a proteção."),
+                el('form', {
+                    onSubmit: (e) => {
+                        e.preventDefault();
+                        const pin = e.target.pin.value.trim();
+                        if (pin && pin.length !== 4) {
+                            alert("O PIN deve ter exatamente 4 dígitos!");
+                            return;
+                        }
+                        onUpdatePIN(pin);
+                        setIsPinModalOpen(false);
+                        alert(pin ? "PIN definido com sucesso!" : "Proteção por PIN removida.");
+                    }
+                }, [
+                    el('input', {
+                        name: "pin",
+                        type: "text",
+                        maxLength: 4,
+                        placeholder: "Ex: 1234",
+                        className: "w-full bg-slate-950 border-2 border-slate-800 rounded-2xl p-5 text-center text-3xl font-black text-indigo-500 tracking-[0.5em] focus:border-indigo-500 outline-none mb-8"
+                    }),
+                    el('div', { className: "flex gap-3" }, [
+                        el('button', { type: "button", onClick: () => setIsPinModalOpen(false), className: "flex-1 p-4 bg-slate-800 text-slate-400 font-black uppercase text-[10px] rounded-xl" }, "Cancelar"),
+                        el('button', { type: "submit", className: "flex-1 p-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-xl shadow-lg shadow-indigo-900/20" }, "Salvar")
+                    ])
+                ])
             ])
         ])
     ]);

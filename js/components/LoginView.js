@@ -13,7 +13,8 @@ export function LoginView({
     currentAppId,
     setCurrentAppId,
     createNewCampaign,
-    importCampaign
+    importCampaign,
+    onBackToLanding
 }) {
     const el = React.createElement;
     const { useState } = React;
@@ -29,37 +30,24 @@ export function LoginView({
         // --- HEADER ---
         el('header', { className: "bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 p-4 md:p-6" },
             el('div', { className: "max-w-7xl mx-auto flex justify-between items-center" },
-                el('div', null,
-                    el('h1', { className: "text-2xl md:text-4xl font-black text-white mb-2 tracking-tighter uppercase italic" }, "Selecione seu Herói"),
-                    el('div', { className: "flex items-center gap-2" },
-                        el('select', {
-                            value: currentAppId,
-                            onChange: (e) => {
-                                if (e.target.value === 'new') {
-                                    setIsCreatingCampaign(true);
-                                } else {
-                                    setCurrentAppId(e.target.value);
-                                }
-                            },
-                            className: "bg-slate-950/50 text-amber-500 text-xs md:text-sm uppercase font-bold tracking-[0.2em] border border-slate-800 rounded-lg p-2 focus:outline-none focus:border-amber-500 cursor-pointer hover:bg-slate-900 transition-all"
-                        }, [
-                             ...campaigns.map(camp => el('option', { key: camp.id, value: camp.id }, camp.name)),
-                            el('option', { key: 'new', value: 'new', className: "text-emerald-400" }, "+ CRIAR NOVA SALA/CAMPANHA")
-                        ]),
-                        el('button', {
-                            onClick: () => {
-                                const id = prompt("Digite o ID da campanha para importar (Ex: rpg-nome-da-sala):");
-                                if (id) importCampaign(id);
-                            },
-                            className: "bg-slate-900 border border-slate-800 p-2 rounded-lg text-[10px] text-slate-500 hover:text-white transition-all",
-                            title: "Importar Campanha via ID"
-                        }, "📥")
-                    )
-                ),
+                el('div', { className: "flex items-center gap-4" }, [
+                    el('button', {
+                        onClick: onBackToLanding,
+                        className: "p-3 bg-slate-950 border border-slate-800 rounded-2xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all",
+                        title: "Voltar para Seleção de Salas"
+                    }, "⬅️"),
+                    el('div', null, [
+                        el('h1', { className: "text-2xl md:text-3xl font-black text-white mb-1 tracking-tighter uppercase italic" }, "Selecione seu Herói"),
+                        el('p', { className: "text-[10px] text-amber-500 font-bold uppercase tracking-[0.2em]" }, currentAppId.replace('rpg-', '').toUpperCase())
+                    ])
+                ]),
                 el('button', {
                     onClick: () => onSelectCharacter('mestre'),
-                    className: "bg-purple-950/40 border-2 border-purple-500/60 hover:border-purple-500 rounded-2xl p-3 md:p-4 transition-all group shadow-lg"
-                }, Crown)
+                    className: "bg-purple-950/40 border-2 border-purple-500/60 hover:border-purple-500 rounded-2xl p-3 md:p-4 transition-all group shadow-lg flex items-center gap-2"
+                }, [
+                    el('span', { className: "hidden md:inline text-[10px] font-black uppercase text-purple-400" }, "Painel do Mestre"),
+                    Crown
+                ])
             )
         ),
 
@@ -97,11 +85,14 @@ export function LoginView({
                         className: `relative bg-slate-900 border-2 rounded-[2rem] p-6 transition-all h-full min-h-[220px] flex flex-col group shadow-lg ${tree ? `${tree.border} hover:shadow-[0_0_40px_rgba(0,0,0,0.6)]` : 'border-slate-800 hover:border-slate-600'}`
                     },
                         el('div', { className: "text-left" },
-                            el('div', { className: `${tree?.color || 'bg-slate-800'} w-16 h-16 rounded-2xl flex items-center justify-center text-white font-black text-2xl mb-4 border border-white/10 group-hover:scale-110 transition-transform overflow-hidden shadow-lg` },
-                                char.imageUrl ? 
-                                    el('img', { src: char.imageUrl, className: "w-full h-full object-cover" }) : 
-                                    char.name[0].toUpperCase()
-                            ),
+                            el('div', { className: "flex justify-between items-start mb-4" }, [
+                                el('div', { className: `${tree?.color || 'bg-slate-800'} w-16 h-16 rounded-2xl flex items-center justify-center text-white font-black text-2xl border border-white/10 group-hover:scale-110 transition-transform overflow-hidden shadow-lg` },
+                                    char.imageUrl ? 
+                                        el('img', { src: char.imageUrl, className: "w-full h-full object-cover" }) : 
+                                        char.name[0].toUpperCase()
+                                ),
+                                char.pin && el('span', { className: "text-amber-500 bg-amber-500/10 p-2 rounded-xl border border-amber-500/20 text-xs shadow-sm", title: "Personagem Protegido por PIN" }, "🔒")
+                            ]),
                             el('h3', { className: "text-lg font-black text-white uppercase tracking-tight mb-1 group-hover:text-amber-400 transition-colors" }, char.name),
                             el('p', { className: "text-xs font-bold text-amber-500 uppercase tracking-widest mb-4" },
                                 tree ? tree.title : '⚠️ Sem classe'

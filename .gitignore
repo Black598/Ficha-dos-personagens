@@ -1,0 +1,16 @@
+# Rascunhos e backups temporários
+scratch/
+
+# Configurações de ambiente (Firebase keys etc)
+.env
+.env.local
+
+# Dependências (se houver no futuro)
+node_modules/
+
+# Logs e arquivos de sistema
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db

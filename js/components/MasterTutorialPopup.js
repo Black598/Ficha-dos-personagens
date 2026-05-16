@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
 
-export const MASTER_TUTORIAL_VERSION = '2.0';
+export const MASTER_TUTORIAL_VERSION = '2.1';
 
 export function MasterTutorialPopup({ onClose }) {
     const [activeTab, setActiveTab] = useState('novidades');
@@ -25,21 +25,21 @@ export function MasterTutorialPopup({ onClose }) {
         switch (activeTab) {
             case 'novidades':
                 return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
-                    el('p', { className: "text-purple-400 font-bold" }, "✨ Versão 2.0 - Controle Absoluto"),
+                    el('p', { className: "text-purple-400 font-bold" }, "✨ Versão 2.1 - Segurança & Multi-Campanha"),
                     
-                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🎬 Cenas Cinematográficas"),
-                        el('p', { className: "text-xs" }, "No painel de controle, você agora tem o botão 'Iniciar Cinematic'. Cole um link de imagem para fazer uma revelação dramática em tela cheia para todos os jogadores, com áudio de impacto automático.")
-                    ]),
-
-                    el('div', { className: "bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-emerald-400 font-bold mb-2 flex items-center gap-2" }, "🔊 Transições de Áudio (Fade)"),
-                        el('p', { className: "text-xs" }, "Chega de cortes bruscos no som! Use o novo botão 'Parar (Fade)' para diminuir o volume da música gradualmente, criando uma transição suave entre cenas.")
-                    ]),
-
                     el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "📍 Atlas & VTT Sincronizado"),
-                        el('p', { className: "text-xs" }, "Corrigimos bugs de alinhamento em dispositivos móveis. O que você marca no Atlas ou posiciona no Campo de Batalha agora aparece exatamente no mesmo pixel para jogadores em celulares ou tablets.")
+                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "🔒 Segurança Dual-Layer"),
+                        el('p', { className: "text-xs" }, "Agora você pode definir uma 'Senha da Sala' para jogadores e uma 'Senha de Mestre' separada para o painel. Configure ambas no menu de Configurações (⚙️).")
+                    ]),
+
+                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🔑 Chave Mestra (Bypass)"),
+                        el('p', { className: "text-xs" }, "Uma vez autenticado como mestre, você pode entrar em qualquer ficha de jogador sem precisar saber o PIN deles. Praticidade total para auditoria!")
+                    ]),
+
+                    el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2" }, "🏰 Gestor de Campanhas"),
+                        el('p', { className: "text-xs" }, "A nova Landing Page permite gerenciar múltiplas salas. A exclusão de salas agora exige confirmação por senha ou texto para evitar acidentes.")
                     ])
                 ]);
             case 'geral':

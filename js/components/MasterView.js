@@ -71,6 +71,7 @@ export function MasterView({
     const [showCondModalFor, setShowCondModalFor] = useState(null);
     const [selectedChars, setSelectedChars] = useState([]);
     const [draggedIndex, setDraggedIndex] = useState(null);
+    const [menuOpen, setMenuOpen] = useState(false);
 
     const handleQuickRoll = (sides) => {
         if (triggerExternalRoll) {
@@ -112,7 +113,11 @@ export function MasterView({
                 el('span', { key: 'crown-icon', className: "text-purple-500" }, "👑"),
                 el('span', { key: 'title-text' }, " Sala do Mestre")
             ]),
-            el('div', { key: 'header-actions-container', className: "flex gap-3" }, [
+
+            // Controles do header — ícones fixos + hambúrguer
+            el('div', { key: 'header-actions-container', className: "flex items-center gap-3" }, [
+
+                // Botões fixos sempre visíveis
                 el('button', {
                     key: 'btn-vault',
                     onClick: () => setShowVault(true),
@@ -120,87 +125,120 @@ export function MasterView({
                     title: "O Cofre do Mestre"
                 }, "🔒"),
                 el('button', {
-                    key: 'btn-tutorial',
-                    onClick: () => setShowTutorial(true),
-                    className: "bg-slate-800 p-3 rounded-2xl text-xl hover:bg-purple-600 border border-slate-700 transition-all",
-                    title: "Tutorial do Mestre"
-                }, "❔"),
-                el('button', {
                     key: 'btn-settings',
                     onClick: () => setShowSettings(true),
                     className: "bg-slate-800 p-3 rounded-2xl text-xl hover:bg-slate-700 border border-slate-700 transition-all",
                     title: "Configurações"
                 }, "⚙️"),
-                el('button', {
-                    key: 'btn-library',
-                    onClick: () => setIsLibraryOpen(true),
-                    className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-amber-600 transition-all text-white"
-                }, "📚 Biblioteca"),
-                el('button', { 
-                    key: 'btn-map',
-                    onClick: () => setIsBattlemapOpen(true), 
-                    className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-green-600 transition-all text-white" 
-                }, "🗺️ Mapa"),
-                el('button', { 
-                    key: 'btn-world-map',
-                    onClick: () => setIsWorldMapOpen(true), 
-                    className: "bg-amber-900/20 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-amber-600/30 hover:bg-amber-600 transition-all text-amber-500 hover:text-white" 
-                }, "🌍 Atlas"),
-                el('button', {
-                    key: 'btn-bargain',
-                    onClick: () => setIsBargainOpen(true),
-                    className: "bg-red-950/20 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-red-600/30 hover:bg-red-600 transition-all text-red-500 hover:text-white"
-                }, "👿 Barganha"),
-                el('button', {
-                    key: 'btn-shop',
-                    onClick: onOpenShop,
-                    className: `px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                        sessionState.isShopEnabled ? 'bg-amber-900/40 border-amber-600/50 text-amber-500 hover:bg-amber-600 hover:text-white' : 'bg-slate-800 border-slate-700 text-slate-500 hover:bg-slate-700'
-                    }`
-                }, "🛒 Loja"),
-                el('button', {
-                    key: 'btn-shop-toggle',
-                    onClick: () => {
-                        const newState = !sessionState.isShopEnabled;
-                        updateSessionState({ isShopEnabled: newState });
-                        AudioManager.play(newState ? 'click' : 'error');
-                    },
-                    className: `p-2 rounded-xl border transition-all ${
-                        sessionState.isShopEnabled ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-400' : 'bg-red-900/20 border-red-500/50 text-red-500'
-                    }`,
-                    title: sessionState.isShopEnabled ? "Loja Ativa (Jogadores podem ver)" : "Loja Inativa"
-                }, sessionState.isShopEnabled ? "🔓" : "🔒"),
 
-                el('button', {
-                    key: 'btn-chat',
-                    onClick: () => { setHasNewMessage(false); setShowChat(true); },
-                    className: `relative bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-purple-600 transition-all text-white ${hasNewMessage ? 'animate-pulse border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]' : ''}`
-                }, [
-                    "💬 Mensagens",
-                    hasNewMessage && el('span', { key: 'notif', className: "absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full" })
-                ]),
-                el('button', {
-                    key: 'btn-npc',
-                    onClick: async () => {
-                        const theme = prompt("Tema do NPC (ex: Taverneiro suspeito, Guarda corrupto):", "Cidadão comum");
-                        if (!theme) return;
-                        try {
-                            const npc = await generateNPC(theme);
-                            const npcText = `\n\n--- NPC: ${npc.name} ---\nRaça/Classe: ${npc.race} ${npc.class}\nAparência: ${npc.appearance || ''}\nPersonalidade: ${npc.personality || ''}\nSegredo: ${npc.secret || ''}\nStats: HP ${npc.stats?.HP || '?'}, CA ${npc.stats?.CA || '?'}\n`;
-                            
-                            const currentNotes = sessionState.masterNotes || '';
-                            updateSessionState({ masterNotes: currentNotes + npcText });
-                            
-                            alert(`NPC Gerado: ${npc.name}\nDados enviados para suas "Notas do Mestre (Privado)"!`);
-                        } catch (e) { alert("Erro ao gerar NPC: " + e.message); }
-                    },
-                    className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-purple-600 transition-all text-white"
-                }, "👤 Gerar NPC"),
-                el('button', { 
-                    key: 'btn-exit',
-                    onClick: onBack, 
-                    className: "bg-slate-800 px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 hover:bg-red-900/40 transition-all" 
-                }, "Sair da Sala")
+                // Hambúrguer
+                el('div', { key: 'hamburger-wrap', className: "relative" }, [
+                    el('button', {
+                        key: 'btn-hamburger',
+                        onClick: () => setMenuOpen(prev => !prev),
+                        className: `p-3 rounded-2xl border transition-all text-xl font-black ${
+                            menuOpen
+                                ? 'bg-purple-600 border-purple-500 text-white shadow-[0_0_20px_rgba(147,51,234,0.4)]'
+                                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                        }`,
+                        title: "Ferramentas"
+                    }, menuOpen ? "✕" : "☰"),
+
+                    menuOpen && el('div', {
+                        key: 'dropdown',
+                        className: "absolute right-0 top-full mt-3 w-60 bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl shadow-black/60 overflow-hidden z-50 animate-slide-up"
+                    }, [
+                        // — Ferramentas —
+                        el('div', { key: 'sec-tools', className: "p-2 space-y-1" }, [
+                            el('p', { key: 'lbl-tools', className: "px-3 pt-2 pb-1 text-[9px] font-black uppercase tracking-[0.3em] text-slate-600" }, "Ferramentas"),
+                            el('button', {
+                                key: 'mn-library',
+                                onClick: () => { setIsLibraryOpen(true); setMenuOpen(false); },
+                                className: "w-full text-left px-4 py-3 text-sm font-bold text-slate-300 hover:bg-amber-600/20 hover:text-amber-400 rounded-2xl transition-all flex items-center gap-3"
+                            }, [el('span', { key: 'i' }, "📚"), el('span', { key: 'l' }, "Biblioteca")]),
+                            el('button', {
+                                key: 'mn-map',
+                                onClick: () => { setIsBattlemapOpen(true); setMenuOpen(false); },
+                                className: "w-full text-left px-4 py-3 text-sm font-bold text-slate-300 hover:bg-green-600/20 hover:text-green-400 rounded-2xl transition-all flex items-center gap-3"
+                            }, [el('span', { key: 'i' }, "🗺️"), el('span', { key: 'l' }, "Mapa de Batalha")]),
+                            el('button', {
+                                key: 'mn-atlas',
+                                onClick: () => { setIsWorldMapOpen(true); setMenuOpen(false); },
+                                className: "w-full text-left px-4 py-3 text-sm font-bold text-slate-300 hover:bg-amber-600/20 hover:text-amber-400 rounded-2xl transition-all flex items-center gap-3"
+                            }, [el('span', { key: 'i' }, "🌍"), el('span', { key: 'l' }, "Atlas Mundial")]),
+                            el('button', {
+                                key: 'mn-bargain',
+                                onClick: () => { setIsBargainOpen(true); setMenuOpen(false); },
+                                className: "w-full text-left px-4 py-3 text-sm font-bold text-slate-300 hover:bg-red-600/20 hover:text-red-400 rounded-2xl transition-all flex items-center gap-3"
+                            }, [el('span', { key: 'i' }, "👿"), el('span', { key: 'l' }, "Barganha do Diabo")]),
+                            el('button', {
+                                key: 'mn-shop',
+                                onClick: () => { onOpenShop(); setMenuOpen(false); },
+                                className: "w-full text-left px-4 py-3 text-sm font-bold text-slate-300 hover:bg-amber-600/20 hover:text-amber-400 rounded-2xl transition-all flex items-center gap-3"
+                            }, [el('span', { key: 'i' }, "🛒"), el('span', { key: 'l' }, "Abrir Loja")]),
+
+                            el('button', {
+                                key: 'mn-shop-toggle',
+                                onClick: () => { updateSessionState({ isShopEnabled: !sessionState.isShopEnabled }); setMenuOpen(false); },
+                                className: `w-full text-left px-4 py-3 text-sm font-bold rounded-2xl transition-all flex items-center gap-3 ${
+                                    sessionState.isShopEnabled
+                                        ? 'text-emerald-400 hover:bg-emerald-600/10'
+                                        : 'text-slate-400 hover:bg-slate-800'
+                                }`
+                            }, [
+                                el('span', { key: 'i' }, sessionState.isShopEnabled ? "✅" : "❌"),
+                                el('span', { key: 'l' }, "Loja p/ Jogadores"),
+                                el('span', { key: 'tag', className: `ml-auto text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${sessionState.isShopEnabled ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/10 text-red-500'}` }, sessionState.isShopEnabled ? "On" : "Off")
+                            ]),
+                        ]),
+                        el('div', { key: 'div1', className: "mx-3 border-t border-slate-800" }),
+                        // — Comunicação —
+                        el('div', { key: 'sec-comm', className: "p-2 space-y-1" }, [
+                            el('p', { key: 'lbl-comm', className: "px-3 pt-2 pb-1 text-[9px] font-black uppercase tracking-[0.3em] text-slate-600" }, "Comunicação"),
+                            el('button', {
+                                key: 'mn-chat',
+                                onClick: () => { setHasNewMessage(false); setShowChat(true); setMenuOpen(false); },
+                                className: `w-full text-left px-4 py-3 text-sm font-bold rounded-2xl transition-all flex items-center gap-3 ${
+                                    hasNewMessage ? 'text-purple-400 bg-purple-600/20' : 'text-slate-300 hover:bg-purple-600/20 hover:text-purple-400'
+                                }`
+                            }, [
+                                el('span', { key: 'i' }, "💬"),
+                                el('span', { key: 'l' }, "Mensagens"),
+                                hasNewMessage && el('span', { key: 'dot', className: "ml-auto w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" })
+                            ]),
+                            el('button', {
+                                key: 'mn-npc',
+                                onClick: async () => {
+                                    setMenuOpen(false);
+                                    const theme = prompt("Tema do NPC (ex: Taverneiro suspeito, Guarda corrupto):", "Cidadão comum");
+                                    if (!theme) return;
+                                    try {
+                                        const npc = await generateNPC(theme);
+                                        const npcText = `\n\n--- NPC: ${npc.name} ---\nRaça/Classe: ${npc.race} ${npc.class}\nAparência: ${npc.appearance || ''}\nPersonalidade: ${npc.personality || ''}\nSegredo: ${npc.secret || ''}\nStats: HP ${npc.stats?.HP || '?'}, CA ${npc.stats?.CA || '?'}\n`;
+                                        const currentNotes = sessionState.masterNotes || '';
+                                        updateSessionState({ masterNotes: currentNotes + npcText });
+                                        alert(`NPC Gerado: ${npc.name}\nDados enviados para suas "Notas do Mestre (Privado)"!`);
+                                    } catch (e) { alert("Erro ao gerar NPC: " + e.message); }
+                                },
+                                className: "w-full text-left px-4 py-3 text-sm font-bold text-slate-300 hover:bg-purple-600/20 hover:text-purple-400 rounded-2xl transition-all flex items-center gap-3"
+                            }, [el('span', { key: 'i' }, "👤"), el('span', { key: 'l' }, "Gerar NPC")]),
+                            el('button', {
+                                key: 'mn-tutorial',
+                                onClick: () => { setShowTutorial(true); setMenuOpen(false); },
+                                className: "w-full text-left px-4 py-3 text-sm font-bold text-slate-300 hover:bg-slate-800 rounded-2xl transition-all flex items-center gap-3"
+                            }, [el('span', { key: 'i' }, "❔"), el('span', { key: 'l' }, "Tutorial")]),
+                        ]),
+                        el('div', { key: 'div2', className: "mx-3 border-t border-slate-800" }),
+                        // — Saída —
+                        el('div', { key: 'sec-exit', className: "p-2" }, [
+                            el('button', {
+                                key: 'mn-exit',
+                                onClick: onBack,
+                                className: "w-full text-left px-4 py-3 text-sm font-bold text-red-400 hover:bg-red-900/30 rounded-2xl transition-all flex items-center gap-3"
+                            }, [el('span', { key: 'i' }, "⏹️"), el('span', { key: 'l' }, "Sair da Sala")])
+                        ])
+                    ])
+                ])
             ])
         ]),
 
@@ -389,6 +427,18 @@ export function MasterView({
                                             className: "p-2 bg-slate-800/50 rounded-xl hover:bg-red-600 text-base border border-slate-700 transition-all text-slate-400 hover:text-white shadow-md",
                                             title: "Solicitar Rolagem Oculta"
                                         }, "🔔"),
+                                        el('button', {
+                                            key: 'btn-pin-reset',
+                                            onClick: () => {
+                                                const newPin = prompt(`Definir novo PIN para ${char.name} (4 dígitos):`, char.pin || '');
+                                                if (newPin !== null) {
+                                                    saveCharacter(char.name, { ...char, pin: newPin });
+                                                    alert(`PIN de ${char.name} atualizado!`);
+                                                }
+                                            },
+                                            className: "p-2 bg-slate-800/50 rounded-xl hover:bg-indigo-600 text-base border border-slate-700 transition-all text-slate-400 hover:text-white shadow-md",
+                                            title: "Resetar PIN do Jogador"
+                                        }, "🔑"),
                                         el('button', {
                                             key: 'btn-delete',
                                             onClick: () => {
@@ -707,8 +757,27 @@ export function MasterView({
 
         showSettings && el('div', { className: "fixed inset-0 bg-black/90 z-[300] flex items-center justify-center p-6" }, 
             el('div', { className: "bg-slate-900 border-2 border-amber-500/30 p-8 rounded-[2.5rem] max-w-sm w-full" }, [
-                el('h3', { className: "text-amber-500 font-black uppercase mb-6" }, "⚙️ Configs"),
-                el('input', { type: 'password', value: geminiApiKey, onChange: (e) => setGeminiApiKey(e.target.value), className: "w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs text-white mb-6" }),
+                el('h3', { className: "text-amber-500 font-black uppercase mb-6" }, "⚙️ Configurações da Sala"),
+                el('div', { className: "space-y-4 mb-8" }, [
+                    el('div', null, [
+                        el('label', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block" }, "API Key Gemini (IA)"),
+                        el('input', { type: 'password', value: geminiApiKey, onChange: (e) => setGeminiApiKey(e.target.value), className: "w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs text-white" })
+                    ]),
+                    el('div', null, [
+                        el('label', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block" }, "Senha de Acesso da Sala"),
+                        el('input', { 
+                            type: 'text', 
+                            placeholder: "Sem senha", 
+                            defaultValue: sessionState.roomPassword || '',
+                            onBlur: (e) => {
+                                const newPass = e.target.value.trim();
+                                updateSessionState({ roomPassword: newPass });
+                                alert("Senha da sala atualizada!");
+                            },
+                            className: "w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs text-white" 
+                        })
+                    ])
+                ]),
                 el('button', { onClick: () => setShowSettings(false), className: "w-full bg-amber-600 text-slate-950 font-black py-4 rounded-xl uppercase text-[10px]" }, "Fechar")
             ])
         ),
@@ -839,12 +908,35 @@ export function MasterView({
                     ]),
                     
                     el('div', { className: "bg-slate-950/50 p-6 rounded-2xl border border-slate-800" }, [
-                        el('p', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4" }, "Senha de Mestre (Desta Sala)"),
+                        el('p', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4" }, "Senha da Sala (Para entrar na Campanha)"),
+                        el('div', { className: "flex gap-2" }, [
+                            el('input', {
+                                id: 'room-pass-input',
+                                type: 'password',
+                                placeholder: 'Nova Senha da Sala...',
+                                className: "flex-grow bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-amber-500/50"
+                            }),
+                            el('button', {
+                                onClick: () => {
+                                    const pass = document.getElementById('room-pass-input').value;
+                                    if(pass !== null) {
+                                        updateSessionState({ roomPassword: pass });
+                                        alert("Senha da SALA atualizada!");
+                                        document.getElementById('room-pass-input').value = '';
+                                    }
+                                },
+                                className: "bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all"
+                            }, "Salvar")
+                        ])
+                    ]),
+                    
+                    el('div', { className: "bg-slate-950/50 p-6 rounded-2xl border border-slate-800" }, [
+                        el('p', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4" }, "Senha de Mestre (Para acessar este Painel)"),
                         el('div', { className: "flex gap-2" }, [
                             el('input', {
                                 id: 'master-pass-input',
                                 type: 'password',
-                                placeholder: 'Nova Senha...',
+                                placeholder: 'Nova Senha de Mestre...',
                                 className: "flex-grow bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-amber-500/50"
                             }),
                             el('button', {
@@ -852,7 +944,7 @@ export function MasterView({
                                     const pass = document.getElementById('master-pass-input').value;
                                     if(pass) {
                                         updateMasterPassword(pass);
-                                        alert("Senha da campanha atualizada!");
+                                        alert("Senha de MESTRE atualizada!");
                                         document.getElementById('master-pass-input').value = '';
                                     }
                                 },
