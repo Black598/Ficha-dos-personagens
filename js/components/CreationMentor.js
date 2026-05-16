@@ -1,4 +1,4 @@
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 
 export function CreationMentor({ 
     sessionState, 
@@ -20,6 +20,14 @@ export function CreationMentor({
     const [rolledStats, setRolledStats] = useState([]);
     const [allowOneMoreRoll, setAllowOneMoreRoll] = useState(false);
     const [statsDistribution, setStatsDistribution] = useState({});
+    const chatEndRef = useRef(null);
+
+    // Auto-scroll para o fim do chat
+    useEffect(() => {
+        if (activeTab === 'chat') {
+            chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [chatLog, activeTab]);
 
     // Efeito para capturar os dados do rolador 3D quando o Mentor está rolando atributos
     useEffect(() => {
@@ -126,7 +134,7 @@ export function CreationMentor({
             const context = characterSheetData ? JSON.stringify(characterSheetData) : "Personagem ainda não criado";
             const prompt = `Contexto do personagem atual: ${context}. 
             Pergunta do jogador: ${chatInput}. 
-            Responda como um Mentor de RPG experiente, dando dicas práticas de como preencher a ficha.
+            Responda como um Mentor de RPG experiente. Seja EXTREMAMENTE OBJETIVO e CONCISO. Evite textos longos e floreios desnecessários.
             IMPORTANTE: Se você sugerir mudanças técnicas (como trocar raça, classe, ou preencher atributos), inclua no FINAL da sua resposta um bloco JSON começando com "SUGESTÃO_FICHA:" contendo apenas os campos que devem ser alterados. Ex: SUGESTÃO_FICHA:{"info": {"Raça": "Anão"}, "atributos": {"CON": "18"}}`;
             
             const res = await askGemini(prompt);
@@ -230,21 +238,24 @@ export function CreationMentor({
                 wikiResult && el('div', { className: "text-[11px] text-slate-300 leading-relaxed whitespace-pre-wrap bg-slate-950/30 p-3 rounded-lg border border-slate-800" }, wikiResult)
             ]),
 
-            activeTab === 'chat' && el('div', { className: "h-full flex flex-col" }, [
-                el('div', { className: "flex-1 space-y-4 mb-4" }, chatLog.map((m, i) => el('div', {
-                    key: i,
-                    className: `p-3 rounded-xl text-xs ${m.role === 'assistant' ? 'bg-indigo-900/20 text-indigo-200 border border-indigo-500/20' : 'bg-slate-800 text-slate-300 ml-4'}`
-                }, [
-                    el('div', null, m.content),
-                    (m.suggestion && canEdit) && el('button', {
-                        onClick: () => applySuggestion(m.suggestion),
-                        className: "mt-3 w-full py-2 bg-amber-600 hover:bg-amber-500 text-white text-[9px] font-black uppercase rounded-lg transition-all shadow-md"
-                    }, "🪄 Aplicar Sugestões na Ficha"),
-                    (m.suggestion && !canEdit) && el('div', { className: "mt-2 p-2 bg-slate-950/50 rounded-lg border border-slate-800 text-[8px] text-slate-500 italic" }, 
-                        "⚠️ Ficha bloqueada pelo mestre. O mentor não pode aplicar mudanças agora."
-                    )
-                ]))),
-                el('div', { className: "flex gap-2" }, [
+            activeTab === 'chat' && el('div', { className: "h-full flex flex-col overflow-hidden" }, [
+                el('div', { className: "flex-1 overflow-y-auto space-y-4 mb-4 pr-2 custom-scrollbar" }, [
+                    chatLog.map((m, i) => el('div', {
+                        key: i,
+                        className: `p-3 rounded-xl text-xs ${m.role === 'assistant' ? 'bg-indigo-900/20 text-indigo-200 border border-indigo-500/20' : 'bg-slate-800 text-slate-300 ml-4'}`
+                    }, [
+                        el('div', null, m.content),
+                        (m.suggestion && canEdit) && el('button', {
+                            onClick: () => applySuggestion(m.suggestion),
+                            className: "mt-3 w-full py-2 bg-amber-600 hover:bg-amber-500 text-white text-[9px] font-black uppercase rounded-lg transition-all shadow-md"
+                        }, "🪄 Aplicar Sugestões na Ficha"),
+                        (m.suggestion && !canEdit) && el('div', { className: "mt-2 p-2 bg-slate-950/50 rounded-lg border border-slate-800 text-[8px] text-slate-500 italic" }, 
+                            "⚠️ Ficha bloqueada pelo mestre. O mentor não pode aplicar mudanças agora."
+                        )
+                    ])),
+                    el('div', { ref: chatEndRef })
+                ]),
+                el('div', { className: "flex gap-2 bg-slate-900 p-2 border-t border-slate-800" }, [
                     el('input', {
                         placeholder: "Pergunte ao Mentor...",
                         value: chatInput,
@@ -252,7 +263,7 @@ export function CreationMentor({
                         onKeyDown: (e) => e.key === 'Enter' && handleChat(),
                         className: "flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
                     }),
-                    el('button', { onClick: handleChat, className: "bg-indigo-600 p-2 rounded-lg" }, "➔")
+                    el('button', { onClick: handleChat, className: "bg-indigo-600 p-2 rounded-lg hover:bg-indigo-500 transition-colors" }, "➔")
                 ])
             ])
         ]),
