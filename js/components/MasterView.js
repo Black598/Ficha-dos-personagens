@@ -903,6 +903,26 @@ export function MasterView({
 
                 el('div', { className: "space-y-8" }, [
                     el('div', { className: "bg-slate-950/50 p-6 rounded-2xl border border-slate-800" }, [
+                        el('p', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2" }, "Regra de Geração de Atributos"),
+                        el('div', { className: "flex gap-2" }, [
+                            el('input', {
+                                id: 'attr-rule-input',
+                                placeholder: 'Ex: 8d20 descarta 2 menores...',
+                                defaultValue: sessionState.attributeRule,
+                                className: "flex-grow bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-amber-500/50"
+                            }),
+                            el('button', {
+                                onClick: () => {
+                                    const rule = document.getElementById('attr-rule-input').value;
+                                    updateSessionState({ attributeRule: rule });
+                                    alert("Regra de atributos atualizada!");
+                                },
+                                className: "bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all"
+                            }, "Salvar")
+                        ])
+                    ]),
+
+                    el('div', { className: "bg-slate-950/50 p-6 rounded-2xl border border-slate-800" }, [
                         el('p', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2" }, "ID da Campanha Atual"),
                         el('p', { className: "text-xs font-mono text-amber-500" }, currentAppId)
                     ]),

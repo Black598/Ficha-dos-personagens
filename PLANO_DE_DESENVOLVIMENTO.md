@@ -8,18 +8,20 @@ Este documento organiza o progresso e as próximas funcionalidades do sistema.
 
 As funcionalidades abaixo já foram implementadas e estão operacionais.
 
-### 1. 🎒 Inventário Visual (Grid/Slots) & Equipamentos
-- **Status:** Concluído (Refinado)
-- **Features:** Grid 24 slots, ícones automáticos, sistema de equipar, bônus dinâmicos e **Adição Direta de Itens** (sem texto).
+### 1. 🧠 Mentor de Criação (Creation Mentor)
+- **Status:** Concluído ✅
+- **Features:** 
+  - **Incremental Draft:** O mentor ajuda a construir a ficha passo a passo antes mesmo do herói ser criado.
+  - **Rolagem de Misericórdia:** Se o jogador tiver muito azar (>4 dados < 10), o mentor concede automaticamente uma nova rolagem.
+  - **Modo Guia Inteligente:** O mentor detecta se a ficha está bloqueada pelo mestre e entra em modo "Somente Leitura" para dar dicas sem alterar os dados.
+  - **IA com Contexto:** Integrado ao Wikidot e ao estado atual da ficha para sugerir raças, classes e builds otimizadas.
 
-### 2. ⚔️ Combate Avançado & Iniciativa
-- **Status:** Concluído
+### 2. ⚡ Automações de Ficha & Bônus Dinâmicos
+- **Status:** Concluído ✅
 - **Features:**
-  - **Iniciativa Drag & Drop:** Reordene combatentes arrastando.
-  - **Edição Direta:** Altere valores na lista.
-  - **Ações em Massa:** Selecione múltiplos heróis para aplicar Dano, Cura ou XP de uma vez.
-  - **Adição Rápida:** Botão para carregar todos os jogadores na iniciativa.
-  - ✅ **Tutoriais Integrados:** Guias atualizados para Mestre e Jogadores cobrindo VTT, Som e Alquimia.
+  - **Cálculo Automático:** CA, Iniciativa e Proficiência agora são calculados sozinhos com base no Nível e Atributos.
+  - **Bônus de Características:** Uso da sintaxe `[TAG:VAL]` em Talentos (ex: `[+2 FOR]`) para aplicar bônus automáticos na ficha toda.
+  - **Sobrescrita Manual:** Todos os campos automáticos permitem que o jogador defina um valor fixo caso necessário (Homebrew).
 
 ### 3. ⛈️ Clima e Imersão Atmosférica
 - **Status:** Concluído (Expandido)
@@ -155,12 +157,15 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 
 ## 🚀 Próximas Implementações (Pendentes)
 
-### 1. 🧙‍♂️ Assistente de Criação de Personagem (Charactermancer)
-- **Conceito:** Um menu guiado para acelerar a criação de novos personagens.
+### 🧙‍♂️ 20. Assistente de Criação (Creation Mentor)
+- **Status:** Concluído ✅
 - **Features:**
-  - Seleção de Classe e Raça com preenchimento automático de talentos e características.
-  - Progressão travada por nível.
-  - Múltipla escolha para equipamento inicial.
+  - ✅ **Sidebar Inteligente:** Um assistente lateral acessível diretamente da ficha.
+  - ✅ **Geração de Atributos Dinâmica:** O mestre define a regra (ex: 8d20 drop 2) e o mentor executa a rolagem 3D e o descarte automático.
+  - ✅ **Consulta de Regras (Wiki):** Busca rápida por classes, raças e habilidades usando o conhecimento do Wikidot via IA.
+  - ✅ **Mentor Chat:** Chat direto para tirar dúvidas de "como jogar" ou "como preencher" a ficha.
+  - ✅ **Distribuição Prática:** Interface visual para gerenciar os resultados das rolagens de atributos.
+  - ✅ **Controle de Acesso:** A rolagem de atributos é bloqueada automaticamente para fichas antigas ou sem permissão de edição do mestre.
 
 ### 2. 📏 Praticidade Tática e HUD no Mapa
 - **Conceito:** Melhorias na interação direta no Campo de Batalha.

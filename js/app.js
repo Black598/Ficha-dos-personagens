@@ -6,6 +6,7 @@ import { TreeView } from './components/TreeView.js'
 import { MasterView } from './components/MasterView.js'
 import { LoginView } from './components/LoginView.js'
 import { DiceRoller } from './components/DiceRoller.js'
+import { CreationMentor } from './components/CreationMentor.js'
 import { LoadingScreen } from './components/LoadingScreen.js'
 import { RawDataEditor } from './components/RawDataEditor.js'
 import { TalentTooltip } from './components/TalentTooltip.js'
@@ -64,7 +65,8 @@ function App() {
     devilsBargain: { categories: BARGAIN_EFFECTS, activeBargains: [] },
     battlemap: { activeMapId: null, maps: [], tokens: [] },
     announcementTarget: 'all', handoutTarget: 'all', groupNotes: [],
-    activeLoot: null
+    activeLoot: null,
+    attributeRule: 'Standard Array'
   });
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isBattlemapOpen, setIsBattlemapOpen] = useState(false);
@@ -78,11 +80,19 @@ function App() {
   const [showLetter, setShowLetter] = useState(false);
   const [isMasterAuthenticated, setIsMasterAuthenticated] = useState(false);
   const [authenticatedCharacters, setAuthenticatedCharacters] = useState([]);
+  const [isMentorOpen, setIsMentorOpen] = useState(false);
+  const [creationDraft, setCreationDraft] = useState(null); // Draft para quando o mentor ajuda na criação
   
   const lastHPs = useRef({});
   const lastDayRef = useRef(1);
 
   // --- 2. EFEITOS (Hooks) ---
+
+  useEffect(() => {
+    const handleOpenMentor = () => setIsMentorOpen(true);
+    window.addEventListener('open-mentor', handleOpenMentor);
+    return () => window.removeEventListener('open-mentor', handleOpenMentor);
+  }, []);
 
   // Auth
   useEffect(() => {
@@ -404,12 +414,19 @@ function App() {
   };
 
   const createNewCharacter = async (name) => {
-    if (name === null) return setCreatingCharacter(true);
-    if (name === false) return setCreatingCharacter(false);
+    if (name === null) {
+      // Inicia um draft vazio para o mentor poder ajudar
+      setCreationDraft({ allowEditing: true, info: { 'Nome do Personagem': '', Classe: '---', XP: '0', Nivel: '1' }, atributos: {FOR:'10',DES:'10',CON:'10',INT:'10',SAB:'10',CAR:'10'}, recursos: {CA:'10',Iniciativa:'0','PV Máximo':'10','PV Atual':'10','PV Temporário':'0','PV Perdido':'0'}, outros: {Talentos:[], PO:'0'} });
+      return setCreatingCharacter(true);
+    }
+    if (name === false) { setCreationDraft(null); return setCreatingCharacter(false); }
     setIsCreating(true);
-    const hero = { name, isFirebaseOnly: true, deleted: false, sheetData: { info: { 'Nome do Personagem': name, Classe: '---', XP: '0', Nivel: '1' }, atributos: {FOR:'10',DES:'10',CON:'10',INT:'10',SAB:'10',CAR:'10'}, recursos: {CA:'10',Iniciativa:'0','PV Máximo':'10','PV Atual':'10','PV Temporário':'0','PV Perdido':'0'}, outros: {Talentos:[], PO:'0'} } };
+    const hero = { name, isFirebaseOnly: true, deleted: false, sheetData: creationDraft || { allowEditing: true, info: { 'Nome do Personagem': name, Classe: '---', XP: '0', Nivel: '1' }, atributos: {FOR:'10',DES:'10',CON:'10',INT:'10',SAB:'10',CAR:'10'}, recursos: {CA:'10',Iniciativa:'0','PV Máximo':'10','PV Atual':'10','PV Temporário':'0','PV Perdido':'0'}, outros: {Talentos:[], PO:'0'} } };
+    if (hero.sheetData.info) hero.sheetData.info['Nome do Personagem'] = name;
+    // Garante que o allowEditing esteja no final do objeto se vier do draft
+    hero.sheetData.allowEditing = true;
     await saveCharacter(name, hero);
-    setIsNewCharacter(true); setCharacterName(name); setCharacterData(hero); setCharacterSheetData(hero.sheetData); setView('sheet'); setIsCreating(false); setCreatingCharacter(false);
+    setIsNewCharacter(true); setCharacterName(name); setCharacterData(hero); setCharacterSheetData(hero.sheetData); setCreationDraft(null); setView('sheet'); setIsCreating(false); setCreatingCharacter(false);
   };
 
   const saveCharacter = async (name, data) => {
@@ -430,6 +447,17 @@ function App() {
   };
 
   const updateSheetField = (sec, field, val) => {
+    // Se estiver em modo de criação (LoginView), atualiza o draft
+    if (view === 'login' || creatingCharacter) {
+      setCreationDraft(prev => {
+        let next = { ...(prev || {}) };
+        if (field === null) next[sec] = val; else next[sec] = { ...next[sec], [field]: val };
+        return next;
+      });
+      return;
+    }
+
+    if (!characterSheetData) return;
     let next = { ...characterSheetData };
     if (field === null) next[sec] = val; else next[sec] = { ...next[sec], [field]: val };
     setCharacterSheetData(next);
@@ -601,14 +629,26 @@ function App() {
     view === 'master' && el('button', { onClick: () => updateSessionState({ cutscene: null }), className: "absolute top-4 right-4 text-white text-4xl" }, "×")
   ]);
 
-  const AllOverlays = el(React.Fragment, null, ClockOverlay, AnnouncementOverlay, HandoutOverlay, LibraryOverlay, BargainOverlay, LetterOverlay, LootOverlay, WeatherOverlay, BattlemapOverlay, WorldMapOverlay, CraftingOverlay, ShopOverlay, CutsceneOverlay, DiceOverlay);
+  const MentorOverlay = isMentorOpen && el(CreationMentor, { 
+    key: 'mentor', 
+    sessionState, 
+    characterSheetData: characterSheetData || creationDraft, 
+    onUpdateField: updateSheetField, 
+    askGemini, 
+    rollDice, 
+    recentRolls, 
+    onClose: () => setIsMentorOpen(false),
+    canEdit: view === 'login' || creatingCharacter || characterSheetData?.allowEditing || view === 'master'
+  });
+
+  const AllOverlays = el(React.Fragment, null, ClockOverlay, AnnouncementOverlay, HandoutOverlay, LibraryOverlay, BargainOverlay, LetterOverlay, LootOverlay, WeatherOverlay, BattlemapOverlay, WorldMapOverlay, CraftingOverlay, ShopOverlay, CutsceneOverlay, DiceOverlay, MentorOverlay);
 
   if (view === 'landing') return el('div', { key: 'lw-base', className: envClass }, el(LandingView, { campaigns, currentAppId, setCurrentAppId, createNewCampaign, importCampaign, onEnterRoom, onSync: () => window.location.reload() }), AllOverlays);
   if (view === 'master') return el('div', { key: 'mw', className: envClass }, el(MasterView, { allCharacters, rollHistory, onBack: () => setView('login'), updateCharacterXP, updateCharacterConditions, updateCharacterHP, advanceTurn, turnState, geminiApiKey, setGeminiApiKey: (k) => { setGeminiApiKey(k); localStorage.setItem('gemini_api_key', k); }, askGemini, updateInitiative, souls, updateSouls, updateEditPermission, onViewSheet: (c) => { setCharacterSheetData(c.sheetData); setCharacterName(c.name); setView('sheet'); }, saveCharacter, rollDice, triggerExternalRoll, deleteCharacter, sessionState, updateSessionState, currentAppId, deleteCampaign, onOpenShop: () => setIsShopOpen(true), generateLoot, approveLoot, clearLoot, generateNPC, updateMasterPassword: (p) => db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('vault').set({ password: p }, { merge: true }), setIsLibraryOpen, setIsBattlemapOpen, setIsWorldMapOpen, setIsBargainOpen, allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name), chatMessages, sendChatMessage, clearRollHistory: async () => { if (confirm("Limpar?")) { const snap = await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('rolls').get(); const b = db.batch(); snap.forEach(d => b.delete(d.ref)); await b.commit(); } }, hasNewMessage, setHasNewMessage }), AllOverlays);
-  if (view === 'sheet' && characterSheetData) return el('div', { key: 'sw', className: envClass }, el(SheetView, { characterName, characterSheetData, characterImageUrl: characterData?.imageUrl, onUpdateImage: (u) => saveCharacter(characterName, { ...characterData, imageUrl: u }), onBack: () => { setIsNewCharacter(false); setView('login'); }, groupNotes: sessionState.groupNotes || [], shareNote, deleteNote, onOpenCrafting: () => setIsCraftingOpen(true), onRequestDelete: async () => { if(confirm('Excluir?')) { await saveCharacter(characterName, { ...characterData, pendingDeletion: true }); setView('login'); } }, onToggleTree: () => setView('character'), rollDice, iconMap, updateSheetField, onUpdateSheet, turnState, sessionState, updateSessionState, handleDescansoLongo: async () => { if (confirm("Descanso?")) { const n = JSON.parse(JSON.stringify(characterSheetData)); n.recursos['PV Perdido'] = 0; n.recursos['PV Temporário'] = 0; if (n.magias?.slots) Object.keys(n.magias.slots).forEach(c => n.magias.slots[c].used = 0); n.recursos['PV Atual'] = parseInt(n.recursos['PV Máximo']) || 0; await onUpdateSheet(n); AudioManager.play('rest'); } }, isRollingModalOpen, setRollingModalOpen, setEditableSheetData, triggerExternalRoll, recentRolls, isNewCharacter, setIsLibraryOpen, setIsBattlemapOpen, setIsWorldMapOpen, setIsBargainOpen, onOpenShop: () => setIsShopOpen(true), sendChatMessage, chatMessages: chatMessages.filter(m => m.sender === characterName || (m.sender === 'Mestre' && (m.recipient === characterName || !m.recipient))), onUpdatePIN: (pin) => saveCharacter(characterName, { ...characterData, pin }) }), editableSheetData && el(RawDataEditor, { key: 'editor', data: editableSheetData, onSave: onUpdateSheet, onClose: () => setEditableSheetData(null) }), AllOverlays);
+  if (view === 'sheet' && characterSheetData) return el('div', { key: 'sw', className: envClass }, el(SheetView, { characterName, characterSheetData, characterImageUrl: characterData?.imageUrl, onUpdateImage: (u) => saveCharacter(characterName, { ...characterData, imageUrl: u }), onBack: () => { setIsNewCharacter(false); setView('login'); }, groupNotes: sessionState.groupNotes || [], shareNote, deleteNote, onOpenCrafting: () => setIsCraftingOpen(true), onRequestDelete: async () => { if(confirm('Excluir?')) { await saveCharacter(characterName, { ...characterData, pendingDeletion: true }); setView('login'); } }, onToggleTree: () => setView('character'), rollDice, iconMap, updateSheetField, onUpdateSheet, turnState, sessionState, updateSessionState, handleDescansoLongo: async () => { if (confirm("Descanso?")) { const n = JSON.parse(JSON.stringify(characterSheetData)); n.recursos['PV Perdido'] = 0; n.recursos['PV Temporário'] = 0; if (n.magias?.slots) Object.keys(n.magias.slots).forEach(c => n.magias.slots[c].used = 0); n.recursos['PV Atual'] = parseInt(n.recursos['PV Máximo']) || 0; await onUpdateSheet(n); AudioManager.play('rest'); } }, isRollingModalOpen, setRollingModalOpen, setEditableSheetData, triggerExternalRoll, recentRolls, isNewCharacter, setIsLibraryOpen, setIsBattlemapOpen, setIsWorldMapOpen, setIsBargainOpen, onOpenShop: () => setIsShopOpen(true), sendChatMessage, chatMessages: chatMessages.filter(m => m.sender === characterName || (m.sender === 'Mestre' && (m.recipient === characterName || !m.recipient))), onUpdatePIN: (pin) => saveCharacter(characterName, { ...characterData, pin }), onOpenMentor: () => setIsMentorOpen(true) }), editableSheetData && el(RawDataEditor, { key: 'editor', data: editableSheetData, onSave: onUpdateSheet, onClose: () => setEditableSheetData(null) }), AllOverlays);
   if (view === 'character') return el('div', { key: 'cw', className: envClass }, el(TreeView, { TALENT_TREES, characterData, characterName, characterSheetData, onBack: () => setView('login'), onToggleSheet: () => setView('sheet'), iconMap, upgradeTalent, saveCharacter, showTooltip: (e, n, l) => e ? setTooltip({ show: true, content: { talentName: n, ...l }, x: e.clientX, y: e.clientY, above: (window.innerHeight - e.clientY) < 250 }) : setTooltip({ show: false }) }), el(TalentTooltip, { key: 'tt', tooltip: tooltip }), AllOverlays);
 
-  return el('div', { key: 'lw-wrap', className: envClass }, el(LoginView, { allCharacters, onSelectCharacter: selectCharacter, onCreateCharacter: createNewCharacter, creatingCharacter, isCreating, TALENT_TREES, iconMap, campaigns, currentAppId, setCurrentAppId, createNewCampaign, importCampaign, onBackToLanding: () => setView('landing') }), AllOverlays);
+  return el('div', { key: 'lw-wrap', className: envClass }, el(LoginView, { allCharacters, onSelectCharacter: selectCharacter, onCreateCharacter: createNewCharacter, creatingCharacter, isCreating, TALENT_TREES, iconMap, campaigns, currentAppId, setCurrentAppId, createNewCampaign, importCampaign, onBackToLanding: () => setView('landing'), onOpenMentor: () => setIsMentorOpen(true) }), AllOverlays);
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

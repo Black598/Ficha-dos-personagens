@@ -14,7 +14,8 @@ export function LoginView({
     setCurrentAppId,
     createNewCampaign,
     importCampaign,
-    onBackToLanding
+    onBackToLanding,
+    onOpenMentor
 }) {
     const el = React.createElement;
     const { useState } = React;
@@ -47,6 +48,13 @@ export function LoginView({
                 }, [
                     el('span', { className: "hidden md:inline text-[10px] font-black uppercase text-purple-400" }, "Painel do Mestre"),
                     Crown
+                ]),
+                el('button', {
+                    onClick: onOpenMentor,
+                    className: "bg-indigo-600/20 border-2 border-indigo-500/50 hover:border-indigo-500 rounded-2xl p-3 md:p-4 transition-all shadow-lg flex items-center gap-2 animate-pulse-soft"
+                }, [
+                    el('span', { className: "hidden md:inline text-[10px] font-black uppercase text-indigo-400" }, "🧠 Mentor"),
+                    el('span', { className: "text-xl" }, "🧠")
                 ])
             )
         ),

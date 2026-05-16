@@ -59,7 +59,17 @@ export function CharacterCreationModal({
                         disabled: !name.trim() || isCreating,
                         className: "flex-1 bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 text-white font-black p-3 rounded-2xl shadow-lg transition-all transform active:scale-95"
                     }, isCreating ? "Processando..." : "Criar Herói")
-                )
+                ),
+
+                el('button', {
+                    key: "btn-mentor",
+                    type: "button",
+                    onClick: () => {
+                        // Dispara evento global para o App abrir o mentor
+                        window.dispatchEvent(new CustomEvent('open-mentor'));
+                    },
+                    className: "w-full mt-4 flex items-center justify-center gap-2 bg-indigo-900/30 hover:bg-indigo-900/50 text-indigo-400 border border-indigo-500/30 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all animate-pulse-soft"
+                }, "🧠 Consultar Mentor de Criação")
             )
         )
     );

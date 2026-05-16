@@ -42,7 +42,8 @@ export function SheetView({
     onOpenCrafting,
     onOpenShop,
     setRollingModalOpen,
-    onUpdatePIN
+    onUpdatePIN,
+    onOpenMentor
 }) {
     const charData = characterSheetData; // Alias para compatibilidade com código legado
 
@@ -63,15 +64,16 @@ export function SheetView({
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isPinModalOpen, setIsPinModalOpen] = useState(false);
 
-    // --- CÁLCULO DE BÔNUS DE INVENTÁRIO ---
-    const getInventoryBonuses = () => {
-        const items = (characterSheetData.outros?.['Equipamento'] || "").split(',').map(s => s.trim());
+    // --- CÁLCULO DE BÔNUS GLOBAIS (Inventário + Características) ---
+    const getGlobalBonuses = () => {
         const bonuses = {
             CA: 0, Iniciativa: 0, Deslocamento: 0,
             FOR: 0, DES: 0, CON: 0, INT: 0, SAB: 0, CAR: 0,
             skills: {}
         };
 
+        // 1. Bônus de Inventário {E} (Equipado)
+        const items = (characterSheetData.outros?.['Equipamento'] || "").split(',').map(s => s.trim());
         items.forEach(item => {
             if (!item.includes('{E}')) return;
             const matches = [...item.matchAll(/\((.*?):(.*?)\)/g)];
@@ -82,9 +84,25 @@ export function SheetView({
                 else bonuses.skills[key] = (bonuses.skills[key] || 0) + val;
             });
         });
+
+        // 2. Bônus de Características [TAG:VAL]
+        let talentosAtuais = characterSheetData.outros?.['Talentos'] || [];
+        if (!Array.isArray(talentosAtuais)) {
+            talentosAtuais = typeof talentosAtuais === 'string' ? talentosAtuais.split('/').map(s=>s.trim()) : [];
+        }
+        talentosAtuais.forEach(talent => {
+            const matches = [...talent.matchAll(/\[(.*?):(.*?)]/g)];
+            matches.forEach(m => {
+                const key = m[1].trim().toUpperCase();
+                const val = parseInt(m[2]) || 0;
+                if (bonuses[key] !== undefined) bonuses[key] += val;
+                else bonuses.skills[key] = (bonuses.skills[key] || 0) + val;
+            });
+        });
+
         return bonuses;
     };
-    const invBonuses = getInventoryBonuses();
+    const invBonuses = getGlobalBonuses();
 
 
     const triggerEffect = (type) => {
@@ -647,6 +665,10 @@ export function SheetView({
                         className: "bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-red-600/30 px-4 py-2 rounded-xl transition-all"
                     }, "👺 Barganhas"),
                     el('button', {
+                        onClick: onOpenMentor,
+                        className: "bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white text-[10px] font-black uppercase tracking-widest border border-indigo-600/30 px-4 py-2 rounded-xl transition-all shadow-[0_0_15px_rgba(79,70,229,0.2)] animate-pulse-soft"
+                    }, "🧠 Mentor"),
+                    el('button', {
                         onClick: () => setShowTutorial(true),
                         className: "w-10 h-10 bg-slate-800 hover:bg-amber-600 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg"
                     }, "❓"),
@@ -702,6 +724,10 @@ export function SheetView({
                     onClick: () => { setIsChatOpen(true); setIsMobileMenuOpen(false); },
                     className: "bg-purple-900/20 border border-purple-500/30 p-6 rounded-2xl flex flex-col items-center gap-3 text-purple-400"
                 }, [el('span', { className: "text-3xl" }, "💬"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Chat Privado")]),
+                el('button', {
+                    onClick: () => { onOpenMentor(); setIsMobileMenuOpen(false); },
+                    className: "bg-indigo-900/20 border border-indigo-500/30 p-6 rounded-2xl flex flex-col items-center gap-3 text-indigo-400"
+                }, [el('span', { className: "text-3xl" }, "🧠"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Mentor")]),
                 el('button', {
                     onClick: () => { setShowTutorial(true); setIsMobileMenuOpen(false); },
                     className: "bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-3 text-slate-400"
@@ -765,14 +791,14 @@ export function SheetView({
                             el('p', { className: "text-[8px] font-black text-slate-500 uppercase" }, "Nível"),
                             el('p', { className: "text-[10px] font-black text-white" }, characterSheetData.info?.['Nivel'] || '1')
                         ),
-                        characterSheetData.allowEditing && el('div', { className: "flex justify-between items-center border-t border-slate-800 pt-2 group relative" },
-                            el('p', { className: "text-[8px] font-black text-amber-500 uppercase cursor-help", title: "Bônus de Proficiência (Editável pelo Mestre)" }, "Proficiência"),
-                            el('input', {
-                                className: "bg-transparent text-right text-[10px] font-black text-amber-400 outline-none w-8 hover:bg-slate-800 rounded px-1 transition-colors",
-                                defaultValue: characterSheetData.info?.['Proficiência'] || (Math.floor((parseInt(characterSheetData.info?.['Nivel'] || 1) - 1) / 4) + 2).toString(),
-                                onBlur: (e) => handleProficiencyChange(e.target.value)
-                            })
-                        )
+                        el('div', { className: "flex justify-between items-center border-t border-slate-800 pt-2" }, [
+                            el('p', { className: "text-[8px] font-black text-amber-500 uppercase" }, "Proficiência"),
+                            el('p', { className: "text-[10px] font-black text-amber-400" }, (() => {
+                                const level = parseInt(characterSheetData.info?.['Nivel']) || 1;
+                                const prof = Math.floor((level - 1) / 4) + 2;
+                                return `+${prof}`;
+                            })())
+                        ])
                     )
                 )
             ),
@@ -860,18 +886,30 @@ export function SheetView({
                 // STATUS (Direita - 8 Colunas)
                 el('div', { className: "lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-4" },
                     // CA, Iniciativa, Deslocamento, PV Máximo
-                    [['CA', (parseInt(characterSheetData.recursos?.['CA']) || 10) + invBonuses.CA, 'text-blue-400', "🛡️", invBonuses.CA],
-                    ['Iniciativa', fmtNum((parseInt(characterSheetData.recursos?.['Iniciativa']) || 0) + invBonuses.Iniciativa), 'text-amber-500', "⚡", invBonuses.Iniciativa],
-                    ['Deslocamento', characterSheetData.recursos?.['Deslocamento'], 'text-emerald-400', "👣", invBonuses.Deslocamento],
-                    ['PV Máximo', characterSheetData.recursos?.['PV Máximo'], 'text-green-500', "❤️", 0]
-                    ].map(([label, val, color, icon, bonus]) =>
-                        el('div', { key: label, className: "bg-slate-900 border-2 border-slate-800 p-5 rounded-[2rem] text-center shadow-xl transition-all relative group" }, [
-                            el('span', { className: `${color} text-xl` }, icon),
-                            el('p', { className: "text-[9px] font-black text-slate-500 uppercase mt-1" }, label),
-                            el('p', { className: `text-2xl font-black ${color}` }, val),
-                            bonus !== 0 && el('span', { className: "absolute top-2 right-4 text-[8px] font-black text-amber-500 animate-pulse" }, `+${bonus}`)
-                        ])
-                    ),
+                    (() => {
+                        const dexVal = (parseInt(characterSheetData.atributos?.['DES']) || 10) + (invBonuses.DES || 0);
+                        const dexMod = Math.floor((dexVal - 10) / 2);
+                        const autoCA = 10 + dexMod + (invBonuses.CA || 0);
+                        const autoIni = dexMod + (invBonuses.Iniciativa || 0);
+
+                        return [
+                            ['CA', autoCA, 'text-blue-400', "🛡️", invBonuses.CA, (val) => updateSheetField('recursos', 'CA', val)],
+                            ['Iniciativa', autoIni, 'text-amber-500', "⚡", invBonuses.Iniciativa, (val) => updateSheetField('recursos', 'Iniciativa', val)],
+                            ['Deslocamento', characterSheetData.recursos?.['Deslocamento'], 'text-emerald-400', "👣", invBonuses.Deslocamento, (val) => updateSheetField('recursos', 'Deslocamento', val)],
+                            ['PV Máximo', characterSheetData.recursos?.['PV Máximo'], 'text-green-500', "❤️", 0, (val) => updateSheetField('recursos', 'PV Máximo', val)]
+                        ].map(([label, val, color, icon, bonus, onUpdate]) =>
+                            el('div', { key: label, className: "bg-slate-900 border-2 border-slate-800 p-5 rounded-[2rem] text-center shadow-xl transition-all relative group" }, [
+                                el('span', { className: `${color} text-xl` }, icon),
+                                el('p', { className: "text-[9px] font-black text-slate-500 uppercase mt-1" }, label),
+                                onUpdate ? el('input', {
+                                    className: `bg-transparent text-center text-2xl font-black ${color} outline-none w-full hover:bg-slate-800 rounded transition-colors`,
+                                    defaultValue: characterSheetData.recursos?.[label] || val,
+                                    onBlur: (e) => onUpdate(e.target.value)
+                                }) : el('p', { className: `text-2xl font-black ${color}` }, val),
+                                bonus !== 0 && el('span', { className: "absolute top-2 right-4 text-[8px] font-black text-amber-500 animate-pulse" }, `+${bonus}`)
+                            ])
+                        );
+                    })(),
                     // PV ATUAL (Grande)
                     el('div', { className: "col-span-2 bg-slate-900 border-2 border-slate-800 p-5 rounded-[2rem] text-center shadow-xl relative overflow-hidden" },
                         el('div', { className: "absolute inset-0 opacity-10 bg-green-600" }),
@@ -905,17 +943,39 @@ export function SheetView({
 
                     return el('div', { 
                         key: key, 
-                        onClick: () => triggerExternalRoll(20, false, modNum, 'normal', 1),
-                        className: "bg-slate-900 border-2 border-slate-800 rounded-3xl text-center shadow-xl hover:border-amber-500 hover:bg-slate-800/80 cursor-pointer transition-all overflow-hidden flex flex-col group/attr active:scale-95" 
+                        onDragOver: (e) => e.preventDefault(),
+                        onDrop: (e) => {
+                            e.preventDefault();
+                            try {
+                                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                                if (data && data.val) updateSheetField('atributos', key, data.val.toString());
+                            } catch(err) {
+                                // Fallback para texto puro se necessário
+                                const val = e.dataTransfer.getData('text/plain');
+                                if (val && !isNaN(val)) updateSheetField('atributos', key, val);
+                            }
+                        },
+                        onClick: () => {
+                            if (valueStr && valueStr !== '10' && valueStr !== '---') {
+                                // Se já tem um valor alocado, ao clicar devolvemos para o mentor
+                                window.dispatchEvent(new CustomEvent('return-stat', { detail: { val: valueStr } }));
+                                updateSheetField('atributos', key, '10');
+                                alert(`${key} resetado. O valor ${valueStr} voltou para o Mentor.`);
+                            } else {
+                                // Se está padrão, rola o dado
+                                triggerExternalRoll(20, false, modNum, 'normal', 1);
+                            }
+                        },
+                        className: `bg-slate-900 border-2 rounded-3xl text-center shadow-xl hover:border-amber-500 hover:bg-slate-800/80 cursor-pointer transition-all overflow-hidden flex flex-col group/attr active:scale-95 ${valueStr !== '10' ? 'border-amber-500/50 shadow-amber-500/10' : 'border-slate-800'}` 
                     }, [
                         el('div', { className: "p-3 pb-2" },
                             el('p', { className: "text-[9px] font-black text-slate-500 uppercase mb-1 group-hover/attr:text-amber-500" }, key),
-                            el('p', { className: "text-xs font-bold text-slate-400 italic" }, valueStr)
+                            el('p', { className: `text-xs font-bold italic ${valueStr !== '10' ? 'text-amber-500' : 'text-slate-400'}` }, valueStr)
                         ),
                         el('div', { className: "border-t border-slate-800 w-full" }),
                         el('div', { className: "p-4 bg-slate-950/40 flex-grow flex items-center justify-center relative" }, [
                             el('p', { className: `text-4xl font-black ${modNum >= 0 ? 'text-amber-500' : 'text-red-500'} group-hover/attr:scale-110 transition-transform` }, mod),
-                            el('span', { className: "absolute bottom-1 right-2 text-[8px] text-slate-700 opacity-0 group-hover/attr:opacity-100 uppercase font-black" }, "Rolar 🎲")
+                            el('span', { className: "absolute bottom-1 right-2 text-[8px] text-slate-700 opacity-0 group-hover/attr:opacity-100 uppercase font-black" }, valueStr !== '10' ? "Resetar 🔄" : "Rolar 🎲")
                         ])
                     ]);
                 })

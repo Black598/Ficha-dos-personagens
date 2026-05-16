@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
 
-export const PLAYER_TUTORIAL_VERSION = '2.1';
+export const PLAYER_TUTORIAL_VERSION = '2.2';
 
 export function PlayerTutorialPopup({ onClose }) {
     const [activeTab, setActiveTab] = useState('novidades'); // Abre direto nas novidades quando há update
@@ -13,33 +13,42 @@ export function PlayerTutorialPopup({ onClose }) {
 
     const tabs = [
         { id: 'novidades', label: '🔥 Novidades', icon: '⭐' },
+        { id: 'mentor', label: '🧠 Mentor IA', icon: '🧠' },
         { id: 'geral', label: '📖 Geral', icon: '🛡️' },
         { id: 'vtt', label: '🗺️ Mapa/VTT', icon: '📍' },
         { id: 'alquimia', label: '🧪 Alquimia', icon: '⚗️' },
-        { id: 'combate', label: '⚔️ Combate', icon: '🎲' },
-        { id: 'social', label: '💬 Social', icon: '📜' }
+        { id: 'combate', label: '⚔️ Combate', icon: '🎲' }
     ];
 
     const renderContent = () => {
         switch (activeTab) {
             case 'novidades':
                 return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
-                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 2.1 - Proteção de Ficha"),
+                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 2.2 - O Mentor e Automação"),
                     
-                    el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2" }, "🔐 PIN de Segurança"),
-                        el('p', { className: "text-xs" }, "Agora você pode proteger sua ficha com um PIN de 4 dígitos. Clique no ícone de cadeado na sua ficha para definir sua senha pessoal.")
+                    el('div', { className: "bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2" }, "🧠 Mentor de Criação"),
+                        el('p', { className: "text-xs" }, "Um assistente inteligente que ajuda você a criar seu herói. Ele rola atributos, busca regras no Wikidot e pode até preencher sua ficha automaticamente!")
+                    ]),
+
+                    el('div', { className: "bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-emerald-400 font-bold mb-2 flex items-center gap-2" }, "⚡ Ficha Inteligente"),
+                        el('p', { className: "text-xs" }, "Sua CA, Iniciativa e Proficiência agora são calculadas sozinhas. Quer usar um bônus customizado? Use [TAG:VAL] nos talentos (ex: [+2 FOR]).")
                     ]),
 
                     el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "⚡ Autenticação Persistente"),
-                        el('p', { className: "text-xs" }, "Não precisa digitar o PIN toda hora! Uma vez logado no seu personagem, o sistema lembrará de você até que a página seja recarregada ou você mude de sala.")
-                    ]),
-
-                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🎬 Cenas em Tempo Real"),
-                        el('p', { className: "text-xs" }, "Fique atento às 'Cutscenes' do mestre! Elas agora trazem som e imagem sincronizados para uma experiência mais imersiva.")
+                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "🎲 Rolagem de Misericórdia"),
+                        el('p', { className: "text-xs" }, "Tirou dados muito ruins? O Mentor detecta o azar e concede uma nova rolagem de atributos automaticamente.")
                     ])
+                ]);
+            case 'mentor':
+                return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" }, [
+                    el('p', null, "O ", el('strong', { className: "text-indigo-400" }, "Mentor de Criação"), " é seu guia místico no mundo do RPG."),
+                    el('ul', { className: "list-disc pl-5 space-y-3" },
+                        el('li', null, el('strong', { className: "text-white" }, "Rolar Atributos:"), " Disponível apenas para fichas novas ou quando o mestre libera o cadeado 🔓."),
+                        el('li', null, el('strong', { className: "text-white" }, "Drag & Drop:"), " Arraste os valores rolados diretamente para os atributos da ficha."),
+                        el('li', null, el('strong', { className: "text-white" }, "Wiki e Dicas:"), " Peça dicas de build ou pesquise detalhes técnicos de raças e classes via IA.")
+                    )
                 ]);
             case 'geral':
                 return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
