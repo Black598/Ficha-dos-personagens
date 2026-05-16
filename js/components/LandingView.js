@@ -5,7 +5,6 @@ export function LandingView({
     setCurrentAppId,
     createNewCampaign,
     importCampaign,
-    deleteCampaign,
     onEnterRoom,
     onSync
 }) {
@@ -68,12 +67,7 @@ export function LandingView({
                                 el('h3', { key: 'name', className: "text-lg font-bold text-white group-hover:text-indigo-400 transition-colors" }, camp.name)
                             ]),
                             el('span', { key: 'status', className: "text-slate-700 group-hover:text-indigo-500 transition-colors text-xl" }, camp.hasPassword ? "🔒" : "▶")
-                        ]),
-                        camp.id !== 'rpg-default' && el('button', {
-                            key: 'btn-del',
-                            onClick: (e) => { e.stopPropagation(); deleteCampaign(camp.id); },
-                            className: "absolute -right-2 -top-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                        }, "×")
+                        ])
                     ])),
                     
                     el('button', {
