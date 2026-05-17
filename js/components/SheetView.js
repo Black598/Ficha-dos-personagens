@@ -22,6 +22,7 @@ export function SheetView({
     iconMap,
     updateSheetField,
     turnState,
+    updateInitiative,
     isNewCharacter,
     sessionState,
     updateSessionState,
@@ -1020,7 +1021,47 @@ export function SheetView({
                             ['PV Máximo', characterSheetData.recursos?.['PV Máximo'], 'text-green-500', "❤️", 0, (val) => updateSheetField('recursos', 'PV Máximo', val)]
                         ].map(([label, val, color, icon, bonus, onUpdate]) =>
                             el('div', { key: label, className: "bg-slate-900 border-2 border-slate-800 p-5 rounded-[2rem] text-center shadow-xl transition-all relative group" }, [
-                                el('span', { className: `${color} text-xl` }, icon),
+                                label === 'Iniciativa' ? el('button', {
+                                    onClick: () => {
+                                        const roll = Math.floor(Math.random() * 20) + 1;
+                                        const dexVal = (parseInt(characterSheetData.atributos?.['DES']) || 10) + (invBonuses.DES || 0);
+                                        const dexMod = Math.floor((dexVal - 10) / 2);
+                                        const autoIniVal = dexMod + (invBonuses.Iniciativa || 0);
+                                        const modifierVal = parseInt(characterSheetData.recursos?.['Iniciativa']);
+                                        const finalModifier = isNaN(modifierVal) ? autoIniVal : modifierVal;
+                                        
+                                        const totalVal = roll + finalModifier;
+                                        
+                                        // Rola o dado de Iniciativa
+                                        rollDice(20, roll, `Iniciativa (${finalModifier >= 0 ? '+' : ''}${finalModifier})`, false);
+                                        
+                                        // Atualiza fila de iniciativa
+                                        const currentOrder = turnState?.initiativeOrder || [];
+                                        let updated = false;
+                                        let nextOrder = currentOrder.map(item => {
+                                            if (item.name.toLowerCase() === characterName.toLowerCase()) {
+                                                updated = true;
+                                                return { ...item, value: totalVal };
+                                            }
+                                            return item;
+                                        });
+                                        
+                                        if (!updated) {
+                                            nextOrder.push({
+                                                id: Date.now() + Math.random(),
+                                                name: characterName,
+                                                value: totalVal
+                                            });
+                                        }
+                                        
+                                        nextOrder.sort((a, b) => b.value - a.value);
+                                        if (updateInitiative) {
+                                            updateInitiative(nextOrder);
+                                        }
+                                    },
+                                    className: "w-8 h-8 rounded-xl bg-amber-500/10 hover:bg-amber-500/30 text-amber-500 hover:scale-110 active:scale-95 transition-all flex items-center justify-center mx-auto mb-1 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.25)] animate-pulse",
+                                    title: "Rolar Iniciativa (D20 + Modificador) e enviar para o Turno"
+                                }, "🎲") : el('span', { className: `${color} text-xl` }, icon),
                                 el('p', { className: "text-[9px] font-black text-slate-500 uppercase mt-1" }, label),
                                 onUpdate ? el('input', {
                                     className: `bg-transparent text-center text-2xl font-black ${color} outline-none w-full hover:bg-slate-800 rounded transition-colors`,

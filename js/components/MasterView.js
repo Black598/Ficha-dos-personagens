@@ -445,6 +445,17 @@ export function MasterView({
                                 className: "w-16 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-center text-amber-500 font-bold outline-none focus:border-amber-500/50" 
                             }),
                             el('button', {
+                                key: 'roll-gm-ini',
+                                onClick: () => {
+                                    const roll = Math.floor(Math.random() * 20) + 1;
+                                    const modifier = parseInt(document.getElementById('ini-val').value) || 0;
+                                    document.getElementById('ini-val').value = roll + modifier;
+                                    rollDice(20, roll, 'Iniciativa NPC', false);
+                                },
+                                className: "bg-slate-800 hover:bg-slate-700 text-amber-500 font-bold px-3 rounded-xl border border-slate-700 transition-all active:scale-95 flex items-center justify-center text-sm",
+                                title: "Rolar D20 + Modificador para o NPC"
+                            }, "🎲"),
+                            el('button', {
                                 key: 'btn',
                                 onClick: () => {
                                     const n = document.getElementById('ini-name').value.trim();

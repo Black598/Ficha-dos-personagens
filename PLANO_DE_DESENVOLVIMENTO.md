@@ -269,6 +269,7 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Filtro de Soundpad de Outros Jogadores**: Interruptor de privacidade para que o jogador decida se deseja escutar as faixas do Soundpad tocadas por terceiros.
   - ✅ **Mute Total nos Lobbies**: Silenciamento total de músicas ambientes, dados 3D, efeitos climáticos ou sonoros durante as telas de lobby/seleção.
   - ✅ **Persistência Local**: Configurações salvas de forma persistente e independente em `localStorage`, dando autonomia total a cada participante da mesa.
+  - ✅ **Rolagem Direta de Iniciativa com Dado 🎲**: O campo de iniciativa do jogador e o criador de criaturas do mestre ganharam um botão de dado `🎲`. Ao clicar, rola-se o D20 em 3D, soma-se o modificador e o valor final é enviado instantaneamente para a ordem de turnos de combate.
 
 ## 🚀 Próximas Implementações (Pendentes)
 
