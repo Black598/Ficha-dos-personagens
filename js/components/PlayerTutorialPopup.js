@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
 
-export const PLAYER_TUTORIAL_VERSION = '2.3';
+export const PLAYER_TUTORIAL_VERSION = '2.4';
 
 export function PlayerTutorialPopup({ onClose }) {
     const [activeTab, setActiveTab] = useState('novidades'); // Abre direto nas novidades quando há update
@@ -24,26 +24,21 @@ export function PlayerTutorialPopup({ onClose }) {
         switch (activeTab) {
             case 'novidades':
                 return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
-                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 2.3 - Personalização e O Mentor"),
+                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 2.4 - Interface Acrílica & UX Refinada"),
                     
-                    el('div', { className: "bg-pink-900/20 border border-pink-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-pink-400 font-bold mb-2 flex items-center gap-2" }, "🎨 Temas e Fundo Customizável"),
-                        el('p', { className: "text-xs" }, "Agora você pode personalizar o visual da sua ficha! Use temas predefinidos (como Taverna, Calabouço) ou cole a URL de um GIF/Imagem animada para deixá-la com o seu estilo.")
+                    el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "🔮 Modais Glassmorphism"),
+                        el('p', { className: "text-xs" }, "Todos os popups, modais e guias agora têm um visual acrílico translúcido com desfoque de fundo super premium, deixando a imersão na arte do jogo ainda mais incrível!")
                     ]),
                     
                     el('div', { className: "bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2" }, "🧠 Mentor de Criação"),
-                        el('p', { className: "text-xs" }, "Um assistente inteligente que ajuda você a criar seu herói. Ele rola atributos, busca regras no Wikidot e pode até preencher sua ficha automaticamente!")
+                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2" }, "🎒 Sem Sobreposição de Botões"),
+                        el('p', { className: "text-xs" }, "Otimizamos a parte inferior da ficha! O menu de ações rápidas e o menu de itens fixos foram reposicionados para funcionar em paralelo ou abaixo, garantindo visibilidade total sem cobrir seus botões.")
                     ]),
 
                     el('div', { className: "bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-emerald-400 font-bold mb-2 flex items-center gap-2" }, "⚡ Ficha Inteligente"),
-                        el('p', { className: "text-xs" }, "Sua CA, Iniciativa e Proficiência agora são calculadas sozinhas. Quer usar um bônus customizado? Use [TAG:VAL] nos talentos (ex: [+2 FOR]).")
-                    ]),
-
-                    el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "🎲 Rolagem de Misericórdia"),
-                        el('p', { className: "text-xs" }, "Tirou dados muito ruins? O Mentor detecta o azar e concede uma nova rolagem de atributos automaticamente.")
+                        el('h4', { className: "text-emerald-400 font-bold mb-2 flex items-center gap-2" }, "🔒 PIN de Segurança Seguro"),
+                        el('p', { className: "text-xs" }, "O botão de definir o PIN de proteção de 4 dígitos foi movido do menu de ações para dentro da aba de Configurações, tornando as ações rápidas muito mais focadas.")
                     ])
                 ]);
             case 'mentor':
@@ -108,8 +103,8 @@ export function PlayerTutorialPopup({ onClose }) {
         }
     };
 
-    return el('div', { className: "fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" },
-        el('div', { className: "bg-slate-950 border border-amber-500/30 rounded-3xl w-full max-w-4xl shadow-[0_0_50px_rgba(245,158,11,0.15)] flex flex-col overflow-hidden max-h-[90vh] animate-slide-up" },
+    return el('div', { className: "fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-md animate-fade-in" },
+        el('div', { className: "bg-slate-900/80 backdrop-blur-md border border-amber-500/30 rounded-3xl w-full max-w-4xl shadow-[0_0_50px_rgba(245,158,11,0.15)] flex flex-col overflow-hidden max-h-[90vh] animate-slide-up" },
             
             // Header
             el('div', { className: "bg-slate-900/80 p-6 border-b border-slate-800 flex justify-between items-center" },

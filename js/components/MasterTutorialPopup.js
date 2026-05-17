@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
 
-export const MASTER_TUTORIAL_VERSION = '2.1';
+export const MASTER_TUTORIAL_VERSION = '2.2';
 
 export function MasterTutorialPopup({ onClose }) {
     const [activeTab, setActiveTab] = useState('novidades');
@@ -25,21 +25,26 @@ export function MasterTutorialPopup({ onClose }) {
         switch (activeTab) {
             case 'novidades':
                 return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
-                    el('p', { className: "text-purple-400 font-bold" }, "✨ Versão 2.1 - Segurança & Multi-Campanha"),
+                    el('p', { className: "text-purple-400 font-bold" }, "✨ Versão 2.2 - Customização de Dashboard & Design Premium"),
                     
-                    el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "🔒 Segurança Dual-Layer"),
-                        el('p', { className: "text-xs" }, "Agora você pode definir uma 'Senha da Sala' para jogadores e uma 'Senha de Mestre' separada para o painel. Configure ambas no menu de Configurações (⚙️).")
-                    ]),
-
                     el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🔑 Chave Mestra (Bypass)"),
-                        el('p', { className: "text-xs" }, "Uma vez autenticado como mestre, você pode entrar em qualquer ficha de jogador sem precisar saber o PIN deles. Praticidade total para auditoria!")
+                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🎨 Editor de GUI Arraste-e-Solte"),
+                        el('p', { className: "text-xs" }, "Ative o modo de Edição de GUI nas Configurações (⚙️) e arraste qualquer bloco (Mural, Monstros, Loot, Histórico, etc.) para a Esquerda, Direita ou Rodapé para montar seu próprio layout de tela de Mestre!")
                     ]),
 
-                    el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2" }, "🏰 Gestor de Campanhas"),
-                        el('p', { className: "text-xs" }, "A nova Landing Page permite gerenciar múltiplas salas. A exclusão de salas agora exige confirmação por senha ou texto para evitar acidentes.")
+                    el('div', { className: "bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2" }, "👁️ Módulos Ativos Seletivos"),
+                        el('p', { className: "text-xs" }, "Não quer ver certas abas? Desmarque os blocos na lista de 'Módulos Ativos' dentro das Configurações (⚙️) para manter a tela limpa e focada no que você usa.")
+                    ]),
+
+                    el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "🔮 Modais Glassmorphism"),
+                        el('p', { className: "text-xs" }, "Todos os modais (Configurações, Chat, Guia, Cofre, Condições) agora contam com o lindíssimo design translúcido acrílico com desfoque de fundo em tempo real.")
+                    ]),
+
+                    el('div', { className: "bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-emerald-400 font-bold mb-2 flex items-center gap-2" }, "🔒 Prevenção de Autofill"),
+                        el('p', { className: "text-xs" }, "Corrigimos o auto-preenchimento intempestivo dos navegadores nos campos de senha, evitando piscadas inconvenientes nos modais administrados.")
                     ])
                 ]);
             case 'geral':
@@ -102,8 +107,8 @@ export function MasterTutorialPopup({ onClose }) {
         }
     };
 
-    return el('div', { className: "fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" },
-        el('div', { className: "bg-slate-950 border border-purple-500/30 rounded-3xl w-full max-w-4xl shadow-[0_0_50px_rgba(168,85,247,0.15)] flex flex-col overflow-hidden max-h-[90vh] animate-slide-up" },
+    return el('div', { className: "fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-md animate-fade-in" },
+        el('div', { className: "bg-slate-900/80 backdrop-blur-md border border-purple-500/30 rounded-3xl w-full max-w-4xl shadow-[0_0_50px_rgba(168,85,247,0.15)] flex flex-col overflow-hidden max-h-[90vh] animate-slide-up" },
             
             // Header
             el('div', { className: "bg-slate-900/80 p-6 border-b border-slate-800 flex justify-between items-center" },

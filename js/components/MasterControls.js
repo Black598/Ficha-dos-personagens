@@ -25,6 +25,17 @@ export function MasterControls({ sessionState, updateSessionState }) {
         return () => clearTimeout(handler);
     }, [localNotes]);
 
+    // Estado local para a hora do relógio
+    const time = sessionState?.timeMinutes !== undefined ? sessionState.timeMinutes : 480; // Default 08:00
+    const h = Math.floor(time / 60).toString().padStart(2, '0');
+    const m = (time % 60).toString().padStart(2, '0');
+    const timeStr = `${h}:${m}`;
+    const [localTime, setLocalTime] = useState(timeStr);
+
+    useEffect(() => {
+        setLocalTime(timeStr);
+    }, [timeStr]);
+
     // Sons rápidos do grid principal
     const QUICK_SOUNDS = [
         { id: 'dice', icon: '🎲', label: 'Dados' },
@@ -280,28 +291,32 @@ export function MasterControls({ sessionState, updateSessionState }) {
                     ]),
                     el('div', { className: "flex flex-col text-right" }, [
                         el('span', { className: "text-[8px] font-black text-slate-600 uppercase tracking-widest" }, "Hora Atual"),
-                        (() => {
-                            const time = sessionState?.timeMinutes !== undefined ? sessionState.timeMinutes : 480; // Default 08:00
-                            const h = Math.floor(time / 60).toString().padStart(2, '0');
-                            const m = (time % 60).toString().padStart(2, '0');
-                            return el('input', { 
-                                type: 'time',
-                                value: `${h}:${m}`,
-                                onChange: (e) => {
-                                    const val = e.target.value;
-                                    if (!val) return;
-                                    const [hours, minutes] = val.split(':').map(Number);
-                                    const newTime = (hours * 60) + minutes;
-                                    
-                                    const updates = { timeMinutes: newTime };
-                                    if (time < 360 && newTime >= 360) updates.environment = 'none';
-                                    else if (time < 1080 && newTime >= 1080) updates.environment = 'night';
-                                    
-                                    updateSessionState(updates);
-                                },
-                                className: "text-2xl font-black text-purple-400 font-mono bg-slate-900 px-3 py-1 rounded-xl border border-slate-800 outline-none hover:border-purple-500 transition-colors cursor-pointer" 
-                            });
-                        })()
+                        el('input', { 
+                            type: 'text',
+                            value: localTime,
+                            placeholder: "08:00",
+                            onChange: (e) => setLocalTime(e.target.value),
+                            onBlur: () => {
+                                const match = localTime.match(/^([0-9]{1,2}):([0-9]{2})$/);
+                                if (match) {
+                                    let hours = parseInt(match[1]);
+                                    let minutes = parseInt(match[2]);
+                                    if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
+                                        const newTime = (hours * 60) + minutes;
+                                        const updates = { timeMinutes: newTime };
+                                        if (time < 360 && newTime >= 360) updates.environment = 'none';
+                                        else if (time < 1080 && newTime >= 1080) updates.environment = 'night';
+                                        updateSessionState(updates);
+                                        return;
+                                    }
+                                }
+                                setLocalTime(timeStr);
+                            },
+                            onKeyDown: (e) => {
+                                if (e.key === 'Enter') e.target.blur();
+                            },
+                            className: "w-24 text-2xl font-black text-purple-400 font-mono bg-slate-900 px-3 py-1 rounded-xl border border-slate-800 outline-none hover:border-purple-500 transition-colors text-center" 
+                        })
                     ])
                 ]),
                 el('div', { className: "grid grid-cols-4 gap-2 border-t border-slate-800 pt-4" }, [

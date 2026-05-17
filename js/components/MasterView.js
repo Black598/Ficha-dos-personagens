@@ -11,6 +11,35 @@ import { LootManager } from './LootManager.js';
 const { useState, useEffect } = React;
 const el = React.createElement;
 
+const ALL_BLOCKS = [
+    { id: 'oracle-mural', label: '📢 Mural e Handouts' },
+    { id: 'monster-manager', label: '👹 Gerenciador de Monstros' },
+    { id: 'loot-manager', label: '💰 Distribuidor de Tesouros' },
+    { id: 'pending-deletions-section', label: '🗑️ Solicitações de Exclusão' },
+    { id: 'players-section', label: '🏰 Heróis no Reino (Fichas)' },
+    { id: 'master-controls', label: '⚙️ Painel de Controle de Sessão' },
+    { id: 'initiative-section', label: '⚔️ Lista de Iniciativa' },
+    { id: 'history-section', label: '🎲 Histórico de Rolagens' },
+    { id: 'master-grimoire', label: '💀 Contador de Almas' }
+];
+
+const DEFAULT_LAYOUT = {
+    left: ['oracle-mural', 'monster-manager', 'loot-manager', 'pending-deletions-section', 'players-section'],
+    right: ['master-controls', 'initiative-section', 'history-section'],
+    bottom: ['master-grimoire'],
+    visible: {
+        'oracle-mural': true,
+        'monster-manager': true,
+        'loot-manager': true,
+        'pending-deletions-section': true,
+        'players-section': true,
+        'master-controls': true,
+        'initiative-section': true,
+        'history-section': true,
+        'master-grimoire': true
+    }
+};
+
 export function MasterView({ 
     allCharacters, 
     rollHistory, 
@@ -72,6 +101,450 @@ export function MasterView({
     const [selectedChars, setSelectedChars] = useState([]);
     const [draggedIndex, setDraggedIndex] = useState(null);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [guiEditMode, setGuiEditMode] = useState(false);
+
+    const handleDragStartBlock = (e, blockId) => {
+        e.dataTransfer.setData("text/plain", blockId);
+    };
+
+    const handleDropBlock = (e, targetCol, targetIndex) => {
+        e.preventDefault();
+        const blockId = e.dataTransfer.getData("text/plain");
+        if (!blockId) return;
+
+        const layout = sessionState.masterLayout || DEFAULT_LAYOUT;
+        let left = [...(layout.left || DEFAULT_LAYOUT.left)].filter(id => id !== blockId);
+        let right = [...(layout.right || DEFAULT_LAYOUT.right)].filter(id => id !== blockId);
+        let bottom = [...(layout.bottom || DEFAULT_LAYOUT.bottom)].filter(id => id !== blockId);
+
+        if (targetCol === 'left') {
+            if (targetIndex !== undefined) {
+                left.splice(targetIndex, 0, blockId);
+            } else {
+                left.push(blockId);
+            }
+        } else if (targetCol === 'right') {
+            if (targetIndex !== undefined) {
+                right.splice(targetIndex, 0, blockId);
+            } else {
+                right.push(blockId);
+            }
+        } else if (targetCol === 'bottom') {
+            if (targetIndex !== undefined) {
+                bottom.splice(targetIndex, 0, blockId);
+            } else {
+                bottom.push(blockId);
+            }
+        }
+
+        updateSessionState({
+            masterLayout: {
+                ...layout,
+                left,
+                right,
+                bottom
+            }
+        });
+    };
+
+    const renderBlock = (blockId) => {
+        const layout = sessionState.masterLayout || DEFAULT_LAYOUT;
+        if (layout.visible && layout.visible[blockId] === false) return null;
+
+        switch (blockId) {
+            case 'oracle-mural':
+                return el(OracleMural, { key: 'oracle-mural', sessionState, updateSessionState, allPlayers });
+            case 'monster-manager':
+                return el(MonsterManager, { key: 'monster-manager', sessionState, updateSessionState, geminiApiKey });
+            case 'loot-manager':
+                return el(LootManager, { 
+                    key: 'loot-manager', 
+                    sessionState, 
+                    generateLoot, 
+                    approveLoot, 
+                    clearLoot, 
+                    askGemini,
+                    allPlayers,
+                    updateSessionState
+                });
+            case 'pending-deletions-section':
+                const pendingDeletions = allCharacters.filter(c => c.pendingDeletion === true);
+                if (pendingDeletions.length === 0) return null;
+                return el('div', { key: 'pending-deletions-section', className: "space-y-6" }, [
+                    el('div', { key: 'pending-header', className: "flex justify-between items-end border-b border-red-900/50 pb-4" }, [
+                        el('h2', { key: 'title', className: "text-xs font-black uppercase tracking-[0.4em] text-red-500" }, "🗑️ Solicitações de Exclusão"),
+                    ]),
+                    el('div', { key: 'pending-grid', className: "grid grid-cols-1 md:grid-cols-2 gap-6" }, 
+                        pendingDeletions.map(char => el('div', { key: char.name, className: "bg-red-950/20 border border-red-900/50 p-6 rounded-[2.5rem] shadow-xl flex items-center justify-between" }, [
+                            el('div', { key: 'char-box', className: "flex items-center gap-4" }, [
+                                el('div', { key: 'avatar-box', className: "w-12 h-12 rounded-xl bg-slate-950 border border-red-900 flex items-center justify-center overflow-hidden shrink-0 shadow-lg opacity-50" }, [
+                                    char.imageUrl ? el('img', { key: 'img', src: char.imageUrl, className: "w-full h-full object-cover grayscale" }) : el('span', { key: 'icon', className: "text-xl grayscale" }, "👤")
+                                ]),
+                                el('div', { key: 'info-box' }, [
+                                    el('h3', { key: 'name', className: "text-lg font-black uppercase text-red-400 tracking-tighter" }, char.name),
+                                    el('p', { key: 'status', className: "text-[10px] text-red-500/70 font-bold uppercase tracking-widest" }, "Solicitou Exclusão")
+                                ])
+                            ]),
+                            el('div', { key: 'actions-box', className: "flex gap-2" }, [
+                                el('button', {
+                                    key: 'btn-restore',
+                                    onClick: () => saveCharacter(char.name, { ...char, pendingDeletion: false }),
+                                    className: "p-2 bg-emerald-900/20 hover:bg-emerald-600 text-emerald-500 hover:text-white rounded-xl border border-emerald-900/50 transition-all text-sm",
+                                    title: "Restaurar Ficha"
+                                }, "↩️"),
+                                el('button', {
+                                    key: 'btn-confirm',
+                                    onClick: () => deleteCharacter(char.name),
+                                    className: "p-2 bg-red-900/20 hover:bg-red-600 text-red-500 hover:text-white rounded-xl border border-red-900/50 transition-all text-sm",
+                                    title: "Confirmar Exclusão"
+                                }, "☠️")
+                            ])
+                        ]))
+                    )
+                ]);
+            case 'players-section':
+                return el('div', { key: 'players-section', className: "space-y-6" }, [
+                    el('div', { key: 'players-header', className: "flex justify-between items-end border-b border-slate-800 pb-4" }, [
+                        el('h2', { key: 'players-title', className: "text-xs font-black uppercase tracking-[0.4em] text-slate-500" }, "🏰 Heróis no Reino"),
+                        el('div', { key: 'players-actions', className: "flex gap-2" }, [
+                            el('button', {
+                                key: 'btn-short-rest',
+                                onClick: () => {
+                                    const amount = parseInt(prompt("Quantos PV cada jogador vai recuperar no Descanso Curto?"));
+                                    if (!isNaN(amount) && amount > 0) {
+                                        allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').forEach(c => {
+                                            updateCharacterHP(c.name, amount);
+                                        });
+                                    }
+                                },
+                                className: "bg-slate-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-emerald-900 hover:bg-emerald-600 transition-all text-emerald-500 hover:text-white"
+                            }, "Descanso Curto"),
+                            el('button', {
+                                key: 'btn-long-rest',
+                                onClick: () => {
+                                    if(confirm("Curar todos os PVs e remover todas as condições de todos os jogadores?")) {
+                                        allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').forEach(c => {
+                                            updateCharacterHP(c.name, 9999);
+                                            updateCharacterConditions(c.name, []);
+                                        });
+                                    }
+                                },
+                                className: "bg-slate-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-emerald-900 hover:bg-emerald-600 transition-all text-emerald-500 hover:text-white"
+                            }, "Descanso Longo"),
+                            el('button', {
+                                key: 'btn-clear-turns',
+                                onClick: () => advanceTurn(null),
+                                className: "bg-slate-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-amber-900 hover:bg-amber-600 transition-all text-amber-500 hover:text-slate-900 ml-4"
+                            }, "Limpar Turnos")
+                        ])
+                    ]),
+                    el('div', { key: 'players-grid', className: "grid grid-cols-1 md:grid-cols-2 gap-6" }, 
+                        allCharacters.filter(c => c.name.toLowerCase() !== 'mestre' && !c.pendingDeletion).map(char => {
+                            const maxPV = parseInt(char.sheetData?.recursos?.['PV Máximo']) || 10;
+                            const perdido = parseInt(char.sheetData?.recursos?.['PV Perdido']) || 0;
+                            const temp = parseInt(char.sheetData?.recursos?.['PV Temporário']) || 0;
+                            const atualPV = (maxPV - perdido) + temp;
+                            const percentPV = Math.min(((maxPV - perdido) / maxPV) * 100, 100);
+                            return el('div', { key: char.name, className: "bg-slate-900 border border-slate-800 p-6 rounded-[2.5rem] shadow-xl hover:border-purple-500/30 transition-all group relative" }, [
+                                el('div', { key: 'char-header-container', className: "space-y-4 mb-6" }, [
+                                    el('div', { key: 'char-info-row', className: "flex items-center gap-4" }, [
+                                        el('div', {
+                                            key: 'avatar-container',
+                                            onClick: () => {
+                                                const url = prompt(`URL da Imagem/Avatar para ${char.name}:`, char.imageUrl || '');
+                                                if (url !== null) {
+                                                    const finalUrl = parseImageUrl(url);
+                                                    saveCharacter(char.name, { ...char, imageUrl: finalUrl });
+                                                }
+                                            },
+                                            className: "w-16 h-16 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden cursor-pointer hover:border-purple-500 transition-all shrink-0 group/avatar relative shadow-lg"
+                                        }, [
+                                            char.imageUrl ? 
+                                                el('img', { src: char.imageUrl, className: "w-full h-full object-cover" }) : 
+                                                el('span', { className: "text-2xl" }, "👤"),
+                                            el('div', { key: 'overlay', className: "absolute inset-0 bg-purple-600/20 opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center transition-opacity" }, 
+                                                el('span', { key: 'label', className: "text-[8px] font-black text-white uppercase" }, "Mudar")
+                                            )
+                                        ]),
+                                        el('button', {
+                                            key: 'bulk-select',
+                                            onClick: (e) => {
+                                                e.stopPropagation();
+                                                setSelectedChars(prev => 
+                                                    prev.includes(char.name) ? prev.filter(n => n !== char.name) : [...prev, char.name]
+                                                );
+                                            },
+                                            className: `absolute -top-2 -left-2 w-7 h-7 rounded-xl border-2 z-10 flex items-center justify-center transition-all ${selectedChars.includes(char.name) ? 'bg-amber-500 border-amber-400 scale-110 shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'bg-slate-950 border-slate-700 hover:border-slate-500'}`
+                                        }, selectedChars.includes(char.name) ? el('span', { className: "text-slate-900 font-bold" }, "✓") : null),
+                                        el('div', { key: 'name-stack', className: "min-w-0 flex-1" }, [
+                                            el('h3', { key: 'char-name', className: "text-xl font-black uppercase text-white tracking-tighter leading-tight" }, char.name),
+                                            el('div', { key: 'class-row', className: "flex items-center gap-2 mt-1 flex-wrap" }, [
+                                                el('p', { key: 'char-class', className: "text-[11px] text-purple-400 font-bold uppercase tracking-widest" }, char.sheetData?.info?.['Classe'] || char.Player || 'Aventureiro'),
+                                                el('span', { key: 'passive-perc', className: "text-[10px] font-bold text-slate-400 bg-slate-950 px-2 py-1 rounded-lg flex items-center gap-1.5 border border-slate-800 whitespace-nowrap shadow-inner", title: "Percepção Passiva" }, [
+                                                    el('span', { key: 'eye' }, "👁️"), 
+                                                    10 + parseInt(char.sheetData?.pericias?.['Percepção']?.val || Math.floor(((parseInt(char.sheetData?.atributos?.['SAB']) || 10) - 10) / 2))
+                                                ])
+                                            ])
+                                        ])
+                                    ]),
+                                    el('div', { key: 'char-actions-row', className: "flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/50" }, [
+                                        el('button', {
+                                            key: 'btn-turn',
+                                            onClick: () => advanceTurn(char.name),
+                                            className: `px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all border shadow-md ${(turnState?.activeChar || "").toLowerCase() === char.name.toLowerCase() ? 'bg-amber-500 text-slate-950 border-amber-400 scale-105' : 'bg-slate-800/50 text-slate-400 border-slate-700 hover:bg-slate-700'}`
+                                        }, "Dar Vez"),
+                                        el('button', { key: 'btn-sheet', onClick: () => onViewSheet(char), className: "p-2 bg-slate-800/50 rounded-xl hover:bg-purple-600 text-base border border-slate-700 transition-all shadow-md", title: "Abrir Ficha" }, "📜"),
+                                        el('button', { 
+                                            key: 'btn-lock',
+                                            onClick: () => updateEditPermission(char.name, !(char.sheetData?.allowEditing)), 
+                                            className: `p-2 rounded-xl text-base border transition-all shadow-md ${char.sheetData?.allowEditing ? 'bg-emerald-900/40 border-emerald-500 text-emerald-400' : 'bg-amber-900/40 border-amber-500 text-amber-500'}`
+                                        }, "🔒"),
+                                        el('button', {
+                                            key: 'btn-secret-roll',
+                                            onClick: () => {
+                                                const stat = prompt(`Qual perícia ou atributo testar ocultamente para ${char.name}? (Ex: Percepção)`);
+                                                if (stat) {
+                                                    let bonus = 0;
+                                                    if (char.sheetData?.pericias?.[stat]) bonus = parseInt(char.sheetData.pericias[stat].val) || 0;
+                                                    else if (['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'].includes(stat.toUpperCase())) {
+                                                        bonus = Math.floor(((parseInt(char.sheetData?.atributos?.[stat.toUpperCase()]) || 10) - 10) / 2);
+                                                    } else if (char.sheetData?.modificadores?.[stat]) {
+                                                        bonus = parseInt(char.sheetData.modificadores[stat]) || 0;
+                                                    }
+                                                    const roll = Math.floor(Math.random() * 20) + 1;
+                                                    const total = roll + bonus;
+                                                    firebase.firestore().collection('artifacts').doc(localStorage.getItem('current_rpg_app_id') || 'rpg-mega-trees-v7')
+                                                        .collection('public').doc('data').collection('rolls')
+                                                        .add({
+                                                            charName: char.name, type: `Teste Oculto (${stat})`, formula: `1d20 + ${bonus}`,
+                                                            result: total, details: `[${roll}] + ${bonus}`, secret: true,
+                                                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                                                        });
+                                                }
+                                            },
+                                            className: "p-2 bg-slate-800/50 rounded-xl hover:bg-amber-600 text-base border border-slate-700 transition-all text-slate-400 hover:text-white shadow-md",
+                                            title: "Mestre rola ocultamente por este jogador"
+                                        }, "🎲"),
+                                        el('button', {
+                                            key: 'btn-ask-roll',
+                                            onClick: () => {
+                                                const stat = prompt(`Qual teste você quer obrigar ${char.name} a rolar ocultamente?`);
+                                                if (stat) {
+                                                    updateSessionState({
+                                                        rollRequests: {
+                                                            ...(sessionState.rollRequests || {}),
+                                                            [char.name.toLowerCase()]: { skill: stat, id: Date.now() }
+                                                        }
+                                                    });
+                                                }
+                                            },
+                                            className: "p-2 bg-slate-800/50 rounded-xl hover:bg-red-600 text-base border border-slate-700 transition-all text-slate-400 hover:text-white shadow-md",
+                                            title: "Solicitar Rolagem Oculta"
+                                        }, "🔔"),
+                                        el('button', {
+                                            key: 'btn-pin-reset',
+                                            onClick: () => {
+                                                const newPin = prompt(`Definir novo PIN para ${char.name} (4 dígitos):`, char.pin || '');
+                                                if (newPin !== null) {
+                                                    saveCharacter(char.name, { ...char, pin: newPin });
+                                                    alert(`PIN de ${char.name} atualizado!`);
+                                                }
+                                            },
+                                            className: "p-2 bg-slate-800/50 rounded-xl hover:bg-indigo-600 text-base border border-slate-700 transition-all text-slate-400 hover:text-white shadow-md",
+                                            title: "Resetar PIN do Jogador"
+                                        }, "🔑"),
+                                        el('button', {
+                                            key: 'btn-delete',
+                                            onClick: () => {
+                                                if(confirm(`Tem certeza que deseja excluir ${char.name} permanentemente?`)) {
+                                                    deleteCharacter(char.name);
+                                                }
+                                            },
+                                            className: "p-2 bg-slate-800/50 rounded-xl hover:bg-red-900 text-base border border-slate-700 transition-all text-slate-500 hover:text-white shadow-md opacity-0 group-hover:opacity-100",
+                                            title: "Excluir Personagem"
+                                        }, "🗑️")
+                                    ])
+                                ]),
+                                el('div', { key: 'hp-section', className: "space-y-2 mb-6" }, [
+                                    el('div', { key: 'hp-label-row', className: "flex justify-between items-center text-[9px] font-black uppercase tracking-widest" }, [
+                                        el('span', { key: 'hp-label', className: "text-slate-500" }, "Vitalidade"),
+                                        el('div', { key: 'hp-controls', className: "flex items-center gap-2" }, [
+                                            el('input', {
+                                                key: `hp-input-${char.name}`,
+                                                className: "bg-slate-950 border border-slate-700 rounded px-1 py-0.5 w-12 text-center text-white focus:border-red-500 outline-none text-[8px]",
+                                                placeholder: "- Dano / + Cura",
+                                                onKeyDown: (e) => {
+                                                    if (e.key === 'Enter') {
+                                                        const val = parseInt(e.target.value);
+                                                        if (!isNaN(val)) updateCharacterHP(char.name, val);
+                                                        e.target.value = '';
+                                                    }
+                                                }
+                                            }),
+                                            el('span', { key: 'hp-value', className: percentPV < 30 ? 'text-red-500 text-xs' : 'text-slate-300 text-xs' }, `${atualPV} / ${maxPV}`)
+                                        ])
+                                    ]),
+                                    el('div', { key: 'hp-bar-outer', className: "h-2 w-full bg-slate-950 rounded-full overflow-hidden flex border border-slate-800" }, [
+                                        el('div', { key: 'hp-bar-fill', className: `h-full transition-all duration-700 ${percentPV < 30 ? 'bg-red-600' : 'bg-emerald-500'}`, style: { width: `${Math.max(0, percentPV)}%` } }),
+                                        temp > 0 && el('div', { key: 'hp-bar-temp', className: "h-full bg-blue-500", style: { width: `${(temp/maxPV)*100}%` } })
+                                    ])
+                                ]),
+                                el('div', { key: 'stats-grid', className: "grid grid-cols-2 gap-4 mb-4" }, [
+                                    el('div', { key: 'attrs', className: "grid grid-cols-3 gap-1" }, 
+                                        ['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'].map(attr => {
+                                            const attrValue = parseInt(char.sheetData?.atributos?.[attr]) || 10;
+                                            const modNum = Math.floor((attrValue - 10) / 2);
+                                            const modText = modNum >= 0 ? `+${modNum}` : `${modNum}`;
+                                            return el('div', { key: attr, className: "bg-slate-950 p-1 rounded-lg border border-slate-800 text-center flex flex-col items-center justify-center" }, [
+                                                el('p', { key: `label-${attr}`, className: "text-[6px] text-slate-500 font-bold" }, attr),
+                                                el('p', { key: `value-${attr}`, className: "text-[10px] font-black text-white leading-none mt-0.5" }, char.sheetData?.atributos?.[attr] || '10'),
+                                                el('p', { key: `mod-${attr}`, className: `text-[7px] font-black mt-0.5 ${modNum >= 0 ? 'text-emerald-400' : 'text-red-400'}` }, modText)
+                                            ]);
+                                        })
+                                    ),
+                                    el('div', { key: 'gold', className: "bg-amber-900/5 border border-amber-500/10 p-2 rounded-2xl flex flex-col justify-center" }, [
+                                        el('div', { key: 'gold-header', className: "flex justify-between text-[7px] font-black text-amber-600 uppercase mb-1 px-1" }, [
+                                            el('span', { key: 'gold-label' }, "Tesouro"), el('span', { key: 'gold-icon' }, "💰")
+                                        ]),
+                                        el('div', { key: 'gold-values', className: "flex justify-between gap-1" }, 
+                                            ['PO', 'PP', 'PC'].map(coin => (
+                                                el('div', { key: coin, className: "text-center flex-grow" }, [
+                                                    el('p', { key: 'val', className: "text-[9px] font-black text-white" }, char.sheetData?.outros?.[coin] || '0'),
+                                                    el('p', { key: 'lbl', className: "text-[6px] text-slate-500 font-bold" }, coin)
+                                                ])
+                                            ))
+                                        )
+                                    ])
+                                ])
+                            ]);
+                        })
+                    )
+                ]);
+            case 'master-controls':
+                return el(MasterControls, { key: 'master-controls', sessionState, updateSessionState });
+            case 'initiative-section':
+                return el('section', { key: 'initiative-section', className: "bg-slate-900 border-2 border-amber-500/20 rounded-[3rem] overflow-hidden shadow-2xl" }, [
+                    el('div', { key: 'ini-header', className: "bg-amber-900/10 p-6 border-b border-amber-500/20 flex justify-between items-center" }, [
+                        el('h3', { key: 'title', className: "text-xs font-black uppercase text-amber-500 tracking-widest" }, "⚔️ Inic."),
+                        el('button', { key: 'clear-btn', onClick: () => updateInitiative([]), className: "text-[9px] text-red-500 uppercase" }, "Limpar")
+                    ]),
+                    el('div', { key: 'ini-content', className: "p-4 space-y-4" }, [
+                        el('div', { key: 'add-row', className: "flex gap-2" }, [
+                            el('input', { 
+                                key: 'name',
+                                id: 'ini-name', 
+                                placeholder: 'Nome ou NPC', 
+                                className: "flex-grow bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white outline-none focus:border-amber-500/50" 
+                            }),
+                            el('input', { 
+                                key: 'val',
+                                id: 'ini-val', 
+                                type: 'number', 
+                                placeholder: '0', 
+                                className: "w-16 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-center text-amber-500 font-bold outline-none focus:border-amber-500/50" 
+                            }),
+                            el('button', {
+                                key: 'btn',
+                                onClick: () => {
+                                    const n = document.getElementById('ini-name').value.trim();
+                                    const v = parseInt(document.getElementById('ini-val').value) || 0;
+                                    if(n) { 
+                                        updateInitiative([...(turnState?.initiativeOrder || []), { id: Date.now(), name: n, value: v }].sort((a,b)=>b.value-a.value)); 
+                                        document.getElementById('ini-name').value = '';
+                                        document.getElementById('ini-val').value = '';
+                                    }
+                                }, 
+                                className: "bg-amber-600 hover:bg-amber-500 px-4 rounded-xl font-black text-white transition-all shadow-lg"
+                            }, "+")
+                        ]),
+                        el('button', {
+                            onClick: () => {
+                                const players = allCharacters
+                                    .filter(c => c.name.toLowerCase() !== 'mestre' && !c.pendingDeletion)
+                                    .map(c => ({ id: Date.now() + Math.random(), name: c.name, value: 0 }));
+                                
+                                const current = turnState?.initiativeOrder || [];
+                                const filteredPlayers = players.filter(p => !current.some(c => c.name === p.name));
+                                updateInitiative([...current, ...filteredPlayers]);
+                            },
+                            className: "w-full bg-slate-800 hover:bg-slate-700 text-[9px] font-black uppercase tracking-widest py-2 rounded-xl border border-slate-700 transition-all mb-2"
+                        }, "🧙 Adicionar Todos os Jogadores"),
+
+                        el('div', { 
+                            key: 'ini-list',
+                            className: "space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-1",
+                            onDragOver: (e) => e.preventDefault()
+                        }, 
+                            (turnState?.initiativeOrder || []).map((item, idx) => 
+                                el('div', { 
+                                    key: item.id,
+                                    draggable: true,
+                                    onDragStart: () => setDraggedIndex(idx),
+                                    onDragOver: (e) => e.preventDefault(),
+                                    onDrop: () => {
+                                        if (draggedIndex === null || draggedIndex === idx) return;
+                                        const newOrder = [...turnState.initiativeOrder];
+                                        const draggedItem = newOrder.splice(draggedIndex, 1)[0];
+                                        newOrder.splice(idx, 0, draggedItem);
+                                        updateInitiative(newOrder);
+                                        setDraggedIndex(null);
+                                    },
+                                    className: `flex items-center justify-between p-3 rounded-2xl border transition-all cursor-move group ${turnState?.activeChar === item.name ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-slate-800 bg-slate-950/50 hover:border-slate-600'}` 
+                                }, [
+                                    el('div', { key: 'name-box', className: "flex items-center gap-3" }, [
+                                        el('span', { key: 'drag-icon', className: "text-slate-700 group-hover:text-amber-500 transition-colors" }, "☰"),
+                                        el('span', { key: 'name-label', className: `text-xs font-bold uppercase ${turnState?.activeChar === item.name ? 'text-amber-500' : 'text-slate-300'}` }, item.name),
+                                    ]),
+                                    el('div', { key: 'val-box', className: "flex items-center gap-2" }, [
+                                        el('input', {
+                                            key: 'val-input',
+                                            type: 'number',
+                                            defaultValue: item.value,
+                                            onBlur: (e) => {
+                                                const newVal = parseInt(e.target.value) || 0;
+                                                if (newVal !== item.value) {
+                                                    const newOrder = [...turnState.initiativeOrder];
+                                                    newOrder[idx].value = newVal;
+                                                    updateInitiative(newOrder);
+                                                }
+                                            },
+                                            className: "w-10 bg-slate-900 border border-slate-800 rounded-lg text-[10px] font-black text-center text-amber-500 focus:border-amber-500 outline-none"
+                                        }),
+                                        el('button', {
+                                            onClick: () => {
+                                                const newOrder = (turnState?.initiativeOrder || []).filter((_, i) => i !== idx);
+                                                updateInitiative(newOrder);
+                                            },
+                                            className: "text-slate-700 hover:text-red-500 transition-colors text-xs px-1"
+                                        }, "×")
+                                    ])
+                                ])
+                            )
+                        )
+                    ])
+                ]);
+            case 'history-section':
+                return el('section', { key: 'history-section', className: "bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden" }, [
+                    el('div', { className: "p-5 border-b border-slate-800 flex justify-between items-center" }, [
+                        el('span', { className: "text-[10px] text-slate-500 uppercase font-black" }, "🎲 Rolagens"),
+                        el('button', { 
+                            onClick: clearRollHistory,
+                            className: "text-[9px] text-red-500 uppercase font-bold hover:text-red-400 transition-colors"
+                        }, "Limpar Tudo")
+                    ]),
+                    el('div', { className: "max-h-[250px] overflow-y-auto" }, 
+                        rollHistory.map(roll => el('div', { key: roll.id, className: "p-3 border-b border-slate-800/30 flex justify-between text-[11px]" }, [
+                            el('span', { className: "font-bold text-slate-400" }, roll.playerName),
+                            el('span', { className: "font-black text-white" }, roll.result)
+                        ]))
+                    )
+                ]);
+            case 'master-grimoire':
+                return el(SoulGrimoire, { souls, updateSouls, sessionState, updateSessionState, geminiApiKey, askGemini });
+            default:
+                return null;
+        }
+    };
 
     const handleQuickRoll = (sides) => {
         if (triggerExternalRoll) {
@@ -253,471 +726,92 @@ export function MasterView({
         ]),
 
         el('div', { key: 'master-main-grid', className: "max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 mb-24" }, [
-            el('div', { key: 'master-left-col', className: "lg:col-span-8 space-y-12" }, [
-                el(OracleMural, { key: 'oracle-mural', sessionState, updateSessionState, allPlayers }),
-                el(MonsterManager, { key: 'monster-manager', sessionState, updateSessionState, geminiApiKey }),
-                el(LootManager, { 
-                    key: 'loot-manager', 
-                    sessionState, 
-                    generateLoot, 
-                    approveLoot, 
-                    clearLoot, 
-                    askGemini,
-                    allPlayers,
-                    updateSessionState
-                }),
-                (() => {
-                    const pendingDeletions = allCharacters.filter(c => c.pendingDeletion === true);
-                    if (pendingDeletions.length === 0) return null;
-                    return el('div', { key: 'pending-deletions-section', className: "space-y-6" }, [
-                        el('div', { key: 'pending-header', className: "flex justify-between items-end border-b border-red-900/50 pb-4" }, [
-                            el('h2', { key: 'title', className: "text-xs font-black uppercase tracking-[0.4em] text-red-500" }, "🗑️ Solicitações de Exclusão"),
+            el('div', { 
+                key: 'master-left-col', 
+                className: "lg:col-span-8 space-y-12 min-h-[150px]",
+                onDragOver: (e) => e.preventDefault(),
+                onDrop: (e) => handleDropBlock(e, 'left')
+            }, 
+                (sessionState.masterLayout || DEFAULT_LAYOUT).left.map((blockId, index) => {
+                    const content = renderBlock(blockId);
+                    if (!content) return null;
+                    return el('div', {
+                        key: `wrap-${blockId}`,
+                        draggable: guiEditMode,
+                        onDragStart: (e) => handleDragStartBlock(e, blockId),
+                        onDragOver: (e) => e.preventDefault(),
+                        onDrop: (e) => {
+                            e.stopPropagation();
+                            handleDropBlock(e, 'left', index);
+                        },
+                        className: guiEditMode ? "relative border-2 border-dashed border-purple-500/50 p-6 rounded-[2.5rem] bg-purple-950/5 cursor-move hover:border-purple-400 transition-all" : ""
+                    }, [
+                        guiEditMode && el('div', { className: "absolute top-2 left-6 bg-purple-600 text-white text-[8px] font-black uppercase px-2.5 py-1 rounded-full z-10 select-none flex items-center gap-1.5 shadow" }, [
+                            el('span', null, "☰ Arrastar:"),
+                            ALL_BLOCKS.find(b => b.id === blockId)?.label || blockId
                         ]),
-                        el('div', { key: 'pending-grid', className: "grid grid-cols-1 md:grid-cols-2 gap-6" }, 
-                            pendingDeletions.map(char => el('div', { key: char.name, className: "bg-red-950/20 border border-red-900/50 p-6 rounded-[2.5rem] shadow-xl flex items-center justify-between" }, [
-                                el('div', { key: 'char-box', className: "flex items-center gap-4" }, [
-                                    el('div', { key: 'avatar-box', className: "w-12 h-12 rounded-xl bg-slate-950 border border-red-900 flex items-center justify-center overflow-hidden shrink-0 shadow-lg opacity-50" }, [
-                                        char.imageUrl ? el('img', { key: 'img', src: char.imageUrl, className: "w-full h-full object-cover grayscale" }) : el('span', { key: 'icon', className: "text-xl grayscale" }, "👤")
-                                    ]),
-                                    el('div', { key: 'info-box' }, [
-                                        el('h3', { key: 'name', className: "text-lg font-black uppercase text-red-400 tracking-tighter" }, char.name),
-                                        el('p', { key: 'status', className: "text-[10px] text-red-500/70 font-bold uppercase tracking-widest" }, "Solicitou Exclusão")
-                                    ])
-                                ]),
-                                el('div', { key: 'actions-box', className: "flex gap-2" }, [
-                                    el('button', {
-                                        key: 'btn-restore',
-                                        onClick: () => saveCharacter(char.name, { ...char, pendingDeletion: false }),
-                                        className: "p-2 bg-emerald-900/20 hover:bg-emerald-600 text-emerald-500 hover:text-white rounded-xl border border-emerald-900/50 transition-all text-sm",
-                                        title: "Restaurar Ficha"
-                                    }, "↩️"),
-                                    el('button', {
-                                        key: 'btn-confirm',
-                                        onClick: () => deleteCharacter(char.name),
-                                        className: "p-2 bg-red-900/20 hover:bg-red-600 text-red-500 hover:text-white rounded-xl border border-red-900/50 transition-all text-sm",
-                                        title: "Confirmar Exclusão"
-                                    }, "☠️")
-                                ])
-                            ]))
-                        )
+                        el('div', { className: guiEditMode ? "pointer-events-none opacity-60 mt-4" : "" }, content)
                     ]);
-                })(),
-                el('div', { key: 'players-section', className: "space-y-6" }, [
-                    el('div', { key: 'players-header', className: "flex justify-between items-end border-b border-slate-800 pb-4" }, [
-                        el('h2', { key: 'players-title', className: "text-xs font-black uppercase tracking-[0.4em] text-slate-500" }, "🏰 Heróis no Reino"),
-                        el('div', { key: 'players-actions', className: "flex gap-2" }, [
-                            el('button', {
-                                key: 'btn-short-rest',
-                                onClick: () => {
-                                    const amount = parseInt(prompt("Quantos PV cada jogador vai recuperar no Descanso Curto?"));
-                                    if (!isNaN(amount) && amount > 0) {
-                                        allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').forEach(c => {
-                                            updateCharacterHP(c.name, amount);
-                                        });
-                                    }
-                                },
-                                className: "bg-slate-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-emerald-900 hover:bg-emerald-600 transition-all text-emerald-500 hover:text-white"
-                            }, "Descanso Curto"),
-                            el('button', {
-                                key: 'btn-long-rest',
-                                onClick: () => {
-                                    if(confirm("Curar todos os PVs e remover todas as condições de todos os jogadores?")) {
-                                        allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').forEach(c => {
-                                            updateCharacterHP(c.name, 9999);
-                                            updateCharacterConditions(c.name, []);
-                                        });
-                                    }
-                                },
-                                className: "bg-slate-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-emerald-900 hover:bg-emerald-600 transition-all text-emerald-500 hover:text-white"
-                            }, "Descanso Longo"),
-                            el('button', {
-                                key: 'btn-clear-turns',
-                                onClick: () => advanceTurn(null),
-                                className: "bg-slate-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-amber-900 hover:bg-amber-600 transition-all text-amber-500 hover:text-slate-900 ml-4"
-                            }, "Limpar Turnos")
-                        ])
-                    ]),
-                    el('div', { key: 'players-grid', className: "grid grid-cols-1 md:grid-cols-2 gap-6" }, 
-                        allCharacters.filter(c => c.name.toLowerCase() !== 'mestre' && !c.pendingDeletion).map(char => {
-                            const maxPV = parseInt(char.sheetData?.recursos?.['PV Máximo']) || 10;
-                            const perdido = parseInt(char.sheetData?.recursos?.['PV Perdido']) || 0;
-                            const temp = parseInt(char.sheetData?.recursos?.['PV Temporário']) || 0;
-                            const atualPV = (maxPV - perdido) + temp;
-                            const percentPV = Math.min(((maxPV - perdido) / maxPV) * 100, 100);
-                            return el('div', { key: char.name, className: "bg-slate-900 border border-slate-800 p-6 rounded-[2.5rem] shadow-xl hover:border-purple-500/30 transition-all group relative" }, [
-                                el('div', { key: 'char-header-container', className: "space-y-4 mb-6" }, [
-                                    el('div', { key: 'char-info-row', className: "flex items-center gap-4" }, [
-                                        el('div', {
-                                            key: 'avatar-container',
-                                            onClick: () => {
-                                                const url = prompt(`URL da Imagem/Avatar para ${char.name}:`, char.imageUrl || '');
-                                                if (url !== null) {
-                                                    const finalUrl = parseImageUrl(url);
-                                                    saveCharacter(char.name, { ...char, imageUrl: finalUrl });
-                                                }
-                                            },
-                                            className: "w-16 h-16 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden cursor-pointer hover:border-purple-500 transition-all shrink-0 group/avatar relative shadow-lg"
-                                        }, [
-                                            char.imageUrl ? 
-                                                el('img', { src: char.imageUrl, className: "w-full h-full object-cover" }) : 
-                                                el('span', { className: "text-2xl" }, "👤"),
-                                            el('div', { key: 'overlay', className: "absolute inset-0 bg-purple-600/20 opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center transition-opacity" }, 
-                                                el('span', { key: 'label', className: "text-[8px] font-black text-white uppercase" }, "Mudar")
-                                            )
-                                        ]),
-                                        // CHECKBOX PARA SELEÇÃO EM MASSA
-                                        el('button', {
-                                            key: 'bulk-select',
-                                            onClick: (e) => {
-                                                e.stopPropagation();
-                                                setSelectedChars(prev => 
-                                                    prev.includes(char.name) ? prev.filter(n => n !== char.name) : [...prev, char.name]
-                                                );
-                                            },
-                                            className: `absolute -top-2 -left-2 w-7 h-7 rounded-xl border-2 z-10 flex items-center justify-center transition-all ${selectedChars.includes(char.name) ? 'bg-amber-500 border-amber-400 scale-110 shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'bg-slate-950 border-slate-700 hover:border-slate-500'}`
-                                        }, selectedChars.includes(char.name) ? el('span', { className: "text-slate-900 font-bold" }, "✓") : null),
-                                        el('div', { key: 'name-stack', className: "min-w-0 flex-1" }, [
-                                            el('h3', { key: 'char-name', className: "text-xl font-black uppercase text-white tracking-tighter leading-tight" }, char.name),
-                                            el('div', { key: 'class-row', className: "flex items-center gap-2 mt-1 flex-wrap" }, [
-                                                el('p', { key: 'char-class', className: "text-[11px] text-purple-400 font-bold uppercase tracking-widest" }, char.sheetData?.info?.['Classe'] || char.Player || 'Aventureiro'),
-                                                el('span', { key: 'passive-perc', className: "text-[10px] font-bold text-slate-400 bg-slate-950 px-2 py-1 rounded-lg flex items-center gap-1.5 border border-slate-800 whitespace-nowrap shadow-inner", title: "Percepção Passiva" }, [
-                                                    el('span', { key: 'eye' }, "👁️"), 
-                                                    10 + parseInt(char.sheetData?.pericias?.['Percepção']?.val || Math.floor(((parseInt(char.sheetData?.atributos?.['SAB']) || 10) - 10) / 2))
-                                                ])
-                                            ])
-                                        ])
-                                    ]),
-                                    el('div', { key: 'char-actions-row', className: "flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/50" }, [
-                                        el('button', {
-                                            key: 'btn-turn',
-                                            onClick: () => advanceTurn(char.name),
-                                            className: `px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all border shadow-md ${(turnState?.activeChar || "").toLowerCase() === char.name.toLowerCase() ? 'bg-amber-500 text-slate-950 border-amber-400 scale-105' : 'bg-slate-800/50 text-slate-400 border-slate-700 hover:bg-slate-700'}`
-                                        }, "Dar Vez"),
-                                        el('button', { key: 'btn-sheet', onClick: () => onViewSheet(char), className: "p-2 bg-slate-800/50 rounded-xl hover:bg-purple-600 text-base border border-slate-700 transition-all shadow-md", title: "Abrir Ficha" }, "📜"),
-                                        el('button', { 
-                                            key: 'btn-lock',
-                                            onClick: () => updateEditPermission(char.name, !(char.sheetData?.allowEditing)), 
-                                            className: `p-2 rounded-xl text-base border transition-all shadow-md ${char.sheetData?.allowEditing ? 'bg-emerald-900/40 border-emerald-500 text-emerald-400' : 'bg-amber-900/40 border-amber-500 text-amber-500'}`
-                                        }, "🔒"),
-                                        el('button', {
-                                            key: 'btn-secret-roll',
-                                            onClick: () => {
-                                                const stat = prompt(`Qual perícia ou atributo testar ocultamente para ${char.name}? (Ex: Percepção)`);
-                                                if (stat) {
-                                                    let bonus = 0;
-                                                    if (char.sheetData?.pericias?.[stat]) bonus = parseInt(char.sheetData.pericias[stat].val) || 0;
-                                                    else if (['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'].includes(stat.toUpperCase())) {
-                                                        bonus = Math.floor(((parseInt(char.sheetData?.atributos?.[stat.toUpperCase()]) || 10) - 10) / 2);
-                                                    } else if (char.sheetData?.modificadores?.[stat]) {
-                                                        bonus = parseInt(char.sheetData.modificadores[stat]) || 0;
-                                                    }
-                                                    const roll = Math.floor(Math.random() * 20) + 1;
-                                                    const total = roll + bonus;
-                                                    firebase.firestore().collection('artifacts').doc(localStorage.getItem('current_rpg_app_id') || 'rpg-mega-trees-v7')
-                                                        .collection('public').doc('data').collection('rolls')
-                                                        .add({
-                                                            charName: char.name, type: `Teste Oculto (${stat})`, formula: `1d20 + ${bonus}`,
-                                                            result: total, details: `[${roll}] + ${bonus}`, secret: true,
-                                                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                                                        });
-                                                }
-                                            },
-                                            className: "p-2 bg-slate-800/50 rounded-xl hover:bg-amber-600 text-base border border-slate-700 transition-all text-slate-400 hover:text-white shadow-md",
-                                            title: "Mestre rola ocultamente por este jogador"
-                                        }, "🎲"),
-                                        el('button', {
-                                            key: 'btn-ask-roll',
-                                            onClick: () => {
-                                                const stat = prompt(`Qual teste você quer obrigar ${char.name} a rolar ocultamente?`);
-                                                if (stat) {
-                                                    updateSessionState({
-                                                        rollRequests: {
-                                                            ...(sessionState.rollRequests || {}),
-                                                            [char.name.toLowerCase()]: { skill: stat, id: Date.now() }
-                                                        }
-                                                    });
-                                                }
-                                            },
-                                            className: "p-2 bg-slate-800/50 rounded-xl hover:bg-red-600 text-base border border-slate-700 transition-all text-slate-400 hover:text-white shadow-md",
-                                            title: "Solicitar Rolagem Oculta"
-                                        }, "🔔"),
-                                        el('button', {
-                                            key: 'btn-pin-reset',
-                                            onClick: () => {
-                                                const newPin = prompt(`Definir novo PIN para ${char.name} (4 dígitos):`, char.pin || '');
-                                                if (newPin !== null) {
-                                                    saveCharacter(char.name, { ...char, pin: newPin });
-                                                    alert(`PIN de ${char.name} atualizado!`);
-                                                }
-                                            },
-                                            className: "p-2 bg-slate-800/50 rounded-xl hover:bg-indigo-600 text-base border border-slate-700 transition-all text-slate-400 hover:text-white shadow-md",
-                                            title: "Resetar PIN do Jogador"
-                                        }, "🔑"),
-                                        el('button', {
-                                            key: 'btn-delete',
-                                            onClick: () => {
-                                                if(confirm(`Tem certeza que deseja excluir ${char.name} permanentemente?`)) {
-                                                    deleteCharacter(char.name);
-                                                }
-                                            },
-                                            className: "p-2 bg-slate-800/50 rounded-xl hover:bg-red-900 text-base border border-slate-700 transition-all text-slate-500 hover:text-white shadow-md opacity-0 group-hover:opacity-100",
-                                            title: "Excluir Personagem"
-                                        }, "🗑️")
-                                    ])
-                                ]),
-                                el('div', { key: 'hp-section', className: "space-y-2 mb-6" }, [
-                                    el('div', { key: 'hp-label-row', className: "flex justify-between items-center text-[9px] font-black uppercase tracking-widest" }, [
-                                        el('span', { key: 'hp-label', className: "text-slate-500" }, "Vitalidade"),
-                                        el('div', { key: 'hp-controls', className: "flex items-center gap-2" }, [
-                                            el('input', {
-                                                key: `hp-input-${char.name}`,
-                                                className: "bg-slate-950 border border-slate-700 rounded px-1 py-0.5 w-12 text-center text-white focus:border-red-500 outline-none text-[8px]",
-                                                placeholder: "- Dano / + Cura",
-                                                onKeyDown: (e) => {
-                                                    if (e.key === 'Enter') {
-                                                        const val = parseInt(e.target.value);
-                                                        if (!isNaN(val)) updateCharacterHP(char.name, val);
-                                                        e.target.value = '';
-                                                    }
-                                                }
-                                            }),
-                                            el('span', { key: 'hp-value', className: percentPV < 30 ? 'text-red-500 text-xs' : 'text-slate-300 text-xs' }, `${atualPV} / ${maxPV}`)
-                                        ])
-                                    ]),
-                                    el('div', { key: 'hp-bar-outer', className: "h-2 w-full bg-slate-950 rounded-full overflow-hidden flex border border-slate-800" }, [
-                                        el('div', { key: 'hp-bar-fill', className: `h-full transition-all duration-700 ${percentPV < 30 ? 'bg-red-600' : 'bg-emerald-500'}`, style: { width: `${Math.max(0, percentPV)}%` } }),
-                                        temp > 0 && el('div', { key: 'hp-bar-temp', className: "h-full bg-blue-500", style: { width: `${(temp/maxPV)*100}%` } })
-                                    ])
-                                ]),
-                                el('div', { key: 'stats-grid', className: "grid grid-cols-2 gap-4 mb-4" }, [
-                                    el('div', { key: 'attrs', className: "grid grid-cols-3 gap-1" }, 
-                                        ['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'].map(attr => {
-                                            const attrValue = parseInt(char.sheetData?.atributos?.[attr]) || 10;
-                                            const modNum = Math.floor((attrValue - 10) / 2);
-                                            const modText = modNum >= 0 ? `+${modNum}` : `${modNum}`;
-                                            return el('div', { key: attr, className: "bg-slate-950 p-1 rounded-lg border border-slate-800 text-center flex flex-col items-center justify-center" }, [
-                                                el('p', { key: `label-${attr}`, className: "text-[6px] text-slate-500 font-bold" }, attr),
-                                                el('p', { key: `value-${attr}`, className: "text-[10px] font-black text-white leading-none mt-0.5" }, char.sheetData?.atributos?.[attr] || '10'),
-                                                el('p', { key: `mod-${attr}`, className: `text-[7px] font-black mt-0.5 ${modNum >= 0 ? 'text-emerald-400' : 'text-red-400'}` }, modText)
-                                            ]);
-                                        })
-                                    ),
-                                    el('div', { key: 'gold', className: "bg-amber-900/5 border border-amber-500/10 p-2 rounded-2xl flex flex-col justify-center" }, [
-                                        el('div', { key: 'gold-header', className: "flex justify-between text-[7px] font-black text-amber-600 uppercase mb-1 px-1" }, [
-                                            el('span', { key: 'gold-label' }, "Tesouro"), el('span', { key: 'gold-icon' }, "💰")
-                                        ]),
-                                        el('div', { key: 'gold-values', className: "flex justify-between gap-1" }, 
-                                            ['PO', 'PP', 'PC'].map(coin => (
-                                                el('div', { key: coin, className: "text-center flex-grow" }, [
-                                                    el('p', { key: 'val', className: "text-[9px] font-black text-white" }, char.sheetData?.outros?.[coin] || '0'),
-                                                    el('p', { key: 'lbl', className: "text-[6px] text-slate-500 font-bold" }, coin)
-                                                ])
-                                            ))
-                                        )
-                                    ])
-                                ]),
-                                (() => {
-                                    const profs = Object.keys(char.sheetData?.pericias || {}).filter(k => char.sheetData.pericias[k].prof);
-                                    if (profs.length === 0) return null;
-                                    return el('div', { key: 'profs', className: "mb-6" }, [
-                                        el('p', { key: 'profs-label', className: "text-[7px] font-black text-slate-500 uppercase tracking-widest mb-2" }, "Proficiências"),
-                                        el('div', { key: 'profs-list', className: "flex flex-wrap gap-1" }, 
-                                            profs.map(p => el('span', { 
-                                                key: p, 
-                                                className: "px-1.5 py-0.5 bg-purple-900/20 border border-purple-500/30 text-purple-300 text-[7px] rounded uppercase font-bold" 
-                                            }, `${p} (${char.sheetData.pericias[p].val})`))
-                                        )
-                                    ]);
-                                })(),
-                                el('div', { key: 'footer-row', className: "flex items-center justify-between gap-4" }, [
-                                    el('div', { key: 'conditions-container', className: "flex items-center gap-2" }, [
-                                        el('div', { key: 'conditions', className: "flex flex-wrap gap-1.5" }, 
-                                            safeParseJSON(char.sheetData?.info?.['Condicoes']).map((cond, idx) => 
-                                                el('button', { 
-                                                    key: `cond-${idx}`, 
-                                                    onClick: () => {
-                                                        const currentConds = safeParseJSON(char.sheetData?.info?.['Condicoes']);
-                                                        const updated = currentConds.filter((_, i) => i !== idx);
-                                                        updateCharacterConditions(char.name, updated);
-                                                    },
-                                                    className: "px-2 py-0.5 bg-slate-950 border border-slate-800 hover:border-red-500/50 hover:text-red-400 rounded-lg text-[9px] font-bold text-amber-500 flex items-center gap-1 transition-all group/cond",
-                                                    title: "Clique para remover"
-                                                }, [
-                                                    el('span', { key: `icon-${idx}` }, cond.icon), 
-                                                    el('span', { key: `name-${idx}` }, cond.name),
-                                                    el('span', { className: "opacity-0 group-hover/cond:opacity-100 text-red-500 ml-1" }, "×")
-                                                ])
-                                            )
-                                        ),
-                                        el('button', {
-                                            key: 'btn-add-cond',
-                                            onClick: () => setShowCondModalFor(char.name),
-                                            className: "w-6 h-6 bg-slate-800 hover:bg-purple-600 rounded-lg flex items-center justify-center text-[10px] border border-slate-700 transition-all shadow-lg",
-                                            title: "Adicionar Condição"
-                                        }, "✨")
-                                    ]),
-                                    el('div', { 
-                                        key: 'xp-box', 
-                                        title: "Clique para editar o XP. Digite +100 para somar ou -50 para subtrair.", 
-                                        className: "flex items-center gap-1 bg-slate-950 px-2 py-1.5 rounded-xl border border-slate-800 focus-within:border-amber-500/50 transition-colors cursor-text hover:border-amber-500/30" 
-                                    }, [
-                                        el('div', { key: 'xp-info', className: "flex flex-col" }, [
-                                            el('span', { key: 'label', className: "text-[6px] font-black text-slate-600 uppercase" }, "XP (Editar)"),
-                                            el('input', {
-                                                key: `xp-${char.name}-${char.sheetData?.info?.['XP'] || 0}`,
-                                                className: "block bg-transparent text-[10px] font-black text-amber-500 w-12 outline-none p-0 focus:ring-0",
-                                                defaultValue: char.sheetData?.info?.['XP'] || 0,
-                                                onBlur: (e) => {
-                                                    const currentXP = parseInt(char.sheetData?.info?.['XP']) || 0;
-                                                    let inputVal = e.target.value.trim();
-                                                    let finalXP = currentXP;
-                                                    if (inputVal.startsWith('+')) {
-                                                        finalXP = currentXP + (parseInt(inputVal.substring(1)) || 0);
-                                                    } else if (inputVal.startsWith('-')) {
-                                                        finalXP = Math.max(0, currentXP - (parseInt(inputVal.substring(1)) || 0));
-                                                    } else {
-                                                        finalXP = parseInt(inputVal) || 0;
-                                                    }
-                                                    if (finalXP !== currentXP) {
-                                                        updateCharacterXP(char.name, finalXP);
-                                                    } else {
-                                                        e.target.value = currentXP;
-                                                    }
-                                                },
-                                                onKeyDown: (e) => e.key === 'Enter' && e.target.blur()
-                                            }),
-                                        ]),
-                                        el('span', { key: 'icon', className: "text-slate-700 text-[10px] ml-auto pb-1" }, "⭐")
-                                    ])
-                                ])
-                            ]);
-                        })
-                    )
-                ])
-            ]),
-            el('div', { key: 'master-right-col', className: "lg:col-span-4 space-y-12" }, [
-                el(MasterControls, { key: 'master-controls', sessionState, updateSessionState }),
-                el('section', { key: 'initiative-section', className: "bg-slate-900 border-2 border-amber-500/20 rounded-[3rem] overflow-hidden shadow-2xl" }, [
-                    el('div', { key: 'ini-header', className: "bg-amber-900/10 p-6 border-b border-amber-500/20 flex justify-between items-center" }, [
-                        el('h3', { key: 'title', className: "text-xs font-black uppercase text-amber-500 tracking-widest" }, "⚔️ Inic."),
-                        el('button', { key: 'clear-btn', onClick: () => updateInitiative([]), className: "text-[9px] text-red-500 uppercase" }, "Limpar")
-                    ]),
-                    el('div', { key: 'ini-content', className: "p-4 space-y-4" }, [
-                        el('div', { key: 'add-row', className: "flex gap-2" }, [
-                            el('input', { 
-                                key: 'name',
-                                id: 'ini-name', 
-                                placeholder: 'Nome ou NPC', 
-                                className: "flex-grow bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white outline-none focus:border-amber-500/50" 
-                            }),
-                            el('input', { 
-                                key: 'val',
-                                id: 'ini-val', 
-                                type: 'number', 
-                                placeholder: '0', 
-                                className: "w-16 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-center text-amber-500 font-bold outline-none focus:border-amber-500/50" 
-                            }),
-                            el('button', {
-                                key: 'btn',
-                                onClick: () => {
-                                    const n = document.getElementById('ini-name').value.trim();
-                                    const v = parseInt(document.getElementById('ini-val').value) || 0;
-                                    if(n) { 
-                                        updateInitiative([...(turnState?.initiativeOrder || []), { id: Date.now(), name: n, value: v }].sort((a,b)=>b.value-a.value)); 
-                                        document.getElementById('ini-name').value = '';
-                                        document.getElementById('ini-val').value = '';
-                                    }
-                                }, 
-                                className: "bg-amber-600 hover:bg-amber-500 px-4 rounded-xl font-black text-white transition-all shadow-lg"
-                            }, "+")
+                })
+            ),
+            el('div', { 
+                key: 'master-right-col', 
+                className: "lg:col-span-4 space-y-12 min-h-[150px]",
+                onDragOver: (e) => e.preventDefault(),
+                onDrop: (e) => handleDropBlock(e, 'right')
+            }, 
+                (sessionState.masterLayout || DEFAULT_LAYOUT).right.map((blockId, index) => {
+                    const content = renderBlock(blockId);
+                    if (!content) return null;
+                    return el('div', {
+                        key: `wrap-${blockId}`,
+                        draggable: guiEditMode,
+                        onDragStart: (e) => handleDragStartBlock(e, blockId),
+                        onDragOver: (e) => e.preventDefault(),
+                        onDrop: (e) => {
+                            e.stopPropagation();
+                            handleDropBlock(e, 'right', index);
+                        },
+                        className: guiEditMode ? "relative border-2 border-dashed border-purple-500/50 p-6 rounded-[2.5rem] bg-purple-950/5 cursor-move hover:border-purple-400 transition-all" : ""
+                    }, [
+                        guiEditMode && el('div', { className: "absolute top-2 left-6 bg-purple-600 text-white text-[8px] font-black uppercase px-2.5 py-1 rounded-full z-10 select-none flex items-center gap-1.5 shadow" }, [
+                            el('span', null, "☰ Arrastar:"),
+                            ALL_BLOCKS.find(b => b.id === blockId)?.label || blockId
                         ]),
-                        el('button', {
-                            onClick: () => {
-                                const players = allCharacters
-                                    .filter(c => c.name.toLowerCase() !== 'mestre' && !c.pendingDeletion)
-                                    .map(c => ({ id: Date.now() + Math.random(), name: c.name, value: 0 }));
-                                
-                                const current = turnState?.initiativeOrder || [];
-                                // Evita duplicatas
-                                const filteredPlayers = players.filter(p => !current.some(c => c.name === p.name));
-                                updateInitiative([...current, ...filteredPlayers]);
-                            },
-                            className: "w-full bg-slate-800 hover:bg-slate-700 text-[9px] font-black uppercase tracking-widest py-2 rounded-xl border border-slate-700 transition-all mb-2"
-                        }, "🧙 Adicionar Todos os Jogadores"),
-
-                        el('div', { 
-                            key: 'ini-list',
-                            className: "space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-1",
-                            onDragOver: (e) => e.preventDefault()
-                        }, 
-                            (turnState?.initiativeOrder || []).map((item, idx) => 
-                                el('div', { 
-                                    key: item.id,
-                                    draggable: true,
-                                    onDragStart: () => setDraggedIndex(idx),
-                                    onDragOver: (e) => e.preventDefault(),
-                                    onDrop: () => {
-                                        if (draggedIndex === null || draggedIndex === idx) return;
-                                        const newOrder = [...turnState.initiativeOrder];
-                                        const draggedItem = newOrder.splice(draggedIndex, 1)[0];
-                                        newOrder.splice(idx, 0, draggedItem);
-                                        updateInitiative(newOrder);
-                                        setDraggedIndex(null);
-                                    },
-                                    className: `flex items-center justify-between p-3 rounded-2xl border transition-all cursor-move group ${turnState?.activeChar === item.name ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-slate-800 bg-slate-950/50 hover:border-slate-600'}` 
-                                }, [
-                                    el('div', { key: 'name-box', className: "flex items-center gap-3" }, [
-                                        el('span', { key: 'drag-icon', className: "text-slate-700 group-hover:text-amber-500 transition-colors" }, "☰"),
-                                        el('span', { key: 'name-label', className: `text-xs font-bold uppercase ${turnState?.activeChar === item.name ? 'text-amber-500' : 'text-slate-300'}` }, item.name),
-                                    ]),
-                                    el('div', { key: 'val-box', className: "flex items-center gap-2" }, [
-                                        el('input', {
-                                            key: 'val-input',
-                                            type: 'number',
-                                            defaultValue: item.value,
-                                            onBlur: (e) => {
-                                                const newVal = parseInt(e.target.value) || 0;
-                                                if (newVal !== item.value) {
-                                                    const newOrder = [...turnState.initiativeOrder];
-                                                    newOrder[idx].value = newVal;
-                                                    // Re-ordena se o valor mudar? Talvez melhor não, para permitir drag manual livre.
-                                                    updateInitiative(newOrder);
-                                                }
-                                            },
-                                            className: "w-10 bg-slate-900 border border-slate-800 rounded-lg text-[10px] font-black text-center text-amber-500 focus:border-amber-500 outline-none"
-                                        }),
-                                        el('button', {
-                                            onClick: () => {
-                                                const newOrder = (turnState?.initiativeOrder || []).filter((_, i) => i !== idx);
-                                                updateInitiative(newOrder);
-                                            },
-                                            className: "text-slate-700 hover:text-red-500 transition-colors text-xs px-1"
-                                        }, "×")
-                                    ])
-                                ])
-                            )
-                        )
-                    ])
-                ]),
-                el('section', { key: 'history-section', className: "bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden" }, [
-                    el('div', { className: "p-5 border-b border-slate-800 flex justify-between items-center" }, [
-                        el('span', { className: "text-[10px] text-slate-500 uppercase font-black" }, "🎲 Rolagens"),
-                        el('button', { 
-                            onClick: clearRollHistory,
-                            className: "text-[9px] text-red-500 uppercase font-bold hover:text-red-400 transition-colors"
-                        }, "Limpar Tudo")
-                    ]),
-                    el('div', { className: "max-h-[250px] overflow-y-auto" }, 
-                        rollHistory.map(roll => el('div', { key: roll.id, className: "p-3 border-b border-slate-800/30 flex justify-between text-[11px]" }, [
-                            el('span', { className: "font-bold text-slate-400" }, roll.playerName),
-                            el('span', { className: "font-black text-white" }, roll.result)
-                        ]))
-                    )
-                ])
-            ])
+                        el('div', { className: guiEditMode ? "pointer-events-none opacity-60 mt-4" : "" }, content)
+                    ]);
+                })
+            )
         ]),
 
-        el('div', { key: 'master-grimoire', className: "max-w-6xl mx-auto mb-32" }, el(SoulGrimoire, { souls, updateSouls, sessionState, updateSessionState, geminiApiKey, askGemini })),
+        el('div', { 
+            key: 'master-bottom-row',
+            className: "max-w-6xl mx-auto mb-32 space-y-12 min-h-[100px]",
+            onDragOver: (e) => e.preventDefault(),
+            onDrop: (e) => handleDropBlock(e, 'bottom')
+        }, 
+            (sessionState.masterLayout || DEFAULT_LAYOUT).bottom.map((blockId, index) => {
+                const content = renderBlock(blockId);
+                if (!content) return null;
+                return el('div', {
+                    key: `wrap-${blockId}`,
+                    draggable: guiEditMode,
+                    onDragStart: (e) => handleDragStartBlock(e, blockId),
+                    onDragOver: (e) => e.preventDefault(),
+                    onDrop: (e) => {
+                        e.stopPropagation();
+                        handleDropBlock(e, 'bottom', index);
+                    },
+                    className: guiEditMode ? "relative border-2 border-dashed border-purple-500/50 p-6 rounded-[2.5rem] bg-purple-950/5 cursor-move hover:border-purple-400 transition-all" : ""
+                }, [
+                    guiEditMode && el('div', { className: "absolute top-2 left-6 bg-purple-600 text-white text-[8px] font-black uppercase px-2.5 py-1 rounded-full z-10 select-none flex items-center gap-1.5 shadow" }, [
+                        el('span', null, "☰ Arrastar:"),
+                        ALL_BLOCKS.find(b => b.id === blockId)?.label || blockId
+                    ]),
+                    el('div', { className: guiEditMode ? "pointer-events-none opacity-60 mt-4" : "" }, content)
+                ]);
+            })
+        ),
 
         el('div', { key: 'oracle-widget', className: `fixed bottom-8 right-8 z-[100] transition-all ${oracleOpen ? 'w-[350px]' : 'w-16 h-16'}` }, [
             !oracleOpen ? el('button', { onClick: () => setOracleOpen(true), className: "w-16 h-16 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-3xl flex items-center justify-center text-3xl shadow-2xl" }, "🔮") :
@@ -769,35 +863,10 @@ export function MasterView({
             ])
         ]),
 
-        showSettings && el('div', { className: "fixed inset-0 bg-black/90 z-[300] flex items-center justify-center p-6" }, 
-            el('div', { className: "bg-slate-900 border-2 border-amber-500/30 p-8 rounded-[2.5rem] max-w-sm w-full" }, [
-                el('h3', { className: "text-amber-500 font-black uppercase mb-6" }, "⚙️ Configurações da Sala"),
-                el('div', { className: "space-y-4 mb-8" }, [
-                    el('div', null, [
-                        el('label', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block" }, "API Key Gemini (IA)"),
-                        el('input', { type: 'password', value: geminiApiKey, onChange: (e) => setGeminiApiKey(e.target.value), className: "w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs text-white" })
-                    ]),
-                    el('div', null, [
-                        el('label', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block" }, "Senha de Acesso da Sala"),
-                        el('input', { 
-                            type: 'text', 
-                            placeholder: "Sem senha", 
-                            defaultValue: sessionState.roomPassword || '',
-                            onBlur: (e) => {
-                                const newPass = e.target.value.trim();
-                                updateSessionState({ roomPassword: newPass });
-                                alert("Senha da sala atualizada!");
-                            },
-                            className: "w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs text-white" 
-                        })
-                    ])
-                ]),
-                el('button', { onClick: () => setShowSettings(false), className: "w-full bg-amber-600 text-slate-950 font-black py-4 rounded-xl uppercase text-[10px]" }, "Fechar")
-            ])
-        ),
 
-        showChat && el('div', { key: 'chat-modal', className: "fixed inset-0 z-[500] bg-black/80 flex items-center justify-center p-4 animate-fade-in" }, [
-            el('div', { className: "w-full max-w-4xl h-[38rem] bg-slate-900 border-2 border-purple-500/30 rounded-[3rem] shadow-3xl flex overflow-hidden" }, [
+
+        showChat && el('div', { key: 'chat-modal', className: "fixed inset-0 z-[500] bg-slate-950/50 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in" }, [
+            el('div', { className: "w-full max-w-4xl h-[38rem] bg-slate-900/80 backdrop-blur-md border-2 border-purple-500/30 rounded-[3rem] shadow-3xl flex overflow-hidden" }, [
                 // Sidebar de Jogadores
                 el('div', { className: "w-64 bg-slate-950/50 border-r border-slate-800 flex flex-col" }, [
                     el('div', { className: "p-6 border-b border-slate-800" }, [
@@ -907,15 +976,15 @@ export function MasterView({
         // --- 7. CONFIGURAÇÕES DA CAMPANHA ---
         showSettings && el('div', {
             key: 'settings-modal',
-            className: "fixed inset-0 z-[300] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-6 animate-fade-in"
+            className: "fixed inset-0 z-[300] bg-slate-950/50 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in"
         }, [
-            el('div', { className: "bg-slate-900 border-2 border-slate-800 rounded-[3rem] p-10 max-w-lg w-full shadow-3xl" }, [
-                el('div', { className: "flex justify-between items-center mb-10" }, [
+            el('div', { className: "bg-slate-900/80 backdrop-blur-md border-2 border-slate-800 rounded-[3rem] p-10 max-w-lg w-full shadow-3xl max-h-[90vh] overflow-y-auto custom-scrollbar flex flex-col" }, [
+                el('div', { className: "flex justify-between items-center mb-10 shrink-0" }, [
                     el('h2', { className: "text-2xl font-black uppercase italic tracking-tighter text-white" }, "⚙️ Configurações"),
                     el('button', { onClick: () => setShowSettings(false), className: "text-slate-500 hover:text-white text-3xl" }, "×")
                 ]),
 
-                el('div', { className: "space-y-8" }, [
+                el('div', { className: "space-y-8 flex-1" }, [
                     el('div', { className: "bg-slate-950/50 p-6 rounded-2xl border border-slate-800" }, [
                         el('p', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2" }, "Regra de Geração de Atributos"),
                         el('div', { className: "flex gap-2" }, [
@@ -936,6 +1005,47 @@ export function MasterView({
                         ])
                     ]),
 
+                    // HABILITAR EDIÇÃO DE GUI (DRAG & DROP)
+                    el('div', { className: "bg-slate-950/50 p-6 rounded-2xl border border-slate-800 flex items-center justify-between animate-fade-in" }, [
+                        el('div', {}, [
+                            el('p', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1" }, "Edição de Interface (GUI)"),
+                            el('p', { className: "text-[9px] text-slate-400" }, "Habilitar arrastar e soltar para reorganizar os blocos.")
+                        ]),
+                        el('button', {
+                            onClick: () => setGuiEditMode(!guiEditMode),
+                            className: `px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${guiEditMode ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(147,51,234,0.4)]' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`
+                        }, guiEditMode ? "Ativado" : "Desativado")
+                    ]),
+
+                    // SELETOR DE VISIBILIDADE DE BLOCOS
+                    el('div', { className: "bg-slate-950/50 p-6 rounded-2xl border border-slate-800 space-y-4 animate-fade-in" }, [
+                        el('p', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest" }, "Módulos Ativos na Tela"),
+                        el('div', { className: "grid grid-cols-2 gap-2" }, 
+                            ALL_BLOCKS.map(block => {
+                                const layout = sessionState.masterLayout || DEFAULT_LAYOUT;
+                                const isVisible = (layout.visible ? layout.visible[block.id] : DEFAULT_LAYOUT.visible[block.id]) !== false;
+                                return el('label', { key: block.id, className: "flex items-center gap-2 p-2 rounded-lg hover:bg-slate-900 cursor-pointer transition-colors" }, [
+                                    el('input', {
+                                        type: 'checkbox',
+                                        checked: isVisible,
+                                        onChange: () => {
+                                            const visible = { ...(layout.visible || DEFAULT_LAYOUT.visible) };
+                                            visible[block.id] = !isVisible;
+                                            updateSessionState({
+                                                masterLayout: {
+                                                    ...layout,
+                                                    visible
+                                                }
+                                            });
+                                        },
+                                        className: "rounded border-slate-800 text-purple-600 focus:ring-purple-500 bg-slate-900"
+                                    }),
+                                    el('span', { className: "text-[9px] font-bold text-slate-300 uppercase tracking-wider" }, block.label)
+                                ]);
+                            })
+                        )
+                    ]),
+
                     el('div', { className: "bg-slate-950/50 p-6 rounded-2xl border border-slate-800" }, [
                         el('p', { className: "text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2" }, "ID da Campanha Atual"),
                         el('p', { className: "text-xs font-mono text-amber-500" }, currentAppId)
@@ -947,6 +1057,7 @@ export function MasterView({
                             el('input', {
                                 id: 'room-pass-input',
                                 type: 'password',
+                                autoComplete: 'new-password',
                                 placeholder: 'Nova Senha da Sala...',
                                 className: "flex-grow bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-amber-500/50"
                             }),
@@ -970,6 +1081,7 @@ export function MasterView({
                             el('input', {
                                 id: 'master-pass-input',
                                 type: 'password',
+                                autoComplete: 'new-password',
                                 placeholder: 'Nova Senha de Mestre...',
                                 className: "flex-grow bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-amber-500/50"
                             }),

@@ -95,13 +95,13 @@ export function MasterVault({ onClose, geminiApiKey, setGeminiApiKey, currentApp
     };
 
     if (loading) {
-        return el('div', { className: "fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" },
+        return el('div', { className: "fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 backdrop-blur-md" },
             el('div', { className: "text-amber-500 text-2xl animate-spin" }, "⚙️")
         );
     }
 
-    return el('div', { className: "fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in" },
-        el('div', { className: "bg-slate-950 border-2 border-amber-500/30 rounded-[2rem] w-full max-w-md shadow-[0_0_50px_rgba(245,158,11,0.15)] flex flex-col overflow-hidden relative" },
+    return el('div', { className: "fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-md animate-fade-in" },
+        el('div', { className: "bg-slate-900/80 backdrop-blur-md border-2 border-amber-500/30 rounded-[2rem] w-full max-w-md shadow-[0_0_50px_rgba(245,158,11,0.15)] flex flex-col overflow-hidden relative" },
             
             // Header
             el('div', { className: "bg-slate-900/80 p-6 border-b border-slate-800 flex justify-between items-center" },

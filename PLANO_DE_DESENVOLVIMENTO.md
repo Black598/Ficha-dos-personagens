@@ -180,6 +180,38 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Mentor Chat:** Chat direto para tirar dúvidas de "como jogar" ou "como preencher" a ficha.
   - ✅ **Distribuição Prática:** Interface visual para gerenciar os resultados das rolagens de atributos.
 
+### 🎒 21. Interface de Abas Estilo Minecraft & Painéis Separados
+- **Status:** Concluído ✅
+- **Features:**
+  - ✅ **Abas Temáticas:** Menu hambúrguer substituído por um menu superior com abas inspiradas no inventário do Minecraft (Inventário, VTT, Customização, Devils Bargain, Grimório/FAQ, Biblioteca, Configurações).
+  - ✅ **Sem Sobreposição:** O menu de ações flutuantes e itens fixos foram reorganizados em paralelo/abaixo para garantir que nunca se sobreponham.
+  - ✅ **PIN Seguro:** O botão "Setar PIN" foi removido do menu de ações e realocado exclusivamente dentro do menu de Configurações, melhorando a UX.
+
+### 👑 22. Nova Dashboard do Mestre com Abas Minecraft
+- **Status:** Concluído ✅
+- **Features:**
+  - ✅ **Consistência Visual:** O antigo painel hambúrguer do mestre foi substituído pela mesma interface ultra-premium de abas horizontais do jogador, unificando a experiência.
+
+### 💀 23. Grimório de Almas Avançado com IA & Regras Customizadas
+- **Status:** Concluído ✅
+- **Features:**
+  - ✅ **Regras Flexíveis:** Permite que o mestre configure o preço das almas e altere as regras de contagem (se conta automaticamente quando o HP zera ou se segue outra regra).
+  - ✅ **Sugestões por IA (Gemini):** Botão para solicitar sugestões e efeitos temáticos para as almas, recebendo respostas ricas em contexto com base no lore.
+
+### ⏰ 24. Ajuste Manual do Relógio de Sessão
+- **Status:** Concluído ✅
+- **Features:**
+  - ✅ **Precisão de Tempo:** O mestre pode clicar ou dar duplo clique diretamente no relógio de sessão na tela para inserir manualmente o horário/minutos da campanha sem depender apenas de botões de avanço.
+
+### 🎨 25. Editor de GUI Arraste-e-Solte Dinâmico (Mestre)
+- **Status:** Concluído ✅
+- **Features:**
+  - ✅ **Mural Editável:** Modo de edição de interface ativável via engrenagem nas Configurações.
+  - ✅ **Arrastar e Soltar:** O mestre pode reposicionar blocos (Mural do Oráculo, Gerador de Monstros, Loot, Histórico, Iniciativa, etc.) entre a coluna Esquerda, Direita ou uma nova linha de Rodapé, com persistência atômica no Firestore em tempo real.
+  - ✅ **Visibilidade Seletiva:** Painel de controle no menu de configurações para marcar/desmarcar quais blocos o mestre quer exibir ou ocultar na tela, com nomes 100% sincronizados.
+  - ✅ **Visual Premium (Glassmorphism):** Substituição de todos os fundos de modais (Configurações, Chat, Guia do Mestre, Guia do Aventureiro, Cofre, Condições) por overlays e cartões acrílicos translúcidos com desfoque de fundo em tempo real.
+  - ✅ **Segurança e Fim de Piscadas:** Bloqueio de auto-preenchimento intempestivo de senhas nos modais administrativos, garantindo transições 100% limpas.
+
 ## 🚀 Próximas Implementações (Pendentes)
 
 ### 2. 📏 Praticidade Tática e HUD no Mapa
@@ -228,5 +260,5 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 
 ---
 
-**Última atualização:** 16/05/2026
+**Última atualização:** 17/05/2026
 **Próximo passo:** Iniciar o Sistema de **📏 Régua de Medição e Pings no Mapa**.

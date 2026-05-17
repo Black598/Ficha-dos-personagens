@@ -32,8 +32,8 @@ export function ConditionModal({ characterName, onSave, onClose }) {
         { name: 'Sangrando', color: '#ef4444', icon: '🩸', turns: 3 }
     ];
 
-    return el('div', { className: "fixed inset-0 bg-black/80 backdrop-blur-md z-[500] flex items-center justify-center p-6" }, 
-        el('div', { className: "bg-slate-900 border-2 border-purple-500/30 p-8 rounded-[3rem] max-w-lg w-full shadow-3xl animate-zoom-in overflow-hidden" }, [
+    return el('div', { className: "fixed inset-0 bg-slate-950/50 backdrop-blur-md z-[500] flex items-center justify-center p-6" }, 
+        el('div', { className: "bg-slate-900/80 backdrop-blur-md border-2 border-purple-500/30 p-8 rounded-[3rem] max-w-lg w-full shadow-3xl animate-zoom-in overflow-hidden" }, [
             el('div', { key: 'header', className: "flex justify-between items-center mb-8 border-b border-slate-800 pb-6" }, [
                 el('div', null, [
                     el('h3', { className: "text-purple-400 font-black uppercase text-xs tracking-widest mb-1" }, "✨ Nova Condição"),
