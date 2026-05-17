@@ -523,6 +523,39 @@ export function SheetView({
             onClose: () => setShowSetupModal(false)
         }),
 
+        // --- MODAL DE PIN ---
+        isPinModalOpen && el('div', {
+            key: 'pin-modal',
+            className: "fixed inset-0 z-[2000] bg-black/90 backdrop-blur-md p-6 flex items-center justify-center animate-fade-in",
+            onClick: (e) => e.target === e.currentTarget && setIsPinModalOpen(false)
+        }, el('div', {
+            className: "bg-slate-900 border-2 border-amber-500/50 p-6 md:p-8 rounded-[3rem] w-full max-w-sm shadow-[0_0_50px_rgba(245,158,11,0.3)] flex flex-col gap-6"
+        }, [
+            el('div', { className: "flex justify-between items-center" }, [
+                el('h3', { className: "text-amber-500 text-xl font-black uppercase tracking-tighter italic flex items-center gap-3" }, ["🔒", "Definir PIN"]),
+                el('button', { onClick: () => setIsPinModalOpen(false), className: "text-slate-500 hover:text-white text-2xl font-black" }, "✕")
+            ]),
+            el('p', { className: "text-slate-400 text-xs leading-relaxed" }, "Defina um PIN de 4 dígitos para proteger sua ficha contra edições indevidas. Deixe em branco para remover a proteção."),
+            el('input', {
+                id: "pin-input",
+                type: "password",
+                maxLength: 4,
+                placeholder: "Ex: 1234",
+                className: "bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-center text-2xl tracking-[1em] text-white outline-none focus:border-amber-500/50 font-mono"
+            }),
+            el('div', { className: "flex justify-end gap-3 pt-2" }, [
+                el('button', { onClick: () => setIsPinModalOpen(false), className: "px-4 py-2 text-slate-400 hover:text-white uppercase font-black text-[10px] tracking-widest" }, "Cancelar"),
+                el('button', {
+                    onClick: () => {
+                        const val = document.getElementById("pin-input").value;
+                        if (onUpdatePIN) onUpdatePIN(val);
+                        setIsPinModalOpen(false);
+                    },
+                    className: "px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white font-black uppercase tracking-widest text-[10px] rounded-xl transition-colors shadow-lg"
+                }, "Salvar PIN")
+            ])
+        ])),
+
         // --- MODAL DE TEMA ---
         showThemeModal && (() => {
             const PREDEFINED_THEMES = [
@@ -709,118 +742,119 @@ export function SheetView({
                         el('p', { className: "text-slate-500 text-[10px] font-bold uppercase tracking-widest italic" }, characterSheetData.info?.['Classe'] || 'Aventureiro')
                     )
                 ]),
-                // Menu Desktop (Hidden on Mobile)
-                el('div', { className: "hidden md:flex gap-3" }, [
-                    el('button', {
-                        onClick: () => setIsBattlemapOpen(true),
-                        className: "bg-green-600/10 hover:bg-green-600 text-green-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-green-600/30 px-4 py-2 rounded-xl transition-all"
-                    }, "🗺️ Mapa"),
-                    el('button', {
-                        onClick: () => setIsWorldMapOpen(true),
-                        className: "bg-amber-600/10 hover:bg-amber-600 text-amber-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-amber-600/30 px-4 py-2 rounded-xl transition-all"
-                    }, "🌍 Atlas"),
-                    el('button', {
-                        onClick: onToggleTree,
-                        className: "bg-purple-600/10 hover:bg-purple-600 text-purple-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-purple-600/30 px-4 py-2 rounded-xl transition-all"
-                    }, "⭐ Talentos"),
-                    el('button', {
-                        onClick: () => setRollingModalOpen(true),
-                        className: "bg-indigo-600/10 hover:bg-indigo-600 text-indigo-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-indigo-600/30 px-4 py-2 rounded-xl transition-all"
-                    }, "🎲 Dados"),
-                    el('button', {
-                        onClick: () => setIsLibraryOpen(true),
-                        className: "bg-amber-600/10 hover:bg-amber-600 text-amber-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-amber-600/30 px-4 py-2 rounded-xl transition-all"
-                    }, "📚 Biblioteca"),
-                    el('button', {
-                        onClick: () => setIsBargainOpen(true),
-                        className: "bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-red-600/30 px-4 py-2 rounded-xl transition-all"
-                    }, "👺 Barganhas"),
-                    el('button', {
-                        onClick: onOpenMentor,
-                        className: "bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white text-[10px] font-black uppercase tracking-widest border border-indigo-600/30 px-4 py-2 rounded-xl transition-all shadow-[0_0_15px_rgba(79,70,229,0.2)] animate-pulse-soft"
-                    }, "🧠 Mentor"),
-                    el('button', {
-                        onClick: () => setShowThemeModal(true),
-                        className: "bg-pink-600/10 hover:bg-pink-600 text-pink-400 hover:text-white text-[10px] font-black uppercase tracking-widest border border-pink-600/30 px-4 py-2 rounded-xl transition-all"
-                    }, "🎨 Tema"),
-                    el('button', {
-                        onClick: () => setShowTutorial(true),
-                        className: "w-10 h-10 bg-slate-800 hover:bg-amber-600 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg"
-                    }, "❓"),
-                    el('button', {
-                        onClick: onRequestDelete,
-                        className: "w-10 h-10 bg-slate-800 hover:bg-red-900 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg"
-                    }, "🗑️"),
+                // Menu Desktop (Minecraft Inventory Tabs Style)
+                el('div', { className: "hidden lg:flex gap-3 items-center z-[100]" }, [
+                    // Group: Exploração
+                    el('div', { className: "group relative" }, [
+                        el('button', { className: "bg-emerald-900/30 hover:bg-emerald-800 text-emerald-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-emerald-600/30 px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg" }, [el('span', { className: "text-lg drop-shadow-md" }, "🗺️"), "Exploração"]),
+                        el('div', { className: "absolute top-full mt-2 left-0 w-48 bg-slate-900/95 backdrop-blur-md border border-emerald-600/30 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2 z-[100] transform origin-top group-hover:scale-100 scale-95" }, [
+                            el('button', { onClick: () => setIsBattlemapOpen(true), className: "w-full text-left px-4 py-3 hover:bg-emerald-600/20 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-emerald-400 transition-colors" }, [el('span', { className: "text-base" }, "🗺️"), "Mapa de Batalha"]),
+                            el('button', { onClick: () => setIsWorldMapOpen(true), className: "w-full text-left px-4 py-3 hover:bg-emerald-600/20 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-emerald-400 transition-colors" }, [el('span', { className: "text-base" }, "🌍"), "Atlas Global"])
+                        ])
+                    ]),
+                    
+                    // Group: Mecânicas
+                    el('div', { className: "group relative" }, [
+                        el('button', { className: "bg-purple-900/30 hover:bg-purple-800 text-purple-400 hover:text-white text-[10px] font-black uppercase tracking-widest border border-purple-600/30 px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg" }, [el('span', { className: "text-lg drop-shadow-md" }, "🎭"), "Mecânicas"]),
+                        el('div', { className: "absolute top-full mt-2 left-0 w-48 bg-slate-900/95 backdrop-blur-md border border-purple-600/30 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2 z-[100] transform origin-top group-hover:scale-100 scale-95" }, [
+                            el('button', { onClick: onToggleTree, className: "w-full text-left px-4 py-3 hover:bg-purple-600/20 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-purple-400 transition-colors" }, [el('span', { className: "text-base" }, "⭐"), "Talentos"]),
+                            el('button', { onClick: () => setIsBargainOpen(true), className: "w-full text-left px-4 py-3 hover:bg-purple-600/20 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-red-400 transition-colors" }, [el('span', { className: "text-base" }, "👺"), "Barganhas"])
+                        ])
+                    ]),
+
+                    // Group: Customização
+                    el('div', { className: "group relative" }, [
+                        el('button', { className: "bg-pink-900/30 hover:bg-pink-800 text-pink-400 hover:text-white text-[10px] font-black uppercase tracking-widest border border-pink-600/30 px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg" }, [el('span', { className: "text-lg drop-shadow-md" }, "🎨"), "Estética"]),
+                        el('div', { className: "absolute top-full mt-2 left-0 w-48 bg-slate-900/95 backdrop-blur-md border border-pink-600/30 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2 z-[100] transform origin-top group-hover:scale-100 scale-95" }, [
+                            el('button', { onClick: () => setRollingModalOpen(true), className: "w-full text-left px-4 py-3 hover:bg-pink-600/20 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-pink-400 transition-colors" }, [el('span', { className: "text-base" }, "🎲"), "Skins de Dados"]),
+                            el('button', { onClick: () => setShowThemeModal(true), className: "w-full text-left px-4 py-3 hover:bg-pink-600/20 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-pink-400 transition-colors" }, [el('span', { className: "text-base" }, "🎨"), "Tema da Ficha"])
+                        ])
+                    ]),
+
+                    // Group: Conhecimento
+                    el('div', { className: "group relative" }, [
+                        el('button', { className: "bg-amber-900/30 hover:bg-amber-800 text-amber-400 hover:text-white text-[10px] font-black uppercase tracking-widest border border-amber-600/30 px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg" }, [el('span', { className: "text-lg drop-shadow-md" }, "📖"), "Sabedoria"]),
+                        el('div', { className: "absolute top-full mt-2 left-0 w-48 bg-slate-900/95 backdrop-blur-md border border-amber-600/30 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2 z-[100] transform origin-top group-hover:scale-100 scale-95" }, [
+                            el('button', { onClick: onOpenMentor, className: "w-full text-left px-4 py-3 hover:bg-amber-600/20 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-amber-400 transition-colors" }, [el('span', { className: "text-base" }, "🧠"), "O Mentor"]),
+                            el('button', { onClick: () => setIsLibraryOpen(true), className: "w-full text-left px-4 py-3 hover:bg-amber-600/20 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-amber-400 transition-colors" }, [el('span', { className: "text-base" }, "📚"), "Biblioteca"]),
+                            el('button', { onClick: () => setShowTutorial(true), className: "w-full text-left px-4 py-3 hover:bg-amber-600/20 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-amber-400 transition-colors border-t border-amber-600/20 mt-1 pt-3" }, [el('span', { className: "text-base" }, "❓"), "Ajuda / Tutorial"])
+                        ])
+                    ]),
+
+                    // Group: Configurações
+                    el('div', { className: "group relative ml-2" }, [
+                        el('button', { className: "w-10 h-10 bg-slate-800 hover:bg-slate-600 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg" }, "⚙️"),
+                        el('div', { className: "absolute top-full mt-2 right-0 w-48 bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2 z-[100] transform origin-top group-hover:scale-100 scale-95" }, [
+                            el('button', { onClick: () => setIsPinModalOpen(true), className: "w-full text-left px-4 py-3 hover:bg-slate-800 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 transition-colors" }, [el('span', { className: "text-base" }, "🔒"), "Definir PIN"]),
+                            el('button', { onClick: onRequestDelete, className: "w-full text-left px-4 py-3 hover:bg-red-900/30 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-red-500 transition-colors border-t border-slate-700 mt-1 pt-3" }, [el('span', { className: "text-base" }, "🗑️"), "Excluir Ficha"])
+                        ])
+                    ]),
+
+                    // Botão Fechar
                     el('button', {
                         onClick: onBack,
-                        className: "w-10 h-10 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg"
+                        className: "w-10 h-10 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg ml-2"
                     }, "✕")
                 ]),
                 // Botão Hamburguer (Mobile Only)
                 el('button', {
-                    className: "md:hidden w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-xl text-amber-500 border border-slate-700",
+                    className: "lg:hidden w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-xl text-amber-500 border border-slate-700",
                     onClick: () => setIsMobileMenuOpen(true)
                 }, "☰")
             )
         ),
 
         // --- MENU MOBILE (OVERLAY) ---
-        isMobileMenuOpen && el('div', { className: "fixed inset-0 z-[1000] bg-slate-950/95 backdrop-blur-xl p-8 flex flex-col gap-6 animate-fade-in" }, [
-            el('div', { className: "flex justify-between items-center mb-4" }, [
-                el('h3', { className: "text-amber-500 font-black uppercase tracking-[0.2em]" }, "Menu de Navegação"),
-                el('button', { className: "text-white text-3xl", onClick: () => setIsMobileMenuOpen(false) }, "✕")
+        isMobileMenuOpen && el('div', { className: "fixed inset-0 z-[1000] bg-slate-950/95 backdrop-blur-xl p-6 md:p-8 flex flex-col gap-6 animate-fade-in overflow-y-auto custom-scrollbar pb-10" }, [
+            el('div', { className: "flex justify-between items-center mb-2 sticky top-0 bg-slate-950/95 pt-2 pb-4 z-10 border-b border-slate-800" }, [
+                el('h3', { className: "text-amber-500 font-black uppercase tracking-[0.2em] text-sm" }, "Menu de Navegação"),
+                el('button', { className: "text-slate-500 hover:text-white text-3xl", onClick: () => setIsMobileMenuOpen(false) }, "✕")
             ]),
-            el('div', { className: "grid grid-cols-2 gap-4" }, [
-                el('button', {
-                    onClick: () => { setIsBattlemapOpen(true); setIsMobileMenuOpen(false); },
-                    className: "bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-3 text-white"
-                }, [el('span', { className: "text-3xl" }, "🗺️"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Mapa")]),
-                el('button', {
-                    onClick: () => { setIsWorldMapOpen(true); setIsMobileMenuOpen(false); },
-                    className: "bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-3 text-white"
-                }, [el('span', { className: "text-3xl" }, "🌍"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Atlas")]),
-                el('button', {
-                    onClick: () => { onToggleTree(); setIsMobileMenuOpen(false); },
-                    className: "bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-3 text-white"
-                }, [el('span', { className: "text-3xl" }, "⭐"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Talentos")]),
-                el('button', {
-                    onClick: () => { setRollingModalOpen(true); setIsMobileMenuOpen(false); },
-                    className: "bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-3 text-white"
-                }, [el('span', { className: "text-3xl" }, "🎲"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Dados")]),
-                el('button', {
-                    onClick: () => { setIsLibraryOpen(true); setIsMobileMenuOpen(false); },
-                    className: "bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-3 text-white"
-                }, [el('span', { className: "text-3xl" }, "📚"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Biblioteca")]),
-                el('button', {
-                    onClick: () => { setIsBargainOpen(true); setIsMobileMenuOpen(false); },
-                    className: "bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-3 text-white"
-                }, [el('span', { className: "text-3xl" }, "👺"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Barganhas")]),
-                el('button', {
-                    onClick: () => { setIsChatOpen(true); setIsMobileMenuOpen(false); },
-                    className: "bg-purple-900/20 border border-purple-500/30 p-6 rounded-2xl flex flex-col items-center gap-3 text-purple-400"
-                }, [el('span', { className: "text-3xl" }, "💬"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Chat Privado")]),
-                el('button', {
-                        onClick: () => { onOpenMentor(); setIsMobileMenuOpen(false); },
-                        className: "bg-indigo-900/20 border border-indigo-500/30 p-6 rounded-2xl flex flex-col items-center gap-3 text-indigo-400"
-                    }, [el('span', { className: "text-3xl" }, "🧠"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Mentor")]),
-                el('button', {
-                    onClick: () => { setShowThemeModal(true); setIsMobileMenuOpen(false); },
-                    className: "bg-pink-900/20 border border-pink-500/30 p-6 rounded-2xl flex flex-col items-center gap-3 text-pink-400"
-                }, [el('span', { className: "text-3xl" }, "🎨"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Tema")]),
-                el('button', {
-                    onClick: () => { setShowTutorial(true); setIsMobileMenuOpen(false); },
-                    className: "bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-3 text-slate-400"
-                }, [el('span', { className: "text-3xl" }, "❓"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Ajuda")])
+            
+            // Mapas
+            el('div', null, [
+                el('h4', { className: "text-[10px] text-slate-500 font-black uppercase tracking-widest mb-3 flex items-center gap-2" }, [el('span',null,"🗺️"), "Exploração"]),
+                el('div', { className: "grid grid-cols-2 gap-3" }, [
+                    el('button', { onClick: () => { setIsBattlemapOpen(true); setIsMobileMenuOpen(false); }, className: "bg-slate-900 border border-emerald-600/30 p-4 rounded-xl flex flex-col items-center gap-2 text-emerald-400 hover:bg-emerald-900/20" }, [el('span', { className: "text-2xl" }, "🗺️"), el('span', { className: "text-[9px] font-bold uppercase tracking-widest text-center" }, "Batalha")]),
+                    el('button', { onClick: () => { setIsWorldMapOpen(true); setIsMobileMenuOpen(false); }, className: "bg-slate-900 border border-emerald-600/30 p-4 rounded-xl flex flex-col items-center gap-2 text-emerald-400 hover:bg-emerald-900/20" }, [el('span', { className: "text-2xl" }, "🌍"), el('span', { className: "text-[9px] font-bold uppercase tracking-widest text-center" }, "Atlas")])
+                ])
             ]),
-            el('div', { className: "mt-auto grid grid-cols-2 gap-4" }, [
-                el('button', {
-                    onClick: () => { onRequestDelete(); setIsMobileMenuOpen(false); },
-                    className: "bg-red-900/20 border border-red-500/30 p-4 rounded-2xl text-red-500 text-[10px] font-black uppercase tracking-widest"
-                }, "🗑️ Excluir Ficha"),
-                el('button', {
-                    onClick: onBack,
-                    className: "bg-slate-800 p-4 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest"
-                }, "✕ Sair da Ficha")
+
+            // Personagem
+            el('div', null, [
+                el('h4', { className: "text-[10px] text-slate-500 font-black uppercase tracking-widest mb-3 flex items-center gap-2" }, [el('span',null,"🎭"), "Mecânicas"]),
+                el('div', { className: "grid grid-cols-2 gap-3" }, [
+                    el('button', { onClick: () => { onToggleTree(); setIsMobileMenuOpen(false); }, className: "bg-slate-900 border border-purple-600/30 p-4 rounded-xl flex flex-col items-center gap-2 text-purple-400 hover:bg-purple-900/20" }, [el('span', { className: "text-2xl" }, "⭐"), el('span', { className: "text-[9px] font-bold uppercase tracking-widest text-center" }, "Talentos")]),
+                    el('button', { onClick: () => { setIsBargainOpen(true); setIsMobileMenuOpen(false); }, className: "bg-slate-900 border border-red-600/30 p-4 rounded-xl flex flex-col items-center gap-2 text-red-400 hover:bg-red-900/20" }, [el('span', { className: "text-2xl" }, "👺"), el('span', { className: "text-[9px] font-bold uppercase tracking-widest text-center" }, "Barganhas")])
+                ])
+            ]),
+
+            // Customização
+            el('div', null, [
+                el('h4', { className: "text-[10px] text-slate-500 font-black uppercase tracking-widest mb-3 flex items-center gap-2" }, [el('span',null,"🎨"), "Estética"]),
+                el('div', { className: "grid grid-cols-2 gap-3" }, [
+                    el('button', { onClick: () => { setRollingModalOpen(true); setIsMobileMenuOpen(false); }, className: "bg-slate-900 border border-pink-600/30 p-4 rounded-xl flex flex-col items-center gap-2 text-pink-400 hover:bg-pink-900/20" }, [el('span', { className: "text-2xl" }, "🎲"), el('span', { className: "text-[9px] font-bold uppercase tracking-widest text-center" }, "Skins de Dados")]),
+                    el('button', { onClick: () => { setShowThemeModal(true); setIsMobileMenuOpen(false); }, className: "bg-slate-900 border border-pink-600/30 p-4 rounded-xl flex flex-col items-center gap-2 text-pink-400 hover:bg-pink-900/20" }, [el('span', { className: "text-2xl" }, "🎨"), el('span', { className: "text-[9px] font-bold uppercase tracking-widest text-center" }, "Tema da Ficha")])
+                ])
+            ]),
+
+            // Conhecimento
+            el('div', null, [
+                el('h4', { className: "text-[10px] text-slate-500 font-black uppercase tracking-widest mb-3 flex items-center gap-2" }, [el('span',null,"📖"), "Sabedoria"]),
+                el('div', { className: "grid grid-cols-3 gap-3" }, [
+                    el('button', { onClick: () => { onOpenMentor(); setIsMobileMenuOpen(false); }, className: "bg-slate-900 border border-amber-600/30 p-4 rounded-xl flex flex-col items-center gap-2 text-amber-400 hover:bg-amber-900/20" }, [el('span', { className: "text-2xl" }, "🧠"), el('span', { className: "text-[8px] font-bold uppercase tracking-widest text-center" }, "Mentor")]),
+                    el('button', { onClick: () => { setIsLibraryOpen(true); setIsMobileMenuOpen(false); }, className: "bg-slate-900 border border-amber-600/30 p-4 rounded-xl flex flex-col items-center gap-2 text-amber-400 hover:bg-amber-900/20" }, [el('span', { className: "text-2xl" }, "📚"), el('span', { className: "text-[8px] font-bold uppercase tracking-widest text-center" }, "Biblioteca")]),
+                    el('button', { onClick: () => { setShowTutorial(true); setIsMobileMenuOpen(false); }, className: "bg-slate-900 border border-amber-600/30 p-4 rounded-xl flex flex-col items-center gap-2 text-amber-400 hover:bg-amber-900/20" }, [el('span', { className: "text-2xl" }, "❓"), el('span', { className: "text-[8px] font-bold uppercase tracking-widest text-center" }, "Ajuda")])
+                ])
+            ]),
+
+            // Configurações e Sair
+            el('div', { className: "mt-4 pt-4 border-t border-slate-800" }, [
+                el('div', { className: "grid grid-cols-3 gap-3" }, [
+                    el('button', { onClick: () => { setIsPinModalOpen(true); setIsMobileMenuOpen(false); }, className: "bg-slate-900 border border-slate-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-slate-300 hover:bg-slate-800" }, [el('span', { className: "text-xl" }, "🔒"), el('span', { className: "text-[8px] font-bold uppercase tracking-widest text-center" }, "PIN")]),
+                    el('button', { onClick: () => { onRequestDelete(); setIsMobileMenuOpen(false); }, className: "bg-slate-900 border border-red-900/50 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-red-500 hover:bg-red-900/20" }, [el('span', { className: "text-xl" }, "🗑️"), el('span', { className: "text-[8px] font-bold uppercase tracking-widest text-center" }, "Excluir")]),
+                    el('button', { onClick: onBack, className: "bg-slate-800 hover:bg-slate-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-white shadow-lg" }, [el('span', { className: "text-xl" }, "🚪"), el('span', { className: "text-[8px] font-bold uppercase tracking-widest text-center" }, "Sair")])
+                ])
             ])
         ]),
 
@@ -1720,74 +1754,105 @@ export function SheetView({
                         )
                     ]),
                     
-                    el('div', { key: 'main-bar', className: "bg-slate-900/80 backdrop-blur-xl border border-slate-700 p-3 md:p-4 rounded-full shadow-2xl flex items-center gap-3 overflow-x-auto hide-scrollbar max-w-full" }, [
-                        // Botão Dado (Abre o Canvas 3D global)
-                        el('button', {
-                            onClick: () => setQuickRollOpen(!quickRollOpen),
-                            className: `w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 border-4 ${quickRollOpen ? 'bg-red-600 border-red-400 rotate-45' : 'bg-amber-600 border-amber-400 hover:scale-110'}`
-                        }, quickRollOpen ? el('span', { className: "text-3xl font-bold text-white" }, "+") : "🎲"),
+                    el('div', { className: "flex flex-col lg:flex-row items-center justify-center gap-3 md:gap-4 max-w-full" }, [
+                        
+                        // --- HOTBAR (BARRA DE ATALHOS) ---
+                        hotbarItems.length > 0 && el('div', {
+                            key: 'hotbar',
+                            className: "bg-slate-900/80 backdrop-blur-xl border border-slate-700 p-2 md:p-3 rounded-3xl md:rounded-full shadow-2xl flex items-center gap-2 md:gap-3 pointer-events-auto max-w-[95vw] overflow-x-auto hide-scrollbar"
+                        }, [
+                            hotbarItems.map((item) => el('div', {
+                                key: item.id,
+                                className: "group relative flex flex-col items-center gap-1 min-w-[50px] md:min-w-[60px] cursor-pointer",
+                                onClick: () => {
+                                    if (item.type === 'ataque') {
+                                        triggerExternalRoll(20, false, parseInt(item.bonus) || 0, 'normal', 1, item.name);
+                                    } else {
+                                        sendChatMessage(`${characterName} conjura **${item.name}**!`, 'all');
+                                        AudioManager.play('magic');
+                                    }
+                                }
+                            }, [
+                                // Botão Remover
+                                el('button', {
+                                    onClick: (e) => { e.stopPropagation(); removeFromHotbar(item.id); },
+                                    className: "absolute -top-1 -right-1 w-4 h-4 md:w-5 md:h-5 bg-slate-950 border border-slate-700 text-slate-500 rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-all z-10 hover:text-red-500 hover:border-red-500 shadow-md"
+                                }, "×"),
 
-                        // Botão Caderno
-                        el('button', {
-                            onClick: openJournal,
-                            className: "w-14 h-14 bg-slate-800 hover:bg-orange-900 text-orange-400 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl"
-                        }, "📖"),
+                                // Ícone e Nome
+                                el('div', { 
+                                    className: "w-10 h-10 md:w-14 md:h-14 bg-slate-950 border-2 border-slate-800 rounded-xl md:rounded-2xl flex items-center justify-center text-lg md:text-2xl shadow-inner group-hover:border-amber-500/50 group-hover:scale-110 transition-all relative overflow-hidden"
+                                }, [
+                                    el('span', { className: "z-10 drop-shadow-md" }, item.icon),
+                                    el('div', { className: "absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" })
+                                ]),
+                                el('span', { className: "text-[7px] md:text-[8px] font-black text-slate-500 uppercase tracking-tighter truncate w-14 md:w-16 text-center group-hover:text-amber-500" }, item.name)
+                            ]))
+                        ]),
 
-                        // Botão Alquimia/Crafting
-                        el('button', {
-                            onClick: onOpenCrafting,
-                            className: "w-14 h-14 bg-slate-800 hover:bg-emerald-900 text-emerald-400 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl",
-                            title: "Alquimia e Crafting"
-                        }, "⚗️"),
+                        // --- MAIN BAR ---
+                        el('div', { key: 'main-bar', className: "bg-slate-900/80 backdrop-blur-xl border border-slate-700 p-3 md:p-4 rounded-full shadow-2xl flex items-center gap-3 overflow-x-auto hide-scrollbar max-w-[95vw] lg:max-w-full" }, [
+                            // Botão Dado (Abre o Canvas 3D global)
+                            el('button', {
+                                onClick: () => setQuickRollOpen(!quickRollOpen),
+                                className: `w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 border-4 shrink-0 ${quickRollOpen ? 'bg-red-600 border-red-400 rotate-45' : 'bg-amber-600 border-amber-400 hover:scale-110'}`
+                            }, quickRollOpen ? el('span', { className: "text-3xl font-bold text-white" }, "+") : "🎲"),
 
-                        // Botão Segurança (PIN)
-                        el('button', {
-                            onClick: () => setIsPinModalOpen(true),
-                            className: "w-14 h-14 bg-slate-800 hover:bg-indigo-900 text-indigo-400 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl",
-                            title: "Segurança da Ficha (PIN)"
-                        }, "🔒"),
+                            // Botão Caderno
+                            el('button', {
+                                onClick: openJournal,
+                                className: "w-12 h-12 md:w-14 md:h-14 bg-slate-800 hover:bg-orange-900 text-orange-400 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl shrink-0"
+                            }, "📖"),
 
-                        // Botão Loja
-                        el('button', {
-                            onClick: () => {
-                                if (sessionState.isShopEnabled) onOpenShop();
-                                else AudioManager.play('error');
-                            },
-                            className: `w-14 h-14 rounded-full flex items-center justify-center transition-all border shadow-xl ${
-                                sessionState.isShopEnabled ? 'bg-slate-800 hover:bg-amber-900 text-amber-500 hover:text-white border-slate-700' : 'bg-slate-900 text-slate-700 border-slate-800 cursor-not-allowed opacity-50'
-                            }`,
-                            title: sessionState.isShopEnabled ? "Mercado e Trocas" : "A loja está fechada no momento"
-                        }, "🛒"),
+                            // Botão Alquimia/Crafting
+                            el('button', {
+                                onClick: onOpenCrafting,
+                                className: "w-12 h-12 md:w-14 md:h-14 bg-slate-800 hover:bg-emerald-900 text-emerald-400 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl shrink-0",
+                                title: "Alquimia e Crafting"
+                            }, "⚗️"),
 
-                        // Botão Soundpad
-                        el('button', {
-                            onClick: () => setShowSoundboard(!showSoundboard),
-                            className: `w-14 h-14 rounded-full flex items-center justify-center transition-all border shadow-xl ${
-                                showSoundboard ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-slate-800 hover:bg-indigo-900 text-indigo-400 hover:text-white border-slate-700'
-                            }`,
-                            title: "Seu Soundpad"
-                        }, "🔊"),
+                            // Botão Loja
+                            el('button', {
+                                onClick: () => {
+                                    if (sessionState.isShopEnabled) onOpenShop();
+                                    else AudioManager.play('error');
+                                },
+                                className: `w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all border shadow-xl shrink-0 ${
+                                    sessionState.isShopEnabled ? 'bg-slate-800 hover:bg-amber-900 text-amber-500 hover:text-white border-slate-700' : 'bg-slate-900 text-slate-700 border-slate-800 cursor-not-allowed opacity-50'
+                                }`,
+                                title: sessionState.isShopEnabled ? "Mercado e Trocas" : "A loja está fechada no momento"
+                            }, "🛒"),
 
-                        // Botão Descanso
-                        el('button', {
-                            onClick: () => {
-                                triggerEffect('rest');
-                                handleDescansoLongo();
-                            },
-                            className: "w-14 h-14 bg-slate-800 hover:bg-purple-900 text-purple-400 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl"
-                        }, "🌙"),
+                            // Botão Soundpad
+                            el('button', {
+                                onClick: () => setShowSoundboard(!showSoundboard),
+                                className: `w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all border shadow-xl shrink-0 ${
+                                    showSoundboard ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-slate-800 hover:bg-indigo-900 text-indigo-400 hover:text-white border-slate-700'
+                                }`,
+                                title: "Seu Soundpad"
+                            }, "🔊"),
 
-                        // Botão Editar (Apenas se o Mestre permitir)
-                        characterSheetData.allowEditing && el('button', {
-                            onClick: () => setEditableSheetData(characterSheetData),
-                            className: "w-14 h-14 bg-slate-800 hover:bg-amber-600 text-amber-500 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl"
-                        }, "✏️"),
+                            // Botão Descanso
+                            el('button', {
+                                onClick: () => {
+                                    triggerEffect('rest');
+                                    handleDescansoLongo();
+                                },
+                                className: "w-12 h-12 md:w-14 md:h-14 bg-slate-800 hover:bg-purple-900 text-purple-400 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl shrink-0"
+                            }, "🌙"),
 
-                        // Botão Level Up (Condicional)
-                        podeSubirNivel && el('button', {
-                            onClick: () => setShowLevelUpModal(true),
-                            className: "h-14 bg-amber-500 hover:bg-amber-400 text-black px-6 rounded-full font-black text-xs uppercase transition-all shadow-xl animate-bounce"
-                        }, "🚀 Level Up!")
+                            // Botão Editar (Apenas se o Mestre permitir)
+                            characterSheetData.allowEditing && el('button', {
+                                onClick: () => setEditableSheetData(characterSheetData),
+                                className: "w-12 h-12 md:w-14 md:h-14 bg-slate-800 hover:bg-amber-600 text-amber-500 hover:text-white rounded-full flex items-center justify-center transition-all border border-slate-700 shadow-xl shrink-0"
+                            }, "✏️"),
+
+                            // Botão Level Up (Condicional)
+                            podeSubirNivel && el('button', {
+                                onClick: () => setShowLevelUpModal(true),
+                                className: "h-12 md:h-14 bg-amber-500 hover:bg-amber-400 text-black px-4 md:px-6 rounded-full font-black text-[10px] md:text-xs uppercase transition-all shadow-xl animate-bounce shrink-0"
+                            }, "🚀 Level Up!")
+                        ])
                     ])
                 ]),
                 // --- GERENCIADOR DE BALÕES (Removido daqui e movido para global em App) ---
@@ -2128,75 +2193,7 @@ export function SheetView({
             ])
         ]),
 
-        // --- HOTBAR (BARRA DE ATALHOS) ---
-        hotbarItems.length > 0 && el('div', {
-            key: 'hotbar',
-            className: "fixed bottom-24 md:bottom-0 left-0 right-0 z-[100] p-4 pointer-events-none flex justify-center"
-        }, [
-            el('div', {
-                className: "bg-slate-900/60 backdrop-blur-xl border-2 border-slate-800 rounded-[2.5rem] p-3 shadow-2xl flex items-center gap-3 pointer-events-auto animate-slide-up max-w-[95vw] overflow-x-auto hide-scrollbar"
-            }, [
-                hotbarItems.map((item) => el('div', {
-                    key: item.id,
-                    className: "group relative flex flex-col items-center gap-1 min-w-[70px] cursor-pointer",
-                    onClick: () => {
-                        if (item.type === 'ataque') {
-                            triggerExternalRoll(20, false, parseInt(item.bonus) || 0, 'normal', 1, item.name);
-                        } else {
-                            sendChatMessage(`${characterName} conjura **${item.name}**!`, 'all');
-                            AudioManager.play('magic');
-                        }
-                    }
-                }, [
-                    // Botão Remover
-                    el('button', {
-                        onClick: (e) => { e.stopPropagation(); removeFromHotbar(item.id); },
-                        className: "absolute -top-1 -right-1 w-5 h-5 bg-slate-950 border border-slate-700 text-slate-500 rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-all z-10 hover:text-red-500 hover:border-red-500"
-                    }, "×"),
 
-                    // Ícone e Nome
-                    el('div', { 
-                        className: "w-14 h-14 bg-slate-950 border-2 border-slate-800 rounded-2xl flex items-center justify-center text-2xl shadow-inner group-hover:border-amber-500/50 group-hover:scale-110 transition-all relative overflow-hidden"
-                    }, [
-                        el('span', { className: "z-10 drop-shadow-md" }, item.icon),
-                        el('div', { className: "absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" })
-                    ]),
-                    el('span', { className: "text-[8px] font-black text-slate-500 uppercase tracking-tighter truncate w-16 text-center group-hover:text-amber-500" }, item.name)
-                ]))
-            ])
-        ]),
-        
-        // --- MODAL DE PIN ---
-        isPinModalOpen && el('div', { className: "fixed inset-0 z-[1000] bg-black/90 flex items-center justify-center p-6 backdrop-blur-md animate-fade-in" }, [
-            el('div', { className: "bg-slate-900 border-2 border-indigo-500/30 p-8 rounded-[2.5rem] max-w-sm w-full shadow-3xl animate-slide-up" }, [
-                el('h3', { className: "text-indigo-400 font-black uppercase italic tracking-tight text-xl mb-4" }, "Segurança da Ficha"),
-                el('p', { className: "text-slate-400 text-xs mb-8" }, "Defina um PIN de 4 dígitos para impedir que outros jogadores entrem na sua ficha. Deixe em branco para remover a proteção."),
-                el('form', {
-                    onSubmit: (e) => {
-                        e.preventDefault();
-                        const pin = e.target.pin.value.trim();
-                        if (pin && pin.length !== 4) {
-                            alert("O PIN deve ter exatamente 4 dígitos!");
-                            return;
-                        }
-                        onUpdatePIN(pin);
-                        setIsPinModalOpen(false);
-                        alert(pin ? "PIN definido com sucesso!" : "Proteção por PIN removida.");
-                    }
-                }, [
-                    el('input', {
-                        name: "pin",
-                        type: "text",
-                        maxLength: 4,
-                        placeholder: "Ex: 1234",
-                        className: "w-full bg-slate-950 border-2 border-slate-800 rounded-2xl p-5 text-center text-3xl font-black text-indigo-500 tracking-[0.5em] focus:border-indigo-500 outline-none mb-8"
-                    }),
-                    el('div', { className: "flex gap-3" }, [
-                        el('button', { type: "button", onClick: () => setIsPinModalOpen(false), className: "flex-1 p-4 bg-slate-800 text-slate-400 font-black uppercase text-[10px] rounded-xl" }, "Cancelar"),
-                        el('button', { type: "submit", className: "flex-1 p-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-xl shadow-lg shadow-indigo-900/20" }, "Salvar")
-                    ])
-                ])
-            ])
-        ])
+
     ]);
 }
