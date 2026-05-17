@@ -107,6 +107,56 @@ export function SheetView({
     };
     const invBonuses = getGlobalBonuses();
 
+    const getSpellcastingStats = () => {
+        const rawClass = (characterSheetData.info?.['Classe'] || '').toLowerCase().trim();
+        const level = parseInt(characterSheetData.info?.['Nivel']) || 1;
+        const profBonus = Math.floor((level - 1) / 4) + 2;
+
+        const intVal = (parseInt(characterSheetData.atributos?.['INT']) || 10) + (invBonuses.INT || 0);
+        const intMod = Math.floor((intVal - 10) / 2);
+
+        const sabVal = (parseInt(characterSheetData.atributos?.['SAB']) || 10) + (invBonuses.SAB || 0);
+        const sabMod = Math.floor((sabVal - 10) / 2);
+
+        const carVal = (parseInt(characterSheetData.atributos?.['CAR']) || 10) + (invBonuses.CAR || 0);
+        const carMod = Math.floor((carVal - 10) / 2);
+
+        let spellAttr = 'CAR';
+        let spellMod = carMod;
+
+        if (rawClass.includes('mago') || rawClass.includes('wizard') || rawClass.includes('artifi') || rawClass.includes('trapaceiro') || rawClass.includes('trickster') || rawClass.includes('cavaleiro arcano') || rawClass.includes('eldritch')) {
+            spellAttr = 'INT';
+            spellMod = intMod;
+        } else if (rawClass.includes('cleri') || rawClass.includes('clerigo') || rawClass.includes('druid') || rawClass.includes('ranger') || rawClass.includes('patrulheiro') || rawClass.includes('monk') || rawClass.includes('monge')) {
+            spellAttr = 'SAB';
+            spellMod = sabMod;
+        } else if (rawClass.includes('bard') || rawClass.includes('feitice') || rawClass.includes('sorcerer') || rawClass.includes('bruxo') || rawClass.includes('warlock') || rawClass.includes('paladin')) {
+            spellAttr = 'CAR';
+            spellMod = carMod;
+        } else {
+            if (intMod >= sabMod && intMod >= carMod) {
+                spellAttr = 'INT';
+                spellMod = intMod;
+            } else if (sabMod >= intMod && sabMod >= carMod) {
+                spellAttr = 'SAB';
+                spellMod = sabMod;
+            } else {
+                spellAttr = 'CAR';
+                spellMod = carMod;
+            }
+        }
+
+        const saveDCBonus = invBonuses.spellSaveDC || 0;
+        const attackBonusItem = invBonuses.spellAttack || 0;
+
+        return {
+            attribute: spellAttr,
+            modifier: spellMod,
+            saveDC: 8 + profBonus + spellMod + saveDCBonus,
+            attackBonus: profBonus + spellMod + attackBonusItem
+        };
+    };
+
 
     const triggerEffect = (type) => {
         if (type === 'bag') {
@@ -1550,16 +1600,28 @@ export function SheetView({
 
                 // CABEÇALHO: Stats de Magia (Sempre Renderiza)
                 el('div', { key: 'grimoire-header', className: "flex flex-col md:flex-row items-center justify-between gap-6" }, [
-                    el('h3', { key: 'grimoire-title', className: "text-3xl font-black text-blue-500 uppercase tracking-tighter italic flex items-center gap-4" }, "🧙🏾‍♂️ Grimório Arcano"),
+                    (() => {
+                        const stats = getSpellcastingStats();
+                        return el('h3', { key: 'grimoire-title', className: "text-3xl font-black text-blue-500 uppercase tracking-tighter italic flex items-center gap-4" }, [
+                            "🧙🏾‍♂️ Grimório Arcano",
+                            el('span', { className: "text-[9px] font-black bg-blue-950/60 border border-blue-500/30 text-blue-400 px-3 py-1 rounded-full uppercase tracking-wider not-italic" }, `Conjurador: ${stats.attribute}`)
+                        ]);
+                    })(),
 
-                    el('div', { className: "flex gap-4" },
-                        Object.entries(characterSheetData.statsMagia || {}).map(([key, value]) => (
-                            el('div', { key, className: "bg-blue-950/20 border border-blue-500/30 px-6 py-3 rounded-2xl text-center shadow-lg" }, [
+                    el('div', { className: "flex gap-4" }, (() => {
+                        const stats = getSpellcastingStats();
+                        const displayedStats = {
+                            'Salvaguarda': stats.saveDC,
+                            'Modificador': stats.modifier >= 0 ? `+${stats.modifier}` : stats.modifier,
+                            'Bônus de Ataque': stats.attackBonus >= 0 ? `+${stats.attackBonus}` : stats.attackBonus
+                        };
+                        return Object.entries(displayedStats).map(([key, value]) => (
+                            el('div', { key, className: "bg-blue-950/20 border border-blue-500/30 px-6 py-3 rounded-2xl text-center shadow-lg animate-fade-in" }, [
                                 el('p', { className: "text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1" }, key),
-                                el('p', { className: "text-xl font-black text-blue-50" }, key === 'Salvaguarda' ? value : fmtNum(value))
+                                el('p', { className: "text-xl font-black text-blue-50" }, value)
                             ])
-                        ))
-                    ),
+                        ));
+                    })()),
 
                     el('select', {
                         className: "bg-slate-800 text-blue-400 text-[10px] font-black uppercase p-2 rounded-xl border border-blue-500/30 outline-none cursor-pointer",
@@ -1676,7 +1738,6 @@ export function SheetView({
                                     lista.map((nomeMagiaOriginal, idx) => {
                                         const nomeMagia = nomeMagiaOriginal || "";
                                         const descMagia = characterSheetData.outros?.[`spell_desc_${nivel}_${idx}`] || "";
-                                        
                                         // Esconde as magias vazias da tela para não poluir
                                         // Apenas deixamos o 1º slot vazio amostra pra poder adicionar uma magia nele
                                         const isSlotEmpty = !nomeMagia.trim();
@@ -1688,40 +1749,107 @@ export function SheetView({
 
                                             // Botão para Limpar apenas uma Magia
                                             nomeMagia && el('button', {
-                                                className: "absolute top-2 right-4 text-[10px] text-slate-700 hover:text-red-400 opacity-0 group-hover/spell:opacity-100 transition-opacity",
+                                                className: "absolute top-2 right-4 text-[10px] text-slate-700 hover:text-red-400 opacity-0 group-hover/spell:opacity-100 transition-opacity z-10",
                                                 onClick: () => {
                                                     const novaLista = [...lista];
                                                     novaLista[idx] = "";
                                                     updateSheetField('magias', nivel, novaLista);
                                                     updateSheetField('outros', `spell_desc_${nivel}_${idx}`, "");
+                                                    updateSheetField('outros', `spell_bonus_${nivel}_${idx}`, "");
+                                                    updateSheetField('outros', `spell_damage_${nivel}_${idx}`, "");
                                                 }
                                             }, "limpar"),
 
-                                            el('input', {
-                                                type: 'text',
-                                                className: "w-full bg-transparent text-blue-50 text-base font-black uppercase outline-none",
-                                                placeholder: "Vazio...",
-                                                defaultValue: nomeMagia,
-                                                onBlur: (e) => {
-                                                    const novaLista = [...lista];
-                                                    novaLista[idx] = e.target.value;
-                                                    updateSheetField('magias', nivel, novaLista);
-                                                }
-                                            }),
+                                            el('div', { className: "flex flex-col gap-3" }, [
+                                                // Nome da Magia
+                                                el('div', { className: "flex justify-between items-center" }, [
+                                                    el('input', {
+                                                        type: 'text',
+                                                        className: "bg-transparent text-blue-50 text-base font-black uppercase outline-none flex-grow",
+                                                        placeholder: "Nome da Magia...",
+                                                        defaultValue: nomeMagia,
+                                                        onBlur: (e) => {
+                                                            const novaLista = [...lista];
+                                                            novaLista[idx] = e.target.value;
+                                                            updateSheetField('magias', nivel, novaLista);
+                                                        }
+                                                    }),
+                                                    nomeMagia && el('button', {
+                                                        key: "btn-pin-spell",
+                                                        className: `text-[12px] transition-all ml-2 ${hotbarItems.some(i => i.name === nomeMagia && i.type === 'magia') ? 'text-amber-500' : 'text-slate-600 hover:text-amber-500'}`,
+                                                        onClick: () => addToHotbar({ 
+                                                            type: 'magia', 
+                                                            name: nomeMagia, 
+                                                            nivel, 
+                                                            desc: descMagia, 
+                                                            bonus: characterSheetData.outros?.[`spell_bonus_${nivel}_${idx}`] || "",
+                                                            dano: characterSheetData.outros?.[`spell_damage_${nivel}_${idx}`] || "",
+                                                            icon: '🪄' 
+                                                        }),
+                                                        title: "Fixar nos Atalhos"
+                                                    }, "📌")
+                                                ]),
 
-                                            // Botão Fixar na Hotbar (Magia)
-                                            nomeMagia && el('button', {
-                                                key: "btn-pin-spell",
-                                                className: `absolute bottom-2 right-4 text-[12px] opacity-0 group-hover/spell:opacity-100 transition-all ${hotbarItems.some(i => i.name === nomeMagia && i.type === 'magia') ? 'text-amber-500' : 'text-slate-600 hover:text-amber-500'}`,
-                                                onClick: () => addToHotbar({ type: 'magia', name: nomeMagia, nivel, desc: descMagia, icon: '🪄' }),
-                                                title: "Fixar nos Atalhos"
-                                            }, "📌"),
-                                            el('textarea', {
-                                                className: "w-full bg-transparent text-[11px] text-slate-500 italic mt-2 outline-none resize-none",
-                                                placeholder: "Descrição...",
-                                                defaultValue: descMagia,
-                                                onBlur: (e) => updateSheetField('outros', `spell_desc_${nivel}_${idx}`, e.target.value)
-                                            })
+                                                // Casting (Conjuração) e Efeito/Dano
+                                                nomeMagia && el('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900/40 p-3 rounded-2xl border border-slate-800/80 mt-1" }, [
+                                                    // Casting (Conjuração)
+                                                    el('div', { className: "flex items-center justify-center gap-2" }, [
+                                                        el('span', { className: "text-[8px] font-black text-slate-500 uppercase tracking-wider" }, "CASTING:"),
+                                                        el('input', {
+                                                            className: "bg-slate-900 px-2 py-1 rounded-lg text-blue-400 font-black text-xs border border-slate-800 shadow-inner w-12 text-center outline-none focus:border-blue-500",
+                                                            placeholder: (() => {
+                                                                const attackBonus = getSpellcastingStats().attackBonus;
+                                                                return attackBonus >= 0 ? `+${attackBonus}` : attackBonus;
+                                                            })(),
+                                                            defaultValue: characterSheetData.outros?.[`spell_bonus_${nivel}_${idx}`] || "",
+                                                            onBlur: (e) => updateSheetField('outros', `spell_bonus_${nivel}_${idx}`, e.target.value)
+                                                        }),
+                                                        el('button', {
+                                                            onClick: () => {
+                                                                const rawVal = characterSheetData.outros?.[`spell_bonus_${nivel}_${idx}`];
+                                                                const bonusVal = (rawVal && rawVal.trim() !== "") ? parseInt(rawVal) : getSpellcastingStats().attackBonus;
+                                                                triggerExternalRoll(20, false, isNaN(bonusVal) ? 0 : bonusVal, 'normal', 1, `Cast: ${nomeMagia}`);
+                                                            },
+                                                            className: "text-lg md:text-sm hover:scale-125 transition-transform text-blue-400",
+                                                            title: "Rolar Conjuração (1d20 + Bônus)"
+                                                        }, "🎲")
+                                                    ]),
+                                                    // Dano / Efeito
+                                                    el('div', { className: "flex items-center justify-center gap-2 md:border-l md:border-slate-800/80 md:pl-4" }, [
+                                                        el('span', { className: "text-[8px] font-black text-slate-500 uppercase tracking-wider" }, "DANO/EFEITO:"),
+                                                        el('input', {
+                                                            className: "bg-slate-900 px-2 py-1 rounded-lg text-blue-400 font-black text-xs border border-slate-800 shadow-inner w-20 text-center outline-none focus:border-blue-500",
+                                                            placeholder: "1d6",
+                                                            defaultValue: characterSheetData.outros?.[`spell_damage_${nivel}_${idx}`] || "",
+                                                            onBlur: (e) => updateSheetField('outros', `spell_damage_${nivel}_${idx}`, e.target.value)
+                                                        }),
+                                                        el('button', {
+                                                            onClick: () => {
+                                                                const dmgFormula = (characterSheetData.outros?.[`spell_damage_${nivel}_${idx}`] || '1d6').toLowerCase().replace(/\s/g, '');
+                                                                const match = dmgFormula.match(/^(\d+)d(\d+)([+-]\d+)?$/);
+                                                                if (match) {
+                                                                    const qty = parseInt(match[1]) || 1;
+                                                                    const sides = parseInt(match[2]) || 6;
+                                                                    const bonus = parseInt(match[3]) || 0;
+                                                                    triggerExternalRoll(sides, false, bonus, 'normal', qty, `Dano: ${nomeMagia}`);
+                                                                } else {
+                                                                    triggerExternalRoll(6, false, 0, 'normal', 1, `Dano: ${nomeMagia}`);
+                                                                }
+                                                            },
+                                                            className: "text-lg md:text-sm hover:scale-125 transition-transform text-blue-400",
+                                                            title: "Rolar Dano/Efeito da Magia"
+                                                        }, "💥")
+                                                    ])
+                                                ]),
+
+                                                // Descrição
+                                                el('textarea', {
+                                                    className: "w-full bg-transparent text-[11px] text-slate-500 italic mt-1 outline-none resize-none leading-relaxed",
+                                                    placeholder: "Descrição...",
+                                                    defaultValue: descMagia,
+                                                    onBlur: (e) => updateSheetField('outros', `spell_desc_${nivel}_${idx}`, e.target.value)
+                                                })
+                                            ])
                                         ]);
                                     })
                                 ),
@@ -1819,6 +1947,22 @@ export function SheetView({
                                     } else {
                                         sendChatMessage(`${characterName} conjura **${item.name}**!`, 'all');
                                         AudioManager.play('magic');
+                                        // Se tiver bônus de casting (ou fallback automático de classe), rola o d20 de casting!
+                                        const bonusVal = (item.bonus && item.bonus.trim() !== "") ? parseInt(item.bonus) : getSpellcastingStats().attackBonus;
+                                        triggerExternalRoll(20, false, isNaN(bonusVal) ? 0 : bonusVal, 'normal', 1, `Cast: ${item.name}`);
+                                        // Se tiver dano, rola o dano em seguida com stagger de 1 segundo!
+                                        if (item.dano && item.dano.trim() !== "") {
+                                            const formula = item.dano.toLowerCase().replace(/\s/g, '');
+                                            const match = formula.match(/^(\d+)d(\d+)([+-]\d+)?$/);
+                                            if (match) {
+                                                const qty = parseInt(match[1]) || 1;
+                                                const sides = parseInt(match[2]) || 6;
+                                                const bonus = parseInt(match[3]) || 0;
+                                                setTimeout(() => {
+                                                    triggerExternalRoll(sides, false, bonus, 'normal', qty, `Dano: ${item.name}`);
+                                                }, 1200);
+                                            }
+                                        }
                                     }
                                 }
                             }, [

@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
 
-export const PLAYER_TUTORIAL_VERSION = '3.0';
+export const PLAYER_TUTORIAL_VERSION = '3.1';
 
 export function PlayerTutorialPopup({ onClose }) {
     const [activeTab, setActiveTab] = useState('novidades'); // Abre direto nas novidades quando há update
@@ -14,7 +14,7 @@ export function PlayerTutorialPopup({ onClose }) {
     const tabs = [
         { id: 'novidades', label: '🔥 Novidades', icon: '⭐' },
         { id: 'mentor', label: '🧠 Mentor IA', icon: '🧠' },
-        { id: 'geral', label: '📖 Geral', icon: '🛡️' },
+        { id: 'geral', label: '📖 Guia da Ficha', icon: '🛡️' },
         { id: 'vtt', label: '🗺️ Mapa/VTT', icon: '📍' },
         { id: 'alquimia', label: '🧪 Alquimia', icon: '⚗️' },
         { id: 'combate', label: '⚔️ Combate', icon: '🎲' }
@@ -24,21 +24,21 @@ export function PlayerTutorialPopup({ onClose }) {
         switch (activeTab) {
             case 'novidades':
                 return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
-                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 3.0 - Painel de Áudio Customizável, Órbitas Celestiais & Climas Sincronizados"),
+                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 3.1 - Rola-Magias do Grimório, Iniciativa 3D e Atributos de Classe Automáticos"),
                     
-                    el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl shadow-lg" }, [
-                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "🔊 Configurações de Áudio Customizáveis"),
-                        el('p', { className: "text-xs" }, "Chega de tudo fazer o mesmo barulho! Abra a Engrenagem (⚙️) -> Sons e customize o áudio de cada ação da mesa. Você pode habilitar/desabilitar cada som individualmente e até colar um link de som customizado (YouTube ou MP3) para tocar no lugar do som padrão de rolar dados, cura, moedas e mais!")
+                    el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl shadow-lg" }, [
+                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2" }, "🪄 Grimório Arcano & Hotbar Automatizados"),
+                        el('p', { className: "text-xs" }, "Chega de rolar magias na mão! Suas magias ganharam campos para bônus de Casting e fórmula de Dano/Efeito (como 8d6 ou 2d10), com rolagens físicas 3D na mesa! Pressione o botão 📌 para fixar magias na Hotbar e assista ao sistema conjurar a magia e rolar o dano sequencialmente com stagger cinematográfico!")
                     ]),
 
                     el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl shadow-lg" }, [
-                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🔇 Filtro de Soundpad de Terceiros"),
-                        el('p', { className: "text-xs" }, "Se você se incomoda com outros jogadores tocando gritos ou efeitos de áudio pelo Soundpad em momentos sérios, agora você pode desmarcar a opção 'Ouvir Soundpad dos outros Jogadores' no seu painel de sons para silenciá-los localmente!")
+                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🔮 Atributos Mágicos Automáticos por Classe"),
+                        el('p', { className: "text-xs" }, "Seus stats de magia (Salvaguarda, Modificador e Bônus de Ataque) agora são automáticos! O sistema identifica sua classe (INT para Magos/Artífices, SAB para Clérigos/Druidas/Rangers, CAR para Bruxos/Bardos/Feiticeiros) e aplica as regras oficiais do D&D 5e de forma dinâmica no cabeçalho.")
                     ]),
 
-                    el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl shadow-lg" }, [
-                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2" }, "🌙 Climas & Luas Tridimensionais"),
-                        el('p', { className: "text-xs" }, "O mestre agora pode ativar múltiplos climas sincronizados de uma vez (como Noite e Chuva). E nos climas Noturnos e de Lua de Sangue, lindas luas 3D de alta luminescência orbitam em arcos perfeitos pelo fundo da tela, atrás de suas fichas para nunca obstruir sua visão!")
+                    el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl shadow-lg" }, [
+                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "🎲 Rolagem de Iniciativa 3D Direta"),
+                        el('p', { className: "text-xs" }, "Seu card de iniciativa agora tem um botão neon 🎲. Ao clicar, o D20 3D é lançado, soma seus modificadores e envia seu resultado direto para a fila de turnos de combate em tempo real!")
                     ])
                 ]);
             case 'mentor':
@@ -51,18 +51,57 @@ export function PlayerTutorialPopup({ onClose }) {
                     )
                 ]);
             case 'geral':
-                return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
-                    el('p', null, "Bem-vindo à sua ", el('strong', { className: "text-amber-400" }, "Ficha de Personagem"), "! Este é o seu portal para o mundo do RPG."),
-                    el('p', null, "Tudo o que você alterar aqui é salvo em tempo real. Seu Mestre também pode ver sua ficha e ajudá-lo a gerenciar seus recursos."),
-                    el('div', { className: "bg-amber-900/30 border border-amber-500/50 p-4 rounded-xl mt-4" },
-                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "📌 Dicas Rápidas"),
-                        el('ul', { className: "list-disc pl-5 space-y-1" },
-                            el('li', null, el('strong', { className: "text-white" }, "PV (Pontos de Vida):"), " Clique nos campos de PV para adicionar dano (-) ou cura (+)."),
-                            el('li', null, el('strong', { className: "text-white" }, "Recursos:"), " Use os campos de PO/PP/PC para gerenciar seu ouro."),
-                            el('li', null, el('strong', { className: "text-white" }, "Inventário:"), " Clique no ícone de mochila para abrir seus itens e equipamentos.")
-                        )
-                    )
-                );
+                return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar" }, [
+                    el('p', null, "Bem-vindo à sua ", el('strong', { className: "text-amber-400" }, "Ficha de Personagem Premium"), "! Este guia detalha o funcionamento de cada módulo e sistema integrado para facilitar sua jogabilidade:"),
+                    
+                    el('div', { className: "bg-slate-900/60 p-4 rounded-2xl border border-slate-800" }, [
+                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2 text-xs" }, "🎭 1. Atributos e Perícias (Dados 3D)"),
+                        el('p', { className: "text-xs mb-2" }, "Seus atributos (FOR, DES, CON, INT, SAB, CAR) e perícias associadas são totalmente interativos:"),
+                        el('ul', { className: "list-disc pl-5 text-xs space-y-1" }, [
+                            el('li', null, "Clique diretamente em qualquer valor ou nome de atributo/perícia para disparar automaticamente um teste D20 em 3D com física real na mesa!"),
+                            el('li', null, "O sistema lê seus modificadores, bônus de talentos e itens equipados para somar tudo no valor final rolado.")
+                        ])
+                    ]),
+
+                    el('div', { className: "bg-slate-900/60 p-4 rounded-2xl border border-slate-800" }, [
+                        el('h4', { className: "text-emerald-400 font-bold mb-2 flex items-center gap-2 text-xs" }, "❤️ 2. Vitalidade, Recursos & CA"),
+                        el('ul', { className: "list-disc pl-5 text-xs space-y-2" }, [
+                            el('li', null, [el('strong', null, "Calculadora de PV rápida:"), " Use o painel esquerdo para inserir valores e clicar em Dano, Cura ou Escudo. Pontos de Vida Temporários (Escudo/PV Temp) absorvem o dano primeiro de forma automática!"]),
+                            el('li', null, [el('strong', null, "Classe de Armadura (CA) & Deslocamento:"), " Calculados automaticamente com base no seu modificador de Destreza e bônus de itens equipados."]),
+                            el('li', null, [el('strong', null, "Iniciativa 🎲:"), " Clique no dado neon piscante no card de iniciativa para rolar seu D20 e enviar seu valor ordenado instantaneamente para a fila do combate global do Mestre."])
+                        ])
+                    ]),
+
+                    el('div', { className: "bg-slate-900/60 p-4 rounded-2xl border border-slate-800" }, [
+                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2 text-xs" }, "🎒 3. Inventário Visual e Equipamento"),
+                        el('ul', { className: "list-disc pl-5 text-xs space-y-2" }, [
+                            el('li', null, [el('strong', null, "Mochila Visual:"), " Clique no ícone de mochila no menu inferior. Arraste e solte itens para organizá-los."]),
+                            el('li', null, [el('strong', null, "Equipar Itens {E}:"), " Itens com a tag '{E}' no nome dão bônus mágicos e de atributos automaticamente! Exemplo: uma 'Espada Longa {E} (FOR:+2)' dará +2 em Força quando equipada."])
+                        ])
+                    ]),
+
+                    el('div', { className: "bg-slate-900/60 p-4 rounded-2xl border border-slate-800" }, [
+                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2 text-xs" }, "🪄 4. Grimório Arcano e Magias"),
+                        el('ul', { className: "list-disc pl-5 text-xs space-y-2" }, [
+                            el('li', null, [el('strong', null, "Cálculo Automático por Classe 🔮:"), " Seus stats de Salvaguarda (CD), Bônus de Ataque Mágico e Modificador são calculados automaticamente usando o atributo mental correto da sua classe (INT, SAB ou CAR)."]),
+                            el('li', null, [el('strong', null, "Rolagens Rápidas 🎲💥:"), " Cada magia possui campos para bônus de Casting e fórmula de dano (ex: 8d6). Clique nos botões para rolar dados 3D na mesa!"]),
+                            el('li', null, [el('strong', null, "Atalhos Rápidos na Hotbar 📌:"), " Fixe magias na sua barra inferior. Clicar nelas dispara a conjuração no chat, o som de magia e as rolagens de acerto e dano em sequência cinematográfica!"])
+                        ])
+                    ]),
+
+                    el('div', { className: "bg-slate-900/60 p-4 rounded-2xl border border-slate-800" }, [
+                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2 text-xs" }, "📖 5. Diário de Bordo & Notas Compartilhadas"),
+                        el('ul', { className: "list-disc pl-5 text-xs space-y-1" }, [
+                            el('li', null, "Use a aba Notas Privadas para escrever seus segredos e progresso."),
+                            el('li', null, "Crie Notas Compartilhadas para enviar envelopes e cartas físicas na tela de outros jogadores e do Mestre!")
+                        ])
+                    ]),
+
+                    el('div', { className: "bg-slate-900/60 p-4 rounded-2xl border border-slate-800" }, [
+                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2 text-xs" }, "⚙️ 6. Configurações Individuais de Sons"),
+                        el('p', { className: "text-xs" }, "Clique no ícone de engrenagem no menu ou no rodapé para acessar suas preferências individuais de áudio. Mude os links ou ative/desative efeitos sonoros e controle se deseja escutar o soundpad de outros de forma 100% autônoma!")
+                    ])
+                ]);
             case 'vtt':
                 return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
                     el('p', null, "O sistema conta com um ", el('strong', { className: "text-blue-400" }, "Mapa de Batalha (VTT)"), " completo e tático."),

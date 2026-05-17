@@ -270,6 +270,8 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Mute Total nos Lobbies**: Silenciamento total de músicas ambientes, dados 3D, efeitos climáticos ou sonoros durante as telas de lobby/seleção.
   - ✅ **Persistência Local**: Configurações salvas de forma persistente e independente em `localStorage`, dando autonomia total a cada participante da mesa.
   - ✅ **Rolagem Direta de Iniciativa com Dado 🎲**: O campo de iniciativa do jogador e o criador de criaturas do mestre ganharam um botão de dado `🎲`. Ao clicar, rola-se o D20 em 3D, soma-se o modificador e o valor final é enviado instantaneamente para a ordem de turnos de combate.
+  - ✅ **Rola-Dados de Conjuração e Dano de Magias 🪄💥**: Cada slot de magia do Grimório Arcano agora conta com dois campos e botões interativos idênticos aos de ataques: **Casting** (adiciona bônus ao teste D20 3D) e **Dano/Efeito** (suporta fórmulas de dados como `8d6` ou `2d10`, rolando os dados físicos em 3D). A Hotbar também executa ambos sequencialmente com stagger cinematográfico de 1.2s!
+  - ✅ **Atributos de Magia e Salvaguarda Automáticos por Classe 🔮**: Integramos as regras oficiais do D&D 5e de forma reativa. O sistema detecta a classe do personagem (ex: Inteligência para Mago/Artífice, Sabedoria para Clérigo/Druida/Ranger, Carisma para Bardo/Sorcerer/Paladino/Warlock) e calcula instantaneamente a **CD de Salvaguarda**, **Modificador de Conjuração** e **Bônus de Ataque Mágico** no cabeçalho do Grimório. Slots de magia usam esse bônus de classe calculado como padrão automático se o campo específico de Casting estiver vazio!
 
 ## 🚀 Próximas Implementações (Pendentes)
 
