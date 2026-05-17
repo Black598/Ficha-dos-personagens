@@ -31,6 +31,27 @@ const db = firebase.firestore()
 
 const { useState, useEffect, useRef } = React
 
+const defaultPericias = {
+  'Acrobacia': { val: '+0', prof: false },
+  'Arcanismo': { val: '+0', prof: false },
+  'Atletismo': { val: '+0', prof: false },
+  'Atuação': { val: '+0', prof: false },
+  'Enganação': { val: '+0', prof: false },
+  'Furtividade': { val: '+0', prof: false },
+  'História': { val: '+0', prof: false },
+  'Intimidação': { val: '+0', prof: false },
+  'Intuição': { val: '+0', prof: false },
+  'Investigação': { val: '+0', prof: false },
+  'Lidar com Animais': { val: '+0', prof: false },
+  'Medicina': { val: '+0', prof: false },
+  'Natureza': { val: '+0', prof: false },
+  'Percepção': { val: '+0', prof: false },
+  'Persuasão': { val: '+0', prof: false },
+  'Prestidigitação': { val: '+0', prof: false },
+  'Religião': { val: '+0', prof: false },
+  'Sobrevivência': { val: '+0', prof: false }
+};
+
 function App() {
   const el = React.createElement;
 
@@ -222,7 +243,21 @@ function App() {
       const unsub = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters')
         .onSnapshot(snap => {
           if (!active) return;
-          const fbData = {}; snap.forEach(d => fbData[d.id.toLowerCase()] = d.data());
+          const fbData = {};
+          snap.forEach(d => {
+            const charId = d.id.toLowerCase();
+            const charData = d.data();
+            fbData[charId] = charData;
+
+            // Migração/inicialização automática de perícias para personagens existentes no banco
+            if (charId !== 'mestre' && charId !== 'sessao' && charId !== 'globais' && !charData.deleted) {
+              const sheet = charData.sheetData || {};
+              if (!sheet.pericias || Object.keys(sheet.pericias).length === 0) {
+                db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters').doc(charId)
+                  .set({ sheetData: { pericias: defaultPericias } }, { merge: true });
+              }
+            }
+          });
           const merged = gPlayers.map(p => {
             const id = (p.Personagem || p.name || "").toLowerCase().trim();
             return { ...p, ...(fbData[id] || {}), name: p.Personagem || p.name };
@@ -435,13 +470,30 @@ function App() {
       }
     }
 
+    let updatedChar = { ...char };
+    if (!updatedChar.sheetData) {
+      updatedChar.sheetData = {};
+    }
+    if (!updatedChar.sheetData.pericias || Object.keys(updatedChar.sheetData.pericias).length === 0) {
+      updatedChar.sheetData.pericias = defaultPericias;
+      await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('characters').doc(name.toLowerCase()).set({ sheetData: { pericias: defaultPericias } }, { merge: true });
+    }
+
     setCharacterName(name);
-    if (char.sheetData) { setCharacterData(char); setCharacterSheetData(char.sheetData); setView('sheet'); }
-    else {
-      const url = char.url || char.URL;
+    if (updatedChar.sheetData) { 
+      setCharacterData(updatedChar); 
+      setCharacterSheetData(updatedChar.sheetData); 
+      setView('sheet'); 
+    } else {
+      const url = updatedChar.url || updatedChar.URL;
       if (url) {
         const data = await loadCharacterSheet(url);
-        if (data) { saveCharacter(name, { ...char, name, sheetData: data }); setCharacterData({ ...char, sheetData: data }); setCharacterSheetData(data); setView('sheet'); }
+        if (data) { 
+          saveCharacter(name, { ...updatedChar, name, sheetData: data }); 
+          setCharacterData({ ...updatedChar, sheetData: data }); 
+          setCharacterSheetData(data); 
+          setView('sheet'); 
+        }
       }
     }
   };
@@ -454,8 +506,24 @@ function App() {
     }
     if (name === false) { setCreationDraft(null); return setCreatingCharacter(false); }
     setIsCreating(true);
-    const hero = { name, isFirebaseOnly: true, deleted: false, sheetData: creationDraft || { allowEditing: true, info: { 'Nome do Personagem': name, Classe: '---', XP: '0', Nivel: '1' }, atributos: {FOR:'10',DES:'10',CON:'10',INT:'10',SAB:'10',CAR:'10'}, recursos: {CA:'10',Iniciativa:'0','PV Máximo':'10','PV Atual':'10','PV Temporário':'0','PV Perdido':'0'}, outros: {Talentos:[], PO:'0'} } };
+
+    const hero = { 
+      name, 
+      isFirebaseOnly: true, 
+      deleted: false, 
+      sheetData: creationDraft || { 
+        allowEditing: true, 
+        info: { 'Nome do Personagem': name, Classe: '---', XP: '0', Nivel: '1' }, 
+        atributos: {FOR:'10',DES:'10',CON:'10',INT:'10',SAB:'10',CAR:'10'}, 
+        recursos: {CA:'10',Iniciativa:'0','PV Máximo':'10','PV Atual':'10','PV Temporário':'0','PV Perdido':'0'}, 
+        outros: {Talentos:[], PO:'0'},
+        pericias: defaultPericias
+      } 
+    };
+
     if (hero.sheetData.info) hero.sheetData.info['Nome do Personagem'] = name;
+    if (!hero.sheetData.pericias) hero.sheetData.pericias = defaultPericias;
+
     // Garante que o allowEditing esteja no final do objeto se vier do draft
     hero.sheetData.allowEditing = true;
     await saveCharacter(name, hero);

@@ -1372,7 +1372,30 @@ export function SheetView({
                                 'Prestidigitação': 'DES', 'Religião': 'INT', 'Sobrevivência': 'SAB'
                             };
 
-                            return Object.entries(characterSheetData.pericias || {}).map(([key, data]) => {
+                            const defaultPericias = {
+                                'Acrobacia': { val: '+0', prof: false },
+                                'Arcanismo': { val: '+0', prof: false },
+                                'Atletismo': { val: '+0', prof: false },
+                                'Atuação': { val: '+0', prof: false },
+                                'Enganação': { val: '+0', prof: false },
+                                'Furtividade': { val: '+0', prof: false },
+                                'História': { val: '+0', prof: false },
+                                'Intimidação': { val: '+0', prof: false },
+                                'Intuição': { val: '+0', prof: false },
+                                'Investigação': { val: '+0', prof: false },
+                                'Lidar com Animais': { val: '+0', prof: false },
+                                'Medicina': { val: '+0', prof: false },
+                                'Natureza': { val: '+0', prof: false },
+                                'Percepção': { val: '+0', prof: false },
+                                'Persuasão': { val: '+0', prof: false },
+                                'Prestidigitação': { val: '+0', prof: false },
+                                'Religião': { val: '+0', prof: false },
+                                'Sobrevivência': { val: '+0', prof: false }
+                            };
+
+                            const currentPericias = { ...defaultPericias, ...(characterSheetData.pericias || {}) };
+
+                            return Object.entries(currentPericias).map(([key, data]) => {
                                 // Suporte a compatibilidade: se for string, converte pra novo formato assumindo sem proficiência
                                 const isNewFormat = typeof data === 'object' && data !== null;
                                 const value = isNewFormat ? data.val : data;

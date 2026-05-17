@@ -86,8 +86,24 @@ export function parseAudioUrl(url) {
 
 // A função parseCSV é complexa porque precisa lidar com a estrutura específica da planilha de personagem, que tem dados organizados em linhas e colunas fixas. Ela extrai informações como atributos, magias, ataques, etc., com base na posição dos dados na planilha.
 export function parseCSV(csvText) {
+  // Detect separator dynamically (comma, semicolon, or tab)
+  let separator = ',';
+  const sampleLines = csvText.split(/\r?\n/).slice(0, 10).filter(line => line.trim() !== "");
+  if (sampleLines.length > 0) {
+    const commaCount = (sampleLines.join('\n').match(/,/g) || []).length;
+    const semiCount = (sampleLines.join('\n').match(/;/g) || []).length;
+    const tabCount = (sampleLines.join('\n').match(/\t/g) || []).length;
+
+    if (semiCount > commaCount && semiCount > tabCount) {
+      separator = ';';
+    } else if (tabCount > commaCount && tabCount > semiCount) {
+      separator = '\t';
+    }
+  }
+
   const splitRow = (row) => {
-    const re = /,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/;
+    const escapedSep = separator === '\t' ? '\\t' : (separator === '|' ? '\\|' : separator);
+    const re = new RegExp(`${escapedSep}(?=(?:[^"]*"[^"]*")*[^"]*$)`);
     return row.split(re).map(c => c.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
   };
 
@@ -207,37 +223,96 @@ export function parseCSV(csvText) {
     descricoesExtras[`desc_talento_${i}`] = colunasLimpas[1] || "";
   }
 
-    // Busca Dinâmica de Perícias
-    // Como a planilha tem posições customizadas, procuramos o nome da perícia em toda a grade
-    // Encontrando ela (ex: "Acrobacia" na col J), pegamos o MOD na col (J-1) e PRO na col (J-2)
-    const nomesPericias = [
-      'Acrobacia', 'Arcanismo', 'Atletismo', 'Atuação', 'Enganação', 'Furtividade',
-      'História', 'Intimidação', 'Intuição', 'Investigação', 'Lidar com Animais',
-      'Medicina', 'Natureza', 'Percepção', 'Persuasão', 'Prestidigitação', 'Religião', 'Sobrevivência'
-    ];
+    // Busca Dinâmica de Perícias (Ultra robusta com suporte a português, inglês, acentos e diferentes layouts)
+    const normalizeStr = (str) => {
+      if (!str || typeof str !== 'string') return '';
+      return str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+    };
+
+    const periciasMap = {
+      'Acrobacia': ['acrobacia', 'acrobatics'],
+      'Arcanismo': ['arcanismo', 'arcana'],
+      'Atletismo': ['atletismo', 'athletics'],
+      'Atuação': ['atuacao', 'performance', 'atuacão', 'atuacação'],
+      'Enganação': ['enganacao', 'deception', 'enganacão'],
+      'Furtividade': ['furtividade', 'stealth'],
+      'História': ['historia', 'history'],
+      'Intimidação': ['intimidacao', 'intimidation', 'intimidacão'],
+      'Intuição': ['intuicao', 'insight', 'intuicão'],
+      'Investigação': ['investigacao', 'investigation', 'investigacão'],
+      'Lidar com Animais': ['lidar com animais', 'animal handling'],
+      'Medicina': ['medicina', 'medicine'],
+      'Natureza': ['natureza', 'nature'],
+      'Percepção': ['percepcao', 'perception', 'percepcão'],
+      'Persuasão': ['persuasao', 'persuasion', 'persuasão'],
+      'Prestidigitação': ['prestidigitacao', 'sleight of hand', 'prestidigitacão'],
+      'Religião': ['religiao', 'religion', 'religião'],
+      'Sobrevivência': ['sobrevivencia', 'survival']
+    };
+
     const periciasDinamicas = {};
     
-    nomesPericias.forEach(nomePericia => {
+    Object.keys(periciasMap).forEach(nomePericia => {
       // Inicia com valores padrão caso não encontre
       periciasDinamicas[nomePericia] = { val: '+0', prof: false };
+      const synonyms = periciasMap[nomePericia];
       
       for (let r = 0; r < rows.length; r++) {
         const row = rows[r];
         if (!row) continue;
         
-        // Procura a coluna que textualmente bate com o nome da perícia ("Acrobacia")
-        const cIndex = row.findIndex(cell => cell && typeof cell === 'string' && cell.trim().toLowerCase() === nomePericia.toLowerCase());
+        // Procura a coluna que bate com qualquer sinônimo em formato normalizado (ignora acentos)
+        const cIndex = row.findIndex(cell => {
+          if (!cell || typeof cell !== 'string') return false;
+          const normalizedCell = normalizeStr(cell);
+          return synonyms.some(syn => normalizeStr(syn) === normalizedCell);
+        });
         
-        if (cIndex !== -1 && cIndex >= 2) {
-          // Achou a perícia! O MOD tá do lado esquerdo (-1) e a PRO (proficiência) duas casas pra esquerda (-2)
-          const modStr = row[cIndex - 1]?.trim() || '+0';
-          const proStr = row[cIndex - 2]?.trim()?.toLowerCase() || '';
+        if (cIndex !== -1) {
+          // Achou a perícia! Busca os arredores para achar o MOD (número) e a PRO (marcação de proficiência)
+          let val = '+0';
+          let prof = false;
+          const offsets = [-1, -2, 1, 2, -3, 3];
+          
+          // 1. Tenta achar o modificador (um número inteiro)
+          let foundVal = false;
+          for (const offset of offsets) {
+            const idx = cIndex + offset;
+            if (idx >= 0 && idx < row.length) {
+              const cell = row[idx]?.trim();
+              if (cell && /^[+-]?\d+$/.test(cell)) {
+                val = cell;
+                foundVal = true;
+                break;
+              }
+            }
+          }
+          
+          // 2. Tenta achar a proficiência (X, O, true, sim, marcações, etc)
+          for (const offset of offsets) {
+            const idx = cIndex + offset;
+            if (idx >= 0 && idx < row.length) {
+              const cell = row[idx]?.trim()?.toLowerCase();
+              if (cell && (cell === 'x' || cell === 'o' || cell === 'v' || cell === 'true' || cell === 'sim' || cell === '●' || cell === '✔' || cell === '1')) {
+                prof = true;
+                break;
+              }
+            }
+          }
+          
+          // Fallback para o layout original se não achar o modificador nos arredores dinâmicos
+          if (!foundVal && cIndex >= 2) {
+            val = row[cIndex - 1]?.trim() || '+0';
+            const proStr = row[cIndex - 2]?.trim()?.toLowerCase() || '';
+            prof = proStr === 'true' || proStr === 'o' || proStr === 'x' || proStr === 'sim' || proStr === '●' || proStr === '✔';
+          }
 
-          periciasDinamicas[nomePericia] = {
-            val: modStr,
-            prof: proStr === 'true' || proStr === 'o' || proStr === 'x'
-          };
-          break; // Já achou essa perícia, vai pra próxima
+          periciasDinamicas[nomePericia] = { val, prof };
+          break; // Já achou essa perícia, vai para a próxima
         }
       }
     });
