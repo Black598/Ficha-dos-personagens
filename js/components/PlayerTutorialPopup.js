@@ -90,7 +90,19 @@ export function PlayerTutorialPopup({ onClose }) {
                     ]),
 
                     el('div', { className: "bg-slate-900/60 p-4 rounded-2xl border border-slate-800" }, [
-                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2 text-xs" }, "📖 5. Diário de Bordo & Notas Compartilhadas"),
+                        el('h4', { className: "text-amber-500 font-bold mb-2 flex items-center gap-2 text-xs" }, "🌟 5. Características & Talentos (Bônus Passivos)"),
+                        el('p', { className: "text-xs mb-2" }, "Você e o mestre podem configurar talentos e características especiais que dão bônus passivos automáticos em qualquer atributo ou perícia da sua ficha!"),
+                        el('p', { className: "text-[11px] mb-2 text-slate-400" }, "Basta escrever o bônus no nome ou descrição do talento utilizando o formato de tags colchetes ", el('code', { className: "text-amber-400 bg-slate-950 px-1 py-0.5 rounded font-mono" }, "[TAG:VALOR]"), ":"),
+                        el('ul', { className: "list-disc pl-5 text-[11px] space-y-1 text-slate-300" }, [
+                            el('li', null, [el('strong', null, "Atributos Básicos:"), " Use tags como ", el('code', { className: "text-white bg-slate-950 px-1 rounded font-mono" }, "[FOR:+2]"), ", ", el('code', { className: "text-white bg-slate-950 px-1 rounded font-mono" }, "[DES:-1]"), ", ", el('code', { className: "text-white bg-slate-950 px-1 rounded font-mono" }, "[CON:+1]"), ", ", el('code', { className: "text-white bg-slate-950 px-1 rounded font-mono" }, "[INT:+2]"), ", ", el('code', { className: "text-white bg-slate-950 px-1 rounded font-mono" }, "[SAB:+2]"), ", ", el('code', { className: "text-white bg-slate-950 px-1 rounded font-mono" }, "[CAR:+1]"), "."]),
+                            el('li', null, [el('strong', null, "Status Globais:"), " Use ", el('code', { className: "text-white bg-slate-950 px-1 rounded font-mono" }, "[CA:+1]"), " para Classe de Armadura, ", el('code', { className: "text-white bg-slate-950 px-1 rounded font-mono" }, "[Iniciativa:+2]"), " para bônus de iniciativa, ou ", el('code', { className: "text-white bg-slate-950 px-1 rounded font-mono" }, "[Deslocamento:+5]"), " para velocidade."]),
+                            el('li', null, [el('strong', null, "Perícias Específicas:"), " Use o nome exato da perícia em maiúsculo ou minúsculo. Exemplo: ", el('code', { className: "text-white bg-slate-950 px-1 rounded font-mono" }, "[Acrobacia:+3]"), ", ", el('code', { className: "text-white bg-slate-950 px-1 rounded font-mono" }, "[Furtividade:+5]"), ", ", el('code', { className: "text-white bg-slate-950 px-1 rounded font-mono" }, "[Percepcao:+2]"), "."]),
+                            el('li', null, "O sistema identificará essas marcas automaticamente, somará os valores e atualizará suas estatísticas na interface em tempo real!")
+                        ])
+                    ]),
+
+                    el('div', { className: "bg-slate-900/60 p-4 rounded-2xl border border-slate-800" }, [
+                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2 text-xs" }, "📖 6. Diário de Bordo & Notas Compartilhadas"),
                         el('ul', { className: "list-disc pl-5 text-xs space-y-1" }, [
                             el('li', null, "Use a aba Notas Privadas para escrever seus segredos e progresso."),
                             el('li', null, "Crie Notas Compartilhadas para enviar envelopes e cartas físicas na tela de outros jogadores e do Mestre!")
@@ -98,7 +110,7 @@ export function PlayerTutorialPopup({ onClose }) {
                     ]),
 
                     el('div', { className: "bg-slate-900/60 p-4 rounded-2xl border border-slate-800" }, [
-                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2 text-xs" }, "⚙️ 6. Configurações Individuais de Sons"),
+                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2 text-xs" }, "⚙️ 7. Configurações Individuais de Sons"),
                         el('p', { className: "text-xs" }, "Clique no ícone de engrenagem no menu ou no rodapé para acessar suas preferências individuais de áudio. Mude os links ou ative/desative efeitos sonoros e controle se deseja escutar o soundpad de outros de forma 100% autônoma!")
                     ])
                 ]);
