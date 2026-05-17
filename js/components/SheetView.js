@@ -63,6 +63,7 @@ export function SheetView({
     const [showSoundboard, setShowSoundboard] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+    const [showThemeModal, setShowThemeModal] = useState(false);
 
     // --- CÁLCULO DE BÔNUS GLOBAIS (Inventário + Características) ---
     const getGlobalBonuses = () => {
@@ -499,14 +500,84 @@ export function SheetView({
     };
 
     return el('div', {
-        className: `min-h-screen bg-slate-950 text-slate-100 pb-32 animate-fade-in relative transition-all duration-500 ${isMyTurn ? 'ring-8 ring-amber-500/30' : ''} ${effectClass.replace('animate-bag', '')}`
+        className: `min-h-screen ${charData.outros?.['Background'] ? 'bg-slate-950/80' : 'bg-slate-950'} text-slate-100 pb-32 animate-fade-in relative transition-all duration-500 ${isMyTurn ? 'ring-8 ring-amber-500/30' : ''} ${effectClass.replace('animate-bag', '')}`
     }, [
+        // --- BACKGROUND CUSTOMIZADO ---
+        charData.outros?.['Background'] && el('div', {
+            key: 'custom-background',
+            className: "fixed inset-0 z-[-1] pointer-events-none",
+            style: {
+                backgroundImage: `url('${charData.outros['Background']}')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundAttachment: 'fixed',
+                opacity: 0.35,
+                mixBlendMode: 'luminosity'
+            }
+        }),
+
         showSetupModal && el(CharacterSetupModal, {
             key: 'setup-modal',
             initialName: characterName,
             onSave: handleSetupSave,
             onClose: () => setShowSetupModal(false)
         }),
+
+        // --- MODAL DE TEMA ---
+        showThemeModal && (() => {
+            const PREDEFINED_THEMES = [
+                { name: "Padrão (Nenhum)", url: "", icon: "🌑" },
+                { name: "Calabouço", url: "https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?q=80&w=2000&auto=format&fit=crop", icon: "🏰" },
+                { name: "Planície", url: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2000&auto=format&fit=crop", icon: "🌿" },
+                { name: "Taverna", url: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=2000&auto=format&fit=crop", icon: "🍺" },
+                { name: "Floresta Mágica", url: "https://images.unsplash.com/photo-1511497584788-876760111969?q=80&w=2000&auto=format&fit=crop", icon: "🌲" },
+                { name: "Céu Estrelado", url: "https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=2000&auto=format&fit=crop", icon: "✨" }
+            ];
+            
+            return el('div', {
+                key: 'theme-modal',
+                className: "fixed inset-0 z-[2000] bg-black/90 backdrop-blur-md p-6 flex items-center justify-center animate-fade-in",
+                onClick: (e) => e.target === e.currentTarget && setShowThemeModal(false)
+            }, el('div', {
+                className: "bg-slate-900 border-2 border-pink-500/50 p-6 md:p-8 rounded-[3rem] w-full max-w-2xl shadow-[0_0_50px_rgba(236,72,153,0.3)] flex flex-col gap-6"
+            }, [
+                el('div', { className: "flex justify-between items-center" }, [
+                    el('h3', { className: "text-pink-500 text-xl md:text-2xl font-black uppercase tracking-tighter italic flex items-center gap-3" }, ["🎨", "Personalizar Fundo"]),
+                    el('button', { onClick: () => setShowThemeModal(false), className: "text-slate-500 hover:text-white text-2xl font-black" }, "✕")
+                ]),
+                el('p', { className: "text-slate-400 text-xs md:text-sm leading-relaxed" }, "Escolha um dos temas padrão ou cole o link para um GIF / Imagem da internet. O fundo irá se mesclar automaticamente com as cores escuras da ficha para não atrapalhar a leitura."),
+                el('div', { className: "grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4" }, 
+                    PREDEFINED_THEMES.map(theme => 
+                        el('button', {
+                            key: theme.name,
+                            onClick: () => updateSheetField('outros', 'Background', theme.url),
+                            className: `h-20 md:h-24 rounded-2xl flex flex-col items-center justify-center gap-2 border-2 transition-all ${charData.outros?.['Background'] === theme.url ? 'border-pink-500 bg-pink-500/20 shadow-lg scale-105' : 'border-slate-800 bg-slate-950 hover:border-pink-500/50'}`
+                        }, [
+                            el('span', { className: "text-xl md:text-2xl" }, theme.icon),
+                            el('span', { className: "text-[8px] md:text-[9px] font-black uppercase text-slate-300 text-center px-2" }, theme.name)
+                        ])
+                    )
+                ),
+                el('div', { className: "border-t border-slate-800 pt-6 mt-2" }, [
+                    el('label', { className: "text-[10px] text-slate-500 font-black uppercase tracking-widest mb-3 block" }, "URL Customizada (Imagem ou GIF)"),
+                    el('div', { className: "flex gap-2 md:gap-3" }, [
+                        el('input', {
+                            id: "custom-bg-input",
+                            defaultValue: charData.outros?.['Background'] && !PREDEFINED_THEMES.some(t => t.url === charData.outros?.['Background']) ? charData.outros?.['Background'] : "",
+                            placeholder: "Cole o link direto da imagem aqui...",
+                            className: "flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-pink-500/50"
+                        }),
+                        el('button', {
+                            onClick: () => {
+                                const val = document.getElementById("custom-bg-input").value;
+                                updateSheetField('outros', 'Background', parseImageUrl(val));
+                            },
+                            className: "bg-pink-600 hover:bg-pink-500 text-white font-black uppercase text-[10px] px-4 md:px-6 rounded-xl transition-colors shadow-lg"
+                        }, "Aplicar")
+                    ])
+                ])
+            ]))
+        })(),
 
         // --- NÉVOA DE FUNDO ---
         activeConditions.length > 0 && el('div', {
@@ -669,6 +740,10 @@ export function SheetView({
                         className: "bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white text-[10px] font-black uppercase tracking-widest border border-indigo-600/30 px-4 py-2 rounded-xl transition-all shadow-[0_0_15px_rgba(79,70,229,0.2)] animate-pulse-soft"
                     }, "🧠 Mentor"),
                     el('button', {
+                        onClick: () => setShowThemeModal(true),
+                        className: "bg-pink-600/10 hover:bg-pink-600 text-pink-400 hover:text-white text-[10px] font-black uppercase tracking-widest border border-pink-600/30 px-4 py-2 rounded-xl transition-all"
+                    }, "🎨 Tema"),
+                    el('button', {
                         onClick: () => setShowTutorial(true),
                         className: "w-10 h-10 bg-slate-800 hover:bg-amber-600 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg"
                     }, "❓"),
@@ -725,9 +800,13 @@ export function SheetView({
                     className: "bg-purple-900/20 border border-purple-500/30 p-6 rounded-2xl flex flex-col items-center gap-3 text-purple-400"
                 }, [el('span', { className: "text-3xl" }, "💬"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Chat Privado")]),
                 el('button', {
-                    onClick: () => { onOpenMentor(); setIsMobileMenuOpen(false); },
-                    className: "bg-indigo-900/20 border border-indigo-500/30 p-6 rounded-2xl flex flex-col items-center gap-3 text-indigo-400"
-                }, [el('span', { className: "text-3xl" }, "🧠"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Mentor")]),
+                        onClick: () => { onOpenMentor(); setIsMobileMenuOpen(false); },
+                        className: "bg-indigo-900/20 border border-indigo-500/30 p-6 rounded-2xl flex flex-col items-center gap-3 text-indigo-400"
+                    }, [el('span', { className: "text-3xl" }, "🧠"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Mentor")]),
+                el('button', {
+                    onClick: () => { setShowThemeModal(true); setIsMobileMenuOpen(false); },
+                    className: "bg-pink-900/20 border border-pink-500/30 p-6 rounded-2xl flex flex-col items-center gap-3 text-pink-400"
+                }, [el('span', { className: "text-3xl" }, "🎨"), el('span', { className: "text-[10px] font-bold uppercase tracking-widest" }, "Tema")]),
                 el('button', {
                     onClick: () => { setShowTutorial(true); setIsMobileMenuOpen(false); },
                     className: "bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-3 text-slate-400"
@@ -1985,7 +2064,11 @@ export function SheetView({
                         const skill = sessionState.rollRequests[characterName.toLowerCase()].skill;
                         let bonus = 0;
                         if (charData?.pericias?.[skill]) bonus = parseInt(charData.pericias[skill].val) || 0;
-                        else if (charData?.modificadores?.[skill]) bonus = parseInt(charData.modificadores[skill]) || 0;
+                        else if (['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'].includes(skill.toUpperCase())) {
+                            bonus = Math.floor(((parseInt(charData?.atributos?.[skill.toUpperCase()]) || 10) - 10) / 2);
+                        } else if (charData?.modificadores?.[skill]) {
+                            bonus = parseInt(charData.modificadores[skill]) || 0;
+                        }
                         
                         const roll = Math.floor(Math.random() * 20) + 1;
                         const total = roll + bonus;

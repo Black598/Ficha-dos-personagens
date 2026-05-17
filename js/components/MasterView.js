@@ -372,7 +372,7 @@ export function MasterView({
                                                 el('p', { key: 'char-class', className: "text-[11px] text-purple-400 font-bold uppercase tracking-widest" }, char.sheetData?.info?.['Classe'] || char.Player || 'Aventureiro'),
                                                 el('span', { key: 'passive-perc', className: "text-[10px] font-bold text-slate-400 bg-slate-950 px-2 py-1 rounded-lg flex items-center gap-1.5 border border-slate-800 whitespace-nowrap shadow-inner", title: "Percepção Passiva" }, [
                                                     el('span', { key: 'eye' }, "👁️"), 
-                                                    10 + parseInt(char.sheetData?.pericias?.['Percepção']?.val || char.sheetData?.modificadores?.['SAB'] || 0)
+                                                    10 + parseInt(char.sheetData?.pericias?.['Percepção']?.val || Math.floor(((parseInt(char.sheetData?.atributos?.['SAB']) || 10) - 10) / 2))
                                                 ])
                                             ])
                                         ])
@@ -396,7 +396,11 @@ export function MasterView({
                                                 if (stat) {
                                                     let bonus = 0;
                                                     if (char.sheetData?.pericias?.[stat]) bonus = parseInt(char.sheetData.pericias[stat].val) || 0;
-                                                    else if (char.sheetData?.modificadores?.[stat]) bonus = parseInt(char.sheetData.modificadores[stat]) || 0;
+                                                    else if (['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'].includes(stat.toUpperCase())) {
+                                                        bonus = Math.floor(((parseInt(char.sheetData?.atributos?.[stat.toUpperCase()]) || 10) - 10) / 2);
+                                                    } else if (char.sheetData?.modificadores?.[stat]) {
+                                                        bonus = parseInt(char.sheetData.modificadores[stat]) || 0;
+                                                    }
                                                     const roll = Math.floor(Math.random() * 20) + 1;
                                                     const total = roll + bonus;
                                                     firebase.firestore().collection('artifacts').doc(localStorage.getItem('current_rpg_app_id') || 'rpg-mega-trees-v7')
@@ -478,8 +482,8 @@ export function MasterView({
                                 el('div', { key: 'stats-grid', className: "grid grid-cols-2 gap-4 mb-4" }, [
                                     el('div', { key: 'attrs', className: "grid grid-cols-3 gap-1" }, 
                                         ['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'].map(attr => {
-                                            const mod = char.sheetData?.modificadores?.[attr] || '0';
-                                            const modNum = parseInt(mod);
+                                            const attrValue = parseInt(char.sheetData?.atributos?.[attr]) || 10;
+                                            const modNum = Math.floor((attrValue - 10) / 2);
                                             const modText = modNum >= 0 ? `+${modNum}` : `${modNum}`;
                                             return el('div', { key: attr, className: "bg-slate-950 p-1 rounded-lg border border-slate-800 text-center flex flex-col items-center justify-center" }, [
                                                 el('p', { key: `label-${attr}`, className: "text-[6px] text-slate-500 font-bold" }, attr),

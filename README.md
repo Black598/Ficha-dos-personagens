@@ -8,6 +8,7 @@ Uma plataforma completa, imersiva e automatizada para mestrar e jogar RPG de mes
 
 ### 🎮 Para Jogadores
 - **Ficha Automatizada:** Gestão de atributos, perícias, talentos e PV com cálculos em tempo real.
+- **Personalização Visual:** Temas de fundo personalizáveis e suporte a GIFs animados, mantendo a estética dark-mode imersiva.
 - **Inventário Visual:** Sistema de grid (estilo RPGs modernos) com slots de equipamento e bônus automáticos.
 - **Segurança Individual:** Fichas protegidas por PIN de 4 dígitos (personalizável).
 - **Alquimia & Crafting:** Sistema de criação de itens e poções com receitas lógicas e guia por IA.

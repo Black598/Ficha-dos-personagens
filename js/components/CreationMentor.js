@@ -278,8 +278,8 @@ export function CreationMentor({
 function checkStatsRolled(characterSheetData) {
     if (!characterSheetData || !characterSheetData.atributos) return false;
     const attrs = ['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'];
-    // Se TODOS os atributos forem diferentes de 10, consideramos que já foi rolado
-    return attrs.every(attr => {
+    // Se ALGUM atributo for diferente de 10, consideramos que já foi rolado
+    return attrs.some(attr => {
         const val = characterSheetData.atributos[attr];
         return val && val !== '10' && val !== 10;
     });

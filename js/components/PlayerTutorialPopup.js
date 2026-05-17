@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
 
-export const PLAYER_TUTORIAL_VERSION = '2.2';
+export const PLAYER_TUTORIAL_VERSION = '2.3';
 
 export function PlayerTutorialPopup({ onClose }) {
     const [activeTab, setActiveTab] = useState('novidades'); // Abre direto nas novidades quando há update
@@ -24,7 +24,12 @@ export function PlayerTutorialPopup({ onClose }) {
         switch (activeTab) {
             case 'novidades':
                 return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
-                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 2.2 - O Mentor e Automação"),
+                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 2.3 - Personalização e O Mentor"),
+                    
+                    el('div', { className: "bg-pink-900/20 border border-pink-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-pink-400 font-bold mb-2 flex items-center gap-2" }, "🎨 Temas e Fundo Customizável"),
+                        el('p', { className: "text-xs" }, "Agora você pode personalizar o visual da sua ficha! Use temas predefinidos (como Taverna, Calabouço) ou cole a URL de um GIF/Imagem animada para deixá-la com o seu estilo.")
+                    ]),
                     
                     el('div', { className: "bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl" }, [
                         el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2" }, "🧠 Mentor de Criação"),
