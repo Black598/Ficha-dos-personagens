@@ -75,16 +75,43 @@ export function SheetView({
             skills: {}
         };
 
+        const getAttrModifier = (attr) => {
+            const attrVal = (parseInt(characterSheetData.atributos?.[attr.toUpperCase()]) || 10);
+            return Math.floor((attrVal - 10) / 2);
+        };
+
+        const addBonus = (rawKey, rawValStr) => {
+            const keyUpper = rawKey.trim().toUpperCase();
+            
+            // Resolve rawValStr: pode ser um número (+1, -2) ou a chave de um atributo (INT, SAB, CAR, DES, etc.)
+            let val = 0;
+            const cleanValStr = String(rawValStr).trim().toUpperCase();
+            if (['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'].includes(cleanValStr)) {
+                val = getAttrModifier(cleanValStr);
+            } else {
+                val = parseInt(cleanValStr) || 0;
+            }
+
+            if (keyUpper === 'CA') {
+                bonuses.CA += val;
+            } else if (keyUpper === 'INICIATIVA' || keyUpper === 'INI') {
+                bonuses.Iniciativa += val;
+            } else if (keyUpper === 'DESLOCAMENTO' || keyUpper === 'DESLOC') {
+                bonuses.Deslocamento += val;
+            } else if (bonuses[keyUpper] !== undefined) {
+                bonuses[keyUpper] += val;
+            } else {
+                bonuses.skills[keyUpper] = (bonuses.skills[keyUpper] || 0) + val;
+            }
+        };
+
         // 1. Bônus de Inventário {E} (Equipado)
         const items = (characterSheetData.outros?.['Equipamento'] || "").split(',').map(s => s.trim());
         items.forEach(item => {
             if (!item.includes('{E}')) return;
             const matches = [...item.matchAll(/\((.*?):(.*?)\)/g)];
             matches.forEach(m => {
-                const key = m[1].trim().toUpperCase();
-                const val = parseInt(m[2]) || 0;
-                if (bonuses[key] !== undefined) bonuses[key] += val;
-                else bonuses.skills[key] = (bonuses.skills[key] || 0) + val;
+                addBonus(m[1], m[2]);
             });
         });
 
@@ -93,13 +120,18 @@ export function SheetView({
         if (!Array.isArray(talentosAtuais)) {
             talentosAtuais = typeof talentosAtuais === 'string' ? talentosAtuais.split('/').map(s=>s.trim()) : [];
         }
-        talentosAtuais.forEach(talent => {
-            const matches = [...talent.matchAll(/\[(.*?):(.*?)]/g)];
-            matches.forEach(m => {
-                const key = m[1].trim().toUpperCase();
-                const val = parseInt(m[2]) || 0;
-                if (bonuses[key] !== undefined) bonuses[key] += val;
-                else bonuses.skills[key] = (bonuses.skills[key] || 0) + val;
+        talentosAtuais.forEach((talent, idx) => {
+            // Varre o título do talento
+            const matchesTitle = [...talent.matchAll(/\[(.*?):(.*?)]/g)];
+            matchesTitle.forEach(m => {
+                addBonus(m[1], m[2]);
+            });
+
+            // Varre a descrição do talento (desc_talento_${idx})
+            const desc = characterSheetData.outros?.[`desc_talento_${idx}`] || "";
+            const matchesDesc = [...desc.matchAll(/\[(.*?):(.*?)]/g)];
+            matchesDesc.forEach(m => {
+                addBonus(m[1], m[2]);
             });
         });
 
@@ -1078,7 +1110,7 @@ export function SheetView({
                                         const dexMod = Math.floor((dexVal - 10) / 2);
                                         const autoIniVal = dexMod + (invBonuses.Iniciativa || 0);
                                         const modifierVal = parseInt(characterSheetData.recursos?.['Iniciativa']);
-                                        const finalModifier = isNaN(modifierVal) ? autoIniVal : modifierVal;
+                                        const finalModifier = (isNaN(modifierVal) || modifierVal === 0) ? autoIniVal : modifierVal;
                                         
                                         const totalVal = roll + finalModifier;
                                         
@@ -1114,8 +1146,13 @@ export function SheetView({
                                 }, "🎲") : el('span', { className: `${color} text-xl` }, icon),
                                 el('p', { className: "text-[9px] font-black text-slate-500 uppercase mt-1" }, label),
                                 onUpdate ? el('input', {
+                                    key: `${label}-${val}-${characterSheetData.recursos?.[label]}`,
                                     className: `bg-transparent text-center text-2xl font-black ${color} outline-none w-full hover:bg-slate-800 rounded transition-colors`,
-                                    defaultValue: characterSheetData.recursos?.[label] || val,
+                                    defaultValue: (() => {
+                                        const saved = characterSheetData.recursos?.[label];
+                                        const parsed = parseInt(saved);
+                                        return (saved !== undefined && saved !== "" && !isNaN(parsed) && parsed !== 0) ? saved : val;
+                                    })(),
                                     onBlur: (e) => onUpdate(e.target.value)
                                 }) : el('p', { className: `text-2xl font-black ${color}` }, val),
                                 bonus !== 0 && el('span', { className: "absolute top-2 right-4 text-[8px] font-black text-amber-500 animate-pulse" }, `+${bonus}`)
