@@ -249,6 +249,8 @@ function App() {
   useEffect(() => {
     if (allCharacters.length === 0) return;
     
+    const autoCount = sessionState.soulSettings?.autoCountDeaths ?? true;
+
     // Filtramos apenas personagens que realmente morreram nesta iteração
     const newDeaths = [];
     allCharacters.forEach(char => {
@@ -261,7 +263,7 @@ function App() {
 
       // Se morreu agora e antes estava vivo
       if (curr <= 0 && lastHPs.current[id] > 0) {
-        newDeaths.push(char);
+        if (autoCount) newDeaths.push(char);
       }
       lastHPs.current[id] = curr;
     });

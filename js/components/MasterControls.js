@@ -267,7 +267,16 @@ export function MasterControls({ sessionState, updateSessionState }) {
                 el('div', { className: "flex items-center justify-between" }, [
                     el('div', { className: "flex flex-col" }, [
                         el('span', { className: "text-[8px] font-black text-slate-600 uppercase tracking-widest" }, "Tempo Passado"),
-                        el('span', { className: "text-3xl font-black text-amber-500 tracking-tighter" }, `Dia ${sessionState?.day || 1}`)
+                        el('div', { className: "flex items-center text-3xl font-black text-amber-500 tracking-tighter" }, [
+                            "Dia ",
+                            el('input', {
+                                type: 'number',
+                                min: 1,
+                                value: sessionState?.day || 1,
+                                onChange: (e) => updateSessionState({ day: parseInt(e.target.value) || 1 }),
+                                className: "bg-transparent w-16 outline-none text-amber-500 ml-1 hover:bg-slate-800 rounded px-1"
+                            })
+                        ])
                     ]),
                     el('div', { className: "flex flex-col text-right" }, [
                         el('span', { className: "text-[8px] font-black text-slate-600 uppercase tracking-widest" }, "Hora Atual"),
@@ -275,7 +284,23 @@ export function MasterControls({ sessionState, updateSessionState }) {
                             const time = sessionState?.timeMinutes !== undefined ? sessionState.timeMinutes : 480; // Default 08:00
                             const h = Math.floor(time / 60).toString().padStart(2, '0');
                             const m = (time % 60).toString().padStart(2, '0');
-                            return el('span', { className: "text-2xl font-black text-purple-400 font-mono bg-slate-900 px-3 py-1 rounded-xl border border-slate-800" }, `${h}:${m}`);
+                            return el('input', { 
+                                type: 'time',
+                                value: `${h}:${m}`,
+                                onChange: (e) => {
+                                    const val = e.target.value;
+                                    if (!val) return;
+                                    const [hours, minutes] = val.split(':').map(Number);
+                                    const newTime = (hours * 60) + minutes;
+                                    
+                                    const updates = { timeMinutes: newTime };
+                                    if (time < 360 && newTime >= 360) updates.environment = 'none';
+                                    else if (time < 1080 && newTime >= 1080) updates.environment = 'night';
+                                    
+                                    updateSessionState(updates);
+                                },
+                                className: "text-2xl font-black text-purple-400 font-mono bg-slate-900 px-3 py-1 rounded-xl border border-slate-800 outline-none hover:border-purple-500 transition-colors cursor-pointer" 
+                            });
                         })()
                     ])
                 ]),

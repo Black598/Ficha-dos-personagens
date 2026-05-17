@@ -717,7 +717,7 @@ export function MasterView({
             ])
         ]),
 
-        el('div', { key: 'master-grimoire', className: "max-w-6xl mx-auto mb-32" }, el(SoulGrimoire, { souls, updateSouls })),
+        el('div', { key: 'master-grimoire', className: "max-w-6xl mx-auto mb-32" }, el(SoulGrimoire, { souls, updateSouls, sessionState, updateSessionState, geminiApiKey, askGemini })),
 
         el('div', { key: 'oracle-widget', className: `fixed bottom-8 right-8 z-[100] transition-all ${oracleOpen ? 'w-[350px]' : 'w-16 h-16'}` }, [
             !oracleOpen ? el('button', { onClick: () => setOracleOpen(true), className: "w-16 h-16 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-3xl flex items-center justify-center text-3xl shadow-2xl" }, "🔮") :
