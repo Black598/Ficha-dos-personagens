@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
 
-export const MASTER_TUTORIAL_VERSION = '2.3';
+export const MASTER_TUTORIAL_VERSION = '2.4';
 
 export function MasterTutorialPopup({ onClose }) {
     const [activeTab, setActiveTab] = useState('novidades');
@@ -25,21 +25,21 @@ export function MasterTutorialPopup({ onClose }) {
         switch (activeTab) {
             case 'novidades':
                 return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
-                    el('p', { className: "text-purple-400 font-bold" }, "✨ Versão 2.3 - Invocador de Criaturas & Crachás de Tokens"),
+                    el('p', { className: "text-purple-400 font-bold" }, "✨ Versão 2.4 - Régua Dinâmica, Pings Sincronizados & HUD de HP"),
                     
                     el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl shadow-lg" }, [
-                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "👹 Invocador Visual de Criaturas"),
-                        el('p', { className: "text-xs" }, "Chega de prompts de texto! Agora você pode invocar criaturas (Monstros do Bestiário, NPCs/Personagens e Animais) clicando em abas organizadas no VTT. O token é inserido instantaneamente no centro da tela e alinhado no grid!")
+                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "📐 Medição Tática Multidimensional"),
+                        el('p', { className: "text-xs" }, "As réguas de linha, cone e círculo no VTT agora mostram em tempo real a distância em Quadrados, Pés (ft) e Metros (m). E mais: o balão de texto rotaciona no sentido inverso do ângulo, ficando sempre horizontal e legível!")
                     ]),
 
-                    el('div', { className: "bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2" }, "📛 Crachás nos Tokens"),
-                        el('p', { className: "text-xs" }, "Todos os tokens circulares agora exibem seus nomes centralizados logo abaixo em lindas pílulas acrílicas translúcidas que brilham em dourado ao passar o mouse, facilitando a identificação imediata.")
+                    el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl shadow-lg" }, [
+                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2" }, "🔔 Pings Rápidos por Clique/Toque"),
+                        el('p', { className: "text-xs" }, "Dispare sinalizações luminosas instantâneas no mapa para chamar a atenção dos jogadores! Basta clicar com o botão do meio do mouse (mouse wheel) ou dar duplo clique no fundo do mapa.")
                     ]),
 
-                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🎨 Editor de GUI Arraste-e-Solte"),
-                        el('p', { className: "text-xs" }, "Ative o modo de Edição de GUI nas Configurações (⚙️) e arraste qualquer bloco (Mural, Monstros, Loot, Histórico, etc.) para a Esquerda, Direita ou Rodapé para montar seu próprio layout de tela de Mestre!")
+                    el('div', { className: "bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl shadow-lg" }, [
+                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2" }, "❤️ HUD Flutuante de HP do Token"),
+                        el('p', { className: "text-xs" }, "Gerenciar a vida dos monstros e jogadores durante o combate ficou incrivelmente ágil! Clique em qualquer token no mapa para abrir o HUD rápido com atalhos de `-5`, `-1`, `+1`, `+5` e controle de dano/cura customizável.")
                     ])
                 ]);
             case 'geral':
@@ -58,11 +58,13 @@ export function MasterTutorialPopup({ onClose }) {
                 );
             case 'vtt':
                 return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
-                    el('p', null, "O sistema de ", el('strong', { className: "text-blue-400" }, "Virtual Tabletop (VTT)"), " permite gerenciar o combate visual."),
+                    el('p', null, "O sistema de ", el('strong', { className: "text-blue-400" }, "Virtual Tabletop (VTT)"), " permite controle total sobre o combate visual."),
                     el('ul', { className: "list-disc pl-5 space-y-3" },
-                        el('li', null, el('strong', { className: "text-white" }, "Mapas:"), " Use o painel de Mapas para carregar cenários. O sistema suporta zoom e pan sincronizado."),
-                        el('li', null, el('strong', { className: "text-white" }, "Tokens:"), " Arraste monstros do seu gerenciador diretamente para o mapa. Clique duas vezes no token para editar PV e Aura."),
-                        el('li', null, el('strong', { className: "text-white" }, "Névoa:"), " Você tem controle total sobre o que os jogadores veem. Revele áreas conforme eles exploram.")
+                        el('li', null, el('strong', { className: "text-white" }, "Mapas & Cenários:"), " Use o menu de Mapas para carregar ou gerenciar imagens de fundo da biblioteca. Controle zoom (scroll) e navegue pelo mapa (botão direito do mouse)."),
+                        el('li', null, el('strong', { className: "text-white" }, "HUD de HP Rápido:"), " Clique em qualquer token para abrir o HUD rápido de controle de HP. Use atalhos como -5 ou +1 para ajustar a saúde de criaturas em segundos sem abrir modais complexos!"),
+                        el('li', null, el('strong', { className: "text-amber-400" }, "Pings & Sinais:"), " Use o clique central (roda do mouse) ou dê duplo clique no fundo do mapa para criar alertas animados visíveis para todos os jogadores."),
+                        el('li', null, el('strong', { className: "text-emerald-400" }, "Réguas de Medição:"), " Utilize as ferramentas de régua (linha), molde de cone ou círculo para simular deslocamento e feitiços de área, exibindo métricas exatas de quadrados, pés e metros dinamicamente."),
+                        el('li', null, el('strong', { className: "text-purple-400" }, "Névoa de Guerra & Parede:"), " Ative a névoa para esconder o mapa. Trace paredes estruturais para que a visão dinâmica dos jogadores seja bloqueada realisticamente em tempo real!")
                     )
                 );
             case 'soundboard':

@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
 
-export const PLAYER_TUTORIAL_VERSION = '2.5';
+export const PLAYER_TUTORIAL_VERSION = '2.6';
 
 export function PlayerTutorialPopup({ onClose }) {
     const [activeTab, setActiveTab] = useState('novidades'); // Abre direto nas novidades quando há update
@@ -24,21 +24,21 @@ export function PlayerTutorialPopup({ onClose }) {
         switch (activeTab) {
             case 'novidades':
                 return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
-                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 2.5 - Crachás de Tokens & UX Refinada"),
+                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 2.6 - Régua Dinâmica, Pings Sincronizados & HUD de HP"),
                     
                     el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl shadow-lg" }, [
-                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "📛 Crachás nos Tokens"),
-                        el('p', { className: "text-xs" }, "Todos os tokens circulares no mapa agora exibem seus nomes centralizados logo abaixo em lindas pílulas acrílicas translúcidas que brilham em dourado ao passar o mouse, facilitando a identificação imediata durante o combate!")
+                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "📐 Régua de Medição Tática"),
+                        el('p', { className: "text-xs" }, "As ferramentas de Linha, Cone e Círculo agora calculam a distância e quantidade de Quadrados exatos em tempo real. O indicador visual de metros (m) e pés (ft) rotaciona automaticamente para ficar sempre horizontal e 100% legível!")
+                    ]),
+
+                    el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl shadow-lg" }, [
+                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2" }, "🔔 Sinalização / Pings no Mapa"),
+                        el('p', { className: "text-xs" }, "Precisa indicar um caminho ou perigo? Clique com o botão do meio (mouse wheel) ou dê duplo clique no fundo do mapa para gerar uma animação de ping luminosa que aparece em tempo real para todos na mesa!")
                     ]),
 
                     el('div', { className: "bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2" }, "🔮 Modais Glassmorphism"),
-                        el('p', { className: "text-xs" }, "Todos os popups, modais e guias agora têm um visual acrílico translúcido com desfoque de fundo super premium, deixando a imersão na arte do jogo ainda mais incrível!")
-                    ]),
-                    
-                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🎒 Sem Sobreposição de Botões"),
-                        el('p', { className: "text-xs" }, "Otimizamos a parte inferior da ficha! O menu de ações rápidas e o menu de itens fixos foram reposicionados para funcionar em paralelo ou abaixo, garantindo visibilidade total sem cobrir seus botões.")
+                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2" }, "❤️ HUD Flutuante de HP & Seleção"),
+                        el('p', { className: "text-xs" }, "Ao clicar no seu token, um anel dourado neon de seleção é ativado e um painel de status flutua sobre o personagem exibindo sua barra de vida em tempo real e controles rápidos para gerenciar seu HP com extrema facilidade!")
                     ])
                 ]);
             case 'mentor':
@@ -65,11 +65,12 @@ export function PlayerTutorialPopup({ onClose }) {
                 );
             case 'vtt':
                 return el('div', { className: "space-y-4 text-slate-300 text-sm leading-relaxed" },
-                    el('p', null, "Agora o sistema conta com um ", el('strong', { className: "text-blue-400" }, "Mapa de Batalha (VTT)"), " integrado."),
+                    el('p', null, "O sistema conta com um ", el('strong', { className: "text-blue-400" }, "Mapa de Batalha (VTT)"), " completo e tático."),
                     el('ul', { className: "list-disc pl-5 space-y-3" },
-                        el('li', null, el('strong', { className: "text-white" }, "Visualização:"), " Quando o Mestre abrir o mapa, ele aparecerá na sua tela. Você pode dar Zoom (scroll) e arrastar o mapa (botão direito)."),
-                        el('li', null, el('strong', { className: "text-white" }, "Seu Token:"), " Você pode mover o seu personagem pelo mapa arrastando-o. O movimento é sincronizado para todos!"),
-                        el('li', null, el('strong', { className: "text-white" }, "Névoa de Guerra:"), " Áreas escuras escondem segredos. Apenas o que o seu token 'vê' será revelado.")
+                        el('li', null, el('strong', { className: "text-white" }, "Navegação:"), " Você pode dar Zoom (scroll do mouse ou botões de lupa) e arrastar o mapa (segurando com o botão direito do mouse)."),
+                        el('li', null, el('strong', { className: "text-white" }, "Seu Token:"), " Mova o seu personagem arrastando-o (o snap-to-grid posiciona perfeitamente). Clicar no token abre o HUD flutuante de HP, e clique direito exibe as auras e configurações."),
+                        el('li', null, el('strong', { className: "text-amber-400" }, "Sinalizações e Pings:"), " Dê um clique com o botão do meio (roda do mouse) ou duplo clique no fundo do cenário para emitir um sinal visual no mapa para todo o grupo."),
+                        el('li', null, el('strong', { className: "text-emerald-400" }, "Medir Distâncias:"), " Use a ferramenta de Linha/Régua para medir o deslocamento preciso ou utilize os moldes de Cone e Círculo para posicionar magias de área com indicação exata de quadrados, pés e metros.")
                     )
                 );
             case 'alquimia':

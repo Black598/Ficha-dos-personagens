@@ -24,6 +24,7 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
     const [currentDraw, setCurrentDraw] = useState(null);
     const [drawColor, setDrawColor] = useState('#f59e0b');
     const [pings, setPings] = useState([]);
+    const [selectedTokenId, setSelectedTokenId] = useState(null);
 
     const [isMapLibraryOpen, setIsMapLibraryOpen] = useState(false);
     const [creatureSelectorOpen, setCreatureSelectorOpen] = useState(null); // 'bestiary', 'characters', 'animals' or null
@@ -86,8 +87,27 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
 
     const handlePointerDown = (e) => {
         const isTouch = e.pointerType === 'touch';
-        // Botão direito/meio do mouse OU toque na tela para arrastar o mapa
-        if (e.button === 1 || e.button === 2 || (isTouch && !drawMode && !draggingToken)) {
+
+        // Deselecionar token ao clicar no fundo com botão esquerdo
+        if (e.button === 0) {
+            setSelectedTokenId(null);
+        }
+
+        // PING COM BOTÃO DO MEIO (Middle-click)
+        if (e.button === 1) {
+            e.preventDefault();
+            e.stopPropagation();
+            const rect = cameraRef.current.getBoundingClientRect();
+            const worldX = (e.clientX - rect.left) / camera.scale;
+            const worldY = (e.clientY - rect.top) / camera.scale;
+            const newPing = { id: Date.now(), x: worldX, y: worldY, sender: characterName };
+            const activePings = (battlemapData?.pings || []).filter(p => Date.now() - p.id < 3000);
+            updateSessionState({ battlemap: { ...battlemapData, pings: [...activePings, newPing] } });
+            return;
+        }
+
+        // Botão direito do mouse OU toque na tela para arrastar o mapa (removido botão do meio daqui para usar no ping)
+        if (e.button === 2 || (isTouch && !drawMode && !draggingToken)) {
             setIsDraggingCanvas(true);
             setDragStart({ x: e.clientX, y: e.clientY });
         } else if (e.button === 0 && drawMode && !draggingToken) {
@@ -101,6 +121,10 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
     const handleTokenPointerDown = (e, token) => {
         if (e.button !== 0) return; // Apenas botão principal (esquerdo) ou toque
         e.stopPropagation();
+        
+        // Seleciona o token ao clicar nele
+        setSelectedTokenId(token.id);
+
         if (mode !== 'master' && token.name !== characterName && token.createdBy !== characterName) return; // Só arrasta o próprio token ou o que criou
         
         // Bloqueio de Turno (Apenas para Jogadores)
@@ -625,7 +649,18 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
             // touch-none é vital para mobile para não rolar a página enquanto arrasta
             className: `w-full h-full relative outline-none ${isDraggingCanvas ? 'cursor-grabbing' : 'cursor-grab'} overflow-hidden touch-none`,
             onPointerDown: handlePointerDown,
-            onWheel: handleWheel
+            onWheel: handleWheel,
+            onDoubleClick: (e) => {
+                if (drawMode || draggingToken) return;
+                e.preventDefault();
+                e.stopPropagation();
+                const rect = cameraRef.current.getBoundingClientRect();
+                const worldX = (e.clientX - rect.left) / camera.scale;
+                const worldY = (e.clientY - rect.top) / camera.scale;
+                const newPing = { id: Date.now(), x: worldX, y: worldY, sender: characterName };
+                const activePings = (battlemapData?.pings || []).filter(p => Date.now() - p.id < 3000);
+                updateSessionState({ battlemap: { ...battlemapData, pings: [...activePings, newPing] } });
+            }
         }, [
             // A "Câmera" aplica a transformação
             el('div', {
@@ -669,10 +704,15 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                     const distance = Math.sqrt(dx*dx + dy*dy);
                     const angle = Math.atan2(dy, dx) * 180 / Math.PI;
 
+                    const gs = activeMap.gridSize || 50;
+                    const cellCount = (distance / gs).toFixed(1);
+                    const distanceFeet = Math.round((distance / gs) * 5); // 5 pés por quadrado
+                    const distanceMeters = ((distance / gs) * 1.5).toFixed(1); // 1.5 metros por quadrado
+
                     if (d.shape === 'circle') {
                         return el('div', {
                             key: d.id || 'current',
-                            className: "absolute rounded-full border-[3px] opacity-60 bg-white/10 pointer-events-none",
+                            className: "absolute rounded-full border-[3px] opacity-60 bg-white/10 pointer-events-none flex items-center justify-center",
                             style: {
                                 left: `${d.startX}px`,
                                 top: `${d.startY}px`,
@@ -682,12 +722,17 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                                 borderColor: d.color || '#f59e0b',
                                 backgroundColor: d.color ? `${d.color}33` : undefined // 20% opacity
                             }
-                        });
+                        }, [
+                            el('div', {
+                                key: 'circle-ruler-badge',
+                                className: "absolute bg-slate-950/90 backdrop-blur-sm border border-slate-800 px-2 py-0.5 rounded text-[8px] font-black tracking-wider text-amber-400 whitespace-nowrap shadow-2xl z-50 pointer-events-none select-none text-center"
+                            }, `Raio: ${cellCount} Qdr | ${distanceFeet} ft | ${distanceMeters} m`)
+                        ]);
                     }
                     if (d.shape === 'line') {
                         return el('div', {
                             key: d.id || 'current',
-                            className: "absolute origin-left opacity-80 pointer-events-none rounded-full",
+                            className: "absolute origin-left opacity-80 pointer-events-none rounded-full flex items-center justify-center",
                             style: {
                                 left: `${d.startX}px`,
                                 top: `${d.startY}px`,
@@ -697,12 +742,23 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                                 backgroundColor: d.color || '#f59e0b',
                                 boxShadow: `0 0 15px ${d.color || '#f59e0b'}`
                             }
-                        });
+                        }, [
+                            // Rotaciona o texto na direção inversa do ângulo para mantê-lo sempre horizontal e perfeitamente legível!
+                            el('div', {
+                                key: 'line-ruler-badge',
+                                className: "absolute bg-slate-950/90 backdrop-blur-sm border border-slate-800 px-2 py-0.5 rounded text-[8px] font-black tracking-wider text-amber-400 whitespace-nowrap shadow-2xl z-50 pointer-events-none select-none text-center",
+                                style: {
+                                    left: '50%',
+                                    top: '50%',
+                                    transform: `translate(-50%, -50%) rotate(${-angle}deg)`
+                                }
+                            }, `${cellCount} Qdr | ${distanceFeet} ft | ${distanceMeters} m`)
+                        ]);
                     }
                     if (d.shape === 'cone') {
                         return el('div', {
                             key: d.id || 'current',
-                            className: "absolute origin-left opacity-50 pointer-events-none",
+                            className: "absolute origin-left opacity-50 pointer-events-none flex items-center justify-center",
                             style: {
                                 left: `${d.startX}px`,
                                 top: `${d.startY}px`,
@@ -712,7 +768,17 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                                 clipPath: 'polygon(0 50%, 100% 0, 100% 100%)',
                                 backgroundColor: d.color || '#f59e0b'
                             }
-                        });
+                        }, [
+                            el('div', {
+                                key: 'cone-ruler-badge',
+                                className: "absolute bg-slate-950/90 backdrop-blur-sm border border-slate-800 px-2 py-0.5 rounded text-[8px] font-black tracking-wider text-amber-400 whitespace-nowrap shadow-2xl z-50 pointer-events-none select-none text-center",
+                                style: {
+                                    left: '60%',
+                                    top: '50%',
+                                    transform: `translate(-50%, -50%) rotate(${-angle}deg)`
+                                }
+                            }, `Cone: ${cellCount} Qdr | ${distanceFeet} ft | ${distanceMeters} m`)
+                        ]);
                     }
                 }),
 
@@ -754,9 +820,13 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                     const renderToken = isDraggingThis ? draggingToken : t;
                     const gs = activeMap.gridSize || 50;
 
+                    const isSelected = selectedTokenId === t.id;
+                    const canEdit = mode === 'master' || t.name === characterName || t.createdBy === characterName;
+                    const isVisible = mode === 'master' || t.type === 'player' || t.createdBy === characterName;
+
                     return el('div', {
                         key: t.id,
-                        className: `absolute group ${isDraggingThis ? 'z-50' : 'z-10'}`,
+                        className: `absolute group ${isDraggingThis ? 'z-50' : (isSelected ? 'z-40' : 'z-10')}`,
                         style: {
                             left: `${renderToken.x}px`,
                             top: `${renderToken.y}px`,
@@ -790,11 +860,102 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                                     setContextMenu({ token: t, x: e.clientX, y: e.clientY });
                                 }
                             },
-                            className: `w-full h-full rounded-full border-2 border-white/20 shadow-2xl overflow-hidden cursor-pointer hover:border-amber-500 hover:scale-105 transition-transform ${isDraggingThis ? 'border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.5)]' : ''}`
+                            className: `w-full h-full rounded-full border-2 shadow-2xl overflow-hidden cursor-pointer hover:border-amber-500 hover:scale-105 transition-all duration-200 ${
+                                isSelected ? 'border-amber-500 ring-4 ring-amber-500/30 scale-105 shadow-[0_0_25px_rgba(245,158,11,0.65)]' : 'border-white/20'
+                            } ${isDraggingThis ? 'border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.5)]' : ''}`
                         }, [
                             renderToken.imageUrl ? 
                                 el('img', { src: renderToken.imageUrl, className: "w-full h-full object-cover pointer-events-none" }) : 
                                 el('div', { className: "w-full h-full bg-slate-800 flex items-center justify-center pointer-events-none" }, el('span', { className: "text-[10px] font-black uppercase text-slate-400" }, renderToken.name.substring(0,2)))
+                        ]),
+
+                        // HUD Rápido do Mestre / Proprietário (Focado em HP)
+                        isSelected && isVisible && el('div', {
+                            key: 'token-quick-hud',
+                            className: "absolute bottom-[108%] left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 bg-slate-950/95 backdrop-blur-md border border-amber-500/40 p-2.5 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.8)] z-50 pointer-events-auto select-none min-w-[150px] animate-scale-in",
+                            onClick: (e) => e.stopPropagation(),
+                            onPointerDown: (e) => e.stopPropagation()
+                        }, [
+                            // Barra de Vida
+                            el('div', { className: "w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-0.5" }, [
+                                el('div', { 
+                                    className: "h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-300",
+                                    style: { width: `${Math.max(0, Math.min(100, ((t.hp !== undefined ? t.hp : 100) / (t.maxHp !== undefined ? t.maxHp : 100)) * 100))}%` }
+                                })
+                            ]),
+                            
+                            // Texto HP
+                            el('div', { className: "flex justify-between items-center w-full px-1 mt-1 text-[9px] font-black text-slate-300 uppercase tracking-wider" }, [
+                                el('span', { className: "text-red-400 font-bold" }, "❤️ PV"),
+                                el('span', { className: "font-black" }, `${t.hp !== undefined ? t.hp : 100} / ${t.maxHp !== undefined ? t.maxHp : 100}`)
+                            ]),
+
+                            // Botões Rápidos
+                            canEdit && el('div', { className: "flex items-center gap-1 mt-1" }, [
+                                // Botão -5
+                                el('button', {
+                                    onClick: (e) => {
+                                        e.stopPropagation();
+                                        const cur = t.hp !== undefined ? t.hp : 100;
+                                        const newVal = Math.max(0, cur - 5);
+                                        const newTokens = tokens.map(tok => tok.id === t.id ? { ...tok, hp: newVal } : tok);
+                                        updateSessionState({ battlemap: { ...battlemapData, tokens: newTokens } });
+                                    },
+                                    className: "w-7 h-7 bg-red-950/40 hover:bg-red-600/20 border border-red-500/30 hover:border-red-500 text-red-400 rounded-lg text-[9px] font-black transition-all flex items-center justify-center"
+                                }, "-5"),
+                                // Botão -1
+                                el('button', {
+                                    onClick: (e) => {
+                                        e.stopPropagation();
+                                        const cur = t.hp !== undefined ? t.hp : 100;
+                                        const newVal = Math.max(0, cur - 1);
+                                        const newTokens = tokens.map(tok => tok.id === t.id ? { ...tok, hp: newVal } : tok);
+                                        updateSessionState({ battlemap: { ...battlemapData, tokens: newTokens } });
+                                    },
+                                    className: "w-7 h-7 bg-red-950/40 hover:bg-red-600/20 border border-red-500/30 hover:border-red-500 text-red-400 rounded-lg text-[9px] font-black transition-all flex items-center justify-center"
+                                }, "-1"),
+                                // Botão +1
+                                el('button', {
+                                    onClick: (e) => {
+                                        e.stopPropagation();
+                                        const cur = t.hp !== undefined ? t.hp : 100;
+                                        const max = t.maxHp !== undefined ? t.maxHp : 100;
+                                        const newVal = Math.min(max, cur + 1);
+                                        const newTokens = tokens.map(tok => tok.id === t.id ? { ...tok, hp: newVal } : tok);
+                                        updateSessionState({ battlemap: { ...battlemapData, tokens: newTokens } });
+                                    },
+                                    className: "w-7 h-7 bg-emerald-950/40 hover:bg-emerald-600/20 border border-emerald-500/30 hover:border-emerald-500 text-emerald-400 rounded-lg text-[9px] font-black transition-all flex items-center justify-center"
+                                }, "+1"),
+                                // Botão +5
+                                el('button', {
+                                    onClick: (e) => {
+                                        e.stopPropagation();
+                                        const cur = t.hp !== undefined ? t.hp : 100;
+                                        const max = t.maxHp !== undefined ? t.maxHp : 100;
+                                        const newVal = Math.min(max, cur + 5);
+                                        const newTokens = tokens.map(tok => tok.id === t.id ? { ...tok, hp: newVal } : tok);
+                                        updateSessionState({ battlemap: { ...battlemapData, tokens: newTokens } });
+                                    },
+                                    className: "w-7 h-7 bg-emerald-950/40 hover:bg-emerald-600/20 border border-emerald-500/30 hover:border-emerald-500 text-emerald-400 rounded-lg text-[9px] font-black transition-all flex items-center justify-center"
+                                }, "+5")
+                            ]),
+
+                            // Botão Dano Personalizado
+                            canEdit && el('button', {
+                                onClick: (e) => {
+                                    e.stopPropagation();
+                                    const amt = prompt("Insira a quantidade de Dano (-) ou Cura (+):");
+                                    if (amt !== null && !isNaN(parseInt(amt))) {
+                                        const val = parseInt(amt);
+                                        const cur = t.hp !== undefined ? t.hp : 100;
+                                        const max = t.maxHp !== undefined ? t.maxHp : 100;
+                                        const newVal = Math.max(0, Math.min(max, cur + val));
+                                        const newTokens = tokens.map(tok => tok.id === t.id ? { ...tok, hp: newVal } : tok);
+                                        updateSessionState({ battlemap: { ...battlemapData, tokens: newTokens } });
+                                    }
+                                },
+                                className: "w-full bg-slate-900/60 hover:bg-amber-600 hover:text-slate-950 border border-slate-800 text-slate-300 text-[8px] font-black uppercase py-1.5 rounded-lg transition-all text-center tracking-wider mt-1 flex items-center justify-center gap-1"
+                            }, "⚡ Dano / Cura")
                         ]),
 
                         // Marcadores de Status

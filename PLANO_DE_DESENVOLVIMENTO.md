@@ -237,15 +237,14 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Spawn Inteligente na Câmera (Smart-Spawn):** Tokens spawnados são encaixados de forma inteligente e precisa no grid de células diretamente no centro do foco atual da câmera do mestre.
   - ✅ **Crachás de Identificação nos Tokens:** Pílulas de nomes em acrílico translúcido com desfoque de fundo centralizadas abaixo de cada token no VTT, com efeitos de realce dourado neon ao passar o mouse.
 
-## 🚀 Próximas Implementações (Pendentes)
-
-### 2. 📏 Praticidade Tática e HUD no Mapa
-
-- **Conceito:** Melhorias na interação direta no Campo de Batalha.
+### 29. 📏 Praticidade Tática, Régua de Medição, Pings & HUD de Tokens
+- **Status:** Concluído ✅
 - **Features:**
-  - **Régua de Medição:** Ferramenta de drag-and-drop para medir distâncias exatas.
-  - **Ping Sincronizado:** Clique central/longo para gerar animações de sinalização no mapa.
-  - **HUD Rápido do Mestre:** Controles de HP (+ e -) integrados ao clicar em um token.
+  - ✅ **Régua de Medição Dinâmica:** As ferramentas de linha/régua, cone e círculo agora exibem badges em acrílico translúcido calculando a distância exata em tempo real (número de Quadrados, Pés/ft e Metros/m). A pílula de texto de medição rotaciona de forma inteligente na direção oposta ao ângulo do desenho para permanecer 100% horizontal e legível!
+  - ✅ **Ping Sincronizado Expandido:** Disparo de sinalizações animadas no mapa usando o botão do meio do mouse (Middle-click) ou duplo clique no fundo do cenário, com propagação e auto-limpeza em tempo real para todos os jogadores.
+  - ✅ **HUD de HP Rápido e Seleção:** Clicar em um token agora o seleciona ativando um anel de brilho neon dourado e revelando um painel flutuante de HP (barra de progresso de vida, leitura de PV atual/máximo, botões de atalho rápidos `-5`, `-1`, `+1`, `+5` e controle de alteração livre). Visível apenas para o mestre e proprietário do personagem.
+
+## 🚀 Próximas Implementações (Pendentes)
 
 ### 3. 🎙️ Narrador Inteligente (Gemini)
 
@@ -286,4 +285,4 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 ---
 
 **Última atualização:** 17/05/2026
-**Próximo passo:** Iniciar o Sistema de **📏 Régua de Medição e Pings no Mapa**.
+**Próximo passo:** Iniciar o Desenvolvimento do **🎙️ Narrador Inteligente (Gemini)**.
