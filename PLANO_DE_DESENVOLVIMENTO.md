@@ -212,6 +212,22 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Visual Premium (Glassmorphism):** Substituição de todos os fundos de modais (Configurações, Chat, Guia do Mestre, Guia do Aventureiro, Cofre, Condições) por overlays e cartões acrílicos translúcidos com desfoque de fundo em tempo real.
   - ✅ **Segurança e Fim de Piscadas:** Bloqueio de auto-preenchimento intempestivo de senhas nos modais administrativos, garantindo transições 100% limpas.
 
+### 🎨 26. Melhoria Premium do Menu de Ações (Mestre e Jogadores) & VTT Scrollbar Fix
+
+- **Status:** Concluído ✅
+- **Features:**
+  - ✅ **Visual Premium (Unified Glass VTT):** Substituição de todos os botões e layouts de abas (Minecraft Style) por uma barra de comandos translúcida em acrílico com transparência HSL sutil.
+  - ✅ **Micro-Animações e Indicadores:** Ao passar o mouse sobre os itens do dropdown, é exibida uma barra lateral brilhante com a cor do tema da categoria (Verde para exploração, roxo para mecânicas, rosa para estética e âmbar para sabedoria/mercado) que desliza com efeito suave.
+  - ✅ **Resolução de Scrollbar no VTT:** Correção global do estilo `.hide-scrollbar` para ocultar com 100% de precisão o horizontal scrollbar da barra de ferramentas no VTT no desktop (eliminando a barra branca padrão do Windows).
+
+### 👑 27. Painel de Controle do Mestre em Abas/Menus (MasterControls)
+
+- **Status:** Concluído ✅
+- **Features:**
+  - ✅ **Abas Temáticas Acrílicas:** Reestruturação completa do bloco de controles administrativos do mestre (`MasterControls.js`) em abas compactas e fluidas: **Som & Áudio (🔊)**, **Tempo & Relógio (🕒)**, **Cenas & Clima (⛅)** e **Notas Privadas (📝)**, reduzindo drasticamente o uso de espaço vertical e alinhando com a usabilidade das fichas dos jogadores.
+  - ✅ **Visual Premium e Micro-Animações:** Efeitos acrílicos HSL glow de seleção ativos para cada aba temática, transições de fade-in ultra-responsivas (`animate-fade-in-fast`), e botões e layouts unificados.
+  - ✅ **Header do Mestre Premium Unificado:** Redesenho completo do cabeçalho da Sala do Mestre (`MasterView.js`) para ser sticky (fixado no topo), translúcido com backdrop desfoque e em largura total (`max-w-7xl`), alinhado exatamente ao layout das fichas dos jogadores.
+
 ## 🚀 Próximas Implementações (Pendentes)
 
 ### 2. 📏 Praticidade Tática e HUD no Mapa

@@ -9,10 +9,6 @@ button { cursor: pointer; }
   body { font-size: 14px; }
   .break-words { word-wrap: break-word; overflow-wrap: break-word; }
   .overflow-wrap-anywhere { overflow-wrap: anywhere; }
-  
-  /* Hide scrollbar but keep functionality */
-  .hide-scrollbar::-webkit-scrollbar { display: none; }
-  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
   /* Better spacing for mobile */
   .mobile-p-2 { padding: 0.5rem; }
@@ -22,6 +18,10 @@ button { cursor: pointer; }
   .mobile-grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mobile-grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* Hide scrollbar but keep functionality globally */
+.hide-scrollbar::-webkit-scrollbar { display: none !important; }
+.hide-scrollbar { -ms-overflow-style: none !important; scrollbar-width: none !important; }
 
 .horizontal-scroll {
   display: flex;
@@ -510,4 +510,8 @@ input[type="text"], input[type="email"], input[type="password"], textarea {
     width: 100%;
     position: absolute;
     z-index: 10;
+}
+
+.animate-fade-in-fast {
+    animation: fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

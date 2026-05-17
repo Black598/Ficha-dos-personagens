@@ -580,86 +580,88 @@ export function MasterView({
         { name: 'Caído', color: '#64748b', icon: '🛡️', turns: 1 }
     ];
 
-    return el('div', { className: "min-h-screen bg-slate-950 text-slate-100 p-4 md:p-6 animate-fade-in" }, [
-        el('header', { key: 'master-header', className: "max-w-6xl mx-auto flex justify-between items-center mb-12 border-b border-slate-800 pb-8" }, [
-            el('h1', { key: 'main-title', className: "text-2xl md:text-4xl font-black flex items-center gap-4 italic uppercase tracking-tighter" }, [
-                el('span', { key: 'crown-icon', className: "text-purple-500" }, "👑"),
-                el('span', { key: 'title-text' }, " Sala do Mestre")
-            ]),
-
-            // Controles do header — Menu Desktop (Minecraft Inventory Tabs Style)
-            el('div', { className: "hidden lg:flex gap-3 items-center z-[100]" }, [
-                // Group: Exploração
-                el('div', { className: "group relative" }, [
-                    el('button', { className: "bg-emerald-900/30 hover:bg-emerald-800 text-emerald-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-emerald-600/30 px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg" }, [el('span', { className: "text-lg drop-shadow-md" }, "🗺️"), "Exploração"]),
-                    el('div', { className: "absolute top-full mt-2 right-0 w-56 bg-slate-900/95 backdrop-blur-md border border-emerald-600/30 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2 z-[100] transform origin-top group-hover:scale-100 scale-95" }, [
-                        el('button', { onClick: () => setIsBattlemapOpen(true), className: "w-full text-left px-4 py-3 hover:bg-emerald-600/20 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-emerald-400 transition-colors" }, [el('span', { className: "text-base" }, "🗺️"), "Mapa de Batalha"]),
-                        el('button', { onClick: () => setIsWorldMapOpen(true), className: "w-full text-left px-4 py-3 hover:bg-emerald-600/20 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-emerald-400 transition-colors" }, [el('span', { className: "text-base" }, "🌍"), "Atlas Mundial"])
-                    ])
+    return el('div', { className: "min-h-screen bg-slate-950 text-slate-100 animate-fade-in" }, [
+        el('header', { key: 'master-header', className: "bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 p-4 md:p-6 sticky top-0 z-40 mb-12 shadow-lg" },
+            el('div', { className: "max-w-7xl mx-auto flex justify-between items-center w-full" }, [
+                el('h1', { key: 'main-title', className: "text-2xl md:text-4xl font-black flex items-center gap-4 italic uppercase tracking-tighter" }, [
+                    el('span', { key: 'crown-icon', className: "text-purple-500" }, "👑"),
+                    el('span', { key: 'title-text' }, " Sala do Mestre")
                 ]),
-                
-                // Group: Ferramentas (Biblioteca, Loja, Barganha)
-                el('div', { className: "group relative" }, [
-                    el('button', { className: "bg-amber-900/30 hover:bg-amber-800 text-amber-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-amber-600/30 px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg" }, [el('span', { className: "text-lg drop-shadow-md" }, "⚖️"), "Mercado & Acordos"]),
-                    el('div', { className: "absolute top-full mt-2 right-0 w-64 bg-slate-900/95 backdrop-blur-md border border-amber-600/30 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2 z-[100] transform origin-top group-hover:scale-100 scale-95" }, [
-                        el('button', { onClick: () => setIsLibraryOpen(true), className: "w-full text-left px-4 py-3 hover:bg-amber-600/20 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-amber-400 transition-colors" }, [el('span', { className: "text-base" }, "📚"), "Biblioteca"]),
-                        el('button', { onClick: () => setIsBargainOpen(true), className: "w-full text-left px-4 py-3 hover:bg-red-600/20 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-red-400 transition-colors" }, [el('span', { className: "text-base" }, "👿"), "Barganha do Diabo"]),
-                        el('button', { onClick: () => onOpenShop(), className: "w-full text-left px-4 py-3 hover:bg-amber-600/20 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-amber-400 transition-colors border-t border-amber-600/20 mt-1 pt-3" }, [el('span', { className: "text-base" }, "🛒"), "Abrir Loja"]),
-                        el('button', { onClick: () => updateSessionState({ isShopEnabled: !sessionState.isShopEnabled }), className: `w-full text-left px-4 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest transition-colors ${sessionState.isShopEnabled ? 'text-emerald-400 hover:bg-emerald-600/20' : 'text-slate-400 hover:bg-slate-800'}` }, [
-                            el('span', { className: "text-base" }, sessionState.isShopEnabled ? "✅" : "❌"), "Loja para Jogadores", el('span', { className: `ml-auto text-[8px] px-2 py-0.5 rounded-full ${sessionState.isShopEnabled ? 'bg-emerald-500/20' : 'bg-red-500/10 text-red-500'}` }, sessionState.isShopEnabled ? "On" : "Off")
+
+                // Controles do header — Menu Desktop (Premium VTT Glass Command Bar)
+                el('div', { className: "hidden lg:flex gap-3 items-center z-[100]" }, [
+                    // Group: Exploração
+                    el('div', { className: "group relative" }, [
+                        el('button', { className: "bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 hover:text-emerald-200 border border-emerald-500/30 px-4 py-2.5 rounded-2xl transition-all duration-300 flex items-center gap-2.5 shadow-[0_0_15px_rgba(16,185,129,0.1)] hover:shadow-[0_0_20px_rgba(16,185,129,0.25)] hover:scale-105 active:scale-95 text-[10px] font-black uppercase tracking-widest" }, [el('span', { className: "text-base drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]" }, "🗺️"), "Exploração"]),
+                        el('div', { className: "absolute top-full mt-3 right-0 w-56 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.6)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2.5 z-[100] transform origin-top group-hover:scale-100 scale-95 duration-200" }, [
+                            el('button', { onClick: () => setIsBattlemapOpen(true), className: "w-full text-left px-5 py-3 hover:bg-emerald-500/10 border-l-2 border-l-transparent hover:border-l-emerald-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-emerald-200 transition-all duration-200" }, [el('span', { className: "text-base" }, "🗺️"), "Mapa de Batalha"]),
+                            el('button', { onClick: () => setIsWorldMapOpen(true), className: "w-full text-left px-5 py-3 hover:bg-emerald-500/10 border-l-2 border-l-transparent hover:border-l-emerald-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-emerald-200 transition-all duration-200" }, [el('span', { className: "text-base" }, "🌍"), "Atlas Mundial"])
                         ])
-                    ])
-                ]),
-
-                // Group: Comunicação
-                el('div', { className: "group relative" }, [
-                    el('button', { className: "bg-purple-900/30 hover:bg-purple-800 text-purple-400 hover:text-white text-[10px] font-black uppercase tracking-widest border border-purple-600/30 px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg" }, [
-                        el('span', { className: "text-lg drop-shadow-md" }, "💬"), "Comunicação",
-                        hasNewMessage && el('span', { className: "w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse absolute -top-1 -right-1" })
                     ]),
-                    el('div', { className: "absolute top-full mt-2 right-0 w-56 bg-slate-900/95 backdrop-blur-md border border-purple-600/30 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2 z-[100] transform origin-top group-hover:scale-100 scale-95" }, [
-                        el('button', { onClick: () => { setHasNewMessage(false); setShowChat(true); }, className: "w-full text-left px-4 py-3 hover:bg-purple-600/20 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-purple-400 transition-colors" }, [el('span', { className: "text-base" }, "💬"), "Mensagens", hasNewMessage && el('span', { className: "ml-auto w-2 h-2 bg-red-500 rounded-full animate-pulse" })]),
-                        el('button', { onClick: async () => {
-                            const theme = prompt("Tema do NPC (ex: Taverneiro suspeito, Guarda corrupto):", "Cidadão comum");
-                            if (!theme) return;
-                            try {
-                                const npc = await generateNPC(theme);
-                                const npcText = `\n\n--- NPC: ${npc.name} ---\nRaça/Classe: ${npc.race} ${npc.class}\nAparência: ${npc.appearance || ''}\nPersonalidade: ${npc.personality || ''}\nSegredo: ${npc.secret || ''}\nStats: HP ${npc.stats?.HP || '?'}, CA ${npc.stats?.CA || '?'}\n`;
-                                const currentNotes = sessionState.masterNotes || '';
-                                updateSessionState({ masterNotes: currentNotes + npcText });
-                                alert(`NPC Gerado: ${npc.name}\nDados enviados para suas "Notas do Mestre (Privado)"!`);
-                            } catch (e) { alert("Erro ao gerar NPC: " + e.message); }
-                        }, className: "w-full text-left px-4 py-3 hover:bg-purple-600/20 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-purple-400 transition-colors" }, [el('span', { className: "text-base" }, "👤"), "Gerar NPC"])
-                    ])
+                    
+                    // Group: Ferramentas (Biblioteca, Loja, Barganha)
+                    el('div', { className: "group relative" }, [
+                        el('button', { className: "bg-amber-950/40 hover:bg-amber-900/60 text-amber-400 hover:text-amber-200 border border-amber-500/30 px-4 py-2.5 rounded-2xl transition-all duration-300 flex items-center gap-2.5 shadow-[0_0_15px_rgba(245,158,11,0.15)] hover:shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:scale-105 active:scale-95 text-[10px] font-black uppercase tracking-widest" }, [el('span', { className: "text-base drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]" }, "⚖️"), "Mercado & Acordos"]),
+                        el('div', { className: "absolute top-full mt-3 right-0 w-64 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.6)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2.5 z-[100] transform origin-top group-hover:scale-100 scale-95 duration-200" }, [
+                            el('button', { onClick: () => setIsLibraryOpen(true), className: "w-full text-left px-5 py-3 hover:bg-amber-500/10 border-l-2 border-l-transparent hover:border-l-amber-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-amber-200 transition-all duration-200" }, [el('span', { className: "text-base" }, "📚"), "Biblioteca"]),
+                            el('button', { onClick: () => setIsBargainOpen(true), className: "w-full text-left px-5 py-3 hover:bg-amber-500/10 border-l-2 border-l-transparent hover:border-l-amber-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-red-400 transition-all duration-200" }, [el('span', { className: "text-base" }, "👿"), "Barganha do Diabo"]),
+                            el('button', { onClick: () => onOpenShop(), className: "w-full text-left px-5 py-3 hover:bg-amber-500/10 border-l-2 border-l-transparent hover:border-l-amber-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-amber-200 transition-all duration-200 border-t border-slate-800/80 mt-1 pt-3" }, [el('span', { className: "text-base" }, "🛒"), "Abrir Loja"]),
+                            el('button', { onClick: () => updateSessionState({ isShopEnabled: !sessionState.isShopEnabled }), className: `w-full text-left px-5 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all duration-200 hover:bg-amber-500/10 border-l-2 border-l-transparent hover:border-l-amber-500 hover:pl-6 ${sessionState.isShopEnabled ? 'text-emerald-400 hover:text-emerald-300' : 'text-slate-400 hover:text-white'}` }, [
+                                el('span', { className: "text-base" }, sessionState.isShopEnabled ? "✅" : "❌"), "Loja para Jogadores", el('span', { className: `ml-auto text-[8px] px-2 py-0.5 rounded-full ${sessionState.isShopEnabled ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/10 text-red-500'}` }, sessionState.isShopEnabled ? "On" : "Off")
+                            ])
+                        ])
+                    ]),
+
+                    // Group: Comunicação
+                    el('div', { className: "group relative" }, [
+                        el('button', { className: "bg-purple-950/40 hover:bg-purple-900/60 text-purple-400 hover:text-purple-200 border border-purple-500/30 px-4 py-2.5 rounded-2xl transition-all duration-300 flex items-center gap-2.5 shadow-[0_0_15px_rgba(139,92,246,0.1)] hover:shadow-[0_0_20px_rgba(139,92,246,0.25)] hover:scale-105 active:scale-95 text-[10px] font-black uppercase tracking-widest relative" }, [
+                            el('span', { className: "text-base drop-shadow-[0_0_5px_rgba(139,92,246,0.5)]" }, "💬"), "Comunicação",
+                            hasNewMessage && el('span', { className: "w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse absolute -top-1 -right-1" })
+                        ]),
+                        el('div', { className: "absolute top-full mt-3 right-0 w-56 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.6)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2.5 z-[100] transform origin-top group-hover:scale-100 scale-95 duration-200" }, [
+                            el('button', { onClick: () => { setHasNewMessage(false); setShowChat(true); }, className: "w-full text-left px-5 py-3 hover:bg-purple-500/10 border-l-2 border-l-transparent hover:border-l-purple-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-purple-200 transition-all duration-200" }, [el('span', { className: "text-base" }, "💬"), "Mensagens", hasNewMessage && el('span', { className: "ml-auto w-2 h-2 bg-red-500 rounded-full animate-pulse" })]),
+                            el('button', { onClick: async () => {
+                                const theme = prompt("Tema do NPC (ex: Taverneiro suspeito, Guarda corrupto):", "Cidadão comum");
+                                if (!theme) return;
+                                try {
+                                    const npc = await generateNPC(theme);
+                                    const npcText = `\n\n--- NPC: ${npc.name} ---\nRaça/Classe: ${npc.race} ${npc.class}\nAparência: ${npc.appearance || ''}\nPersonalidade: ${npc.personality || ''}\nSegredo: ${npc.secret || ''}\nStats: HP ${npc.stats?.HP || '?'}, CA ${npc.stats?.CA || '?'}\n`;
+                                    const currentNotes = sessionState.masterNotes || '';
+                                    updateSessionState({ masterNotes: currentNotes + npcText });
+                                    alert(`NPC Gerado: ${npc.name}\nDados enviados para suas "Notas do Mestre (Privado)"!`);
+                                } catch (e) { alert("Erro ao gerar NPC: " + e.message); }
+                            }, className: "w-full text-left px-5 py-3 hover:bg-purple-500/10 border-l-2 border-l-transparent hover:border-l-purple-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-purple-200 transition-all duration-200" }, [el('span', { className: "text-base" }, "👤"), "Gerar NPC"])
+                        ])
+                    ]),
+
+                    // Group: Configurações
+                    el('div', { className: "group relative ml-2" }, [
+                        el('button', { className: "w-11 h-11 bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white rounded-2xl border border-slate-700/80 hover:border-amber-500/50 flex items-center justify-center transition-all duration-200 shadow-lg hover:scale-105 active:scale-95" }, "⚙️"),
+                        el('div', { className: "absolute top-full mt-3 right-0 w-48 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.6)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2.5 z-[100] transform origin-top group-hover:scale-100 scale-95 duration-200" }, [
+                            el('button', { onClick: () => setShowVault(true), className: "w-full text-left px-5 py-3 hover:bg-slate-800/80 border-l-2 border-l-transparent hover:border-l-slate-400 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-200" }, [el('span', { className: "text-base" }, "🔒"), "Cofre do Mestre"]),
+                            el('button', { onClick: () => setShowSettings(true), className: "w-full text-left px-5 py-3 hover:bg-slate-800/80 border-l-2 border-l-transparent hover:border-l-slate-400 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-200" }, [el('span', { className: "text-base" }, "⚙️"), "Configurações"]),
+                            el('button', { onClick: () => setShowTutorial(true), className: "w-full text-left px-5 py-3 hover:bg-slate-800/80 border-l-2 border-l-transparent hover:border-l-slate-400 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-200 border-t border-slate-800/80 mt-1 pt-3" }, [el('span', { className: "text-base" }, "❔"), "Tutorial"])
+                        ])
+                    ]),
+
+                    // Botão Fechar
+                    el('button', {
+                        onClick: onBack,
+                        className: "w-11 h-11 bg-slate-900/80 hover:bg-red-600/20 hover:text-red-400 text-slate-400 rounded-2xl border border-slate-700/80 hover:border-red-500/50 flex items-center justify-center transition-all duration-200 shadow-lg ml-2 hover:scale-105 active:scale-95",
+                        title: "Sair da Sala"
+                    }, "✕")
                 ]),
 
-                // Group: Configurações
-                el('div', { className: "group relative ml-2" }, [
-                    el('button', { className: "w-10 h-10 bg-slate-800 hover:bg-slate-600 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg" }, "⚙️"),
-                    el('div', { className: "absolute top-full mt-2 right-0 w-48 bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2 z-[100] transform origin-top group-hover:scale-100 scale-95" }, [
-                        el('button', { onClick: () => setShowVault(true), className: "w-full text-left px-4 py-3 hover:bg-slate-800 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 transition-colors" }, [el('span', { className: "text-base" }, "🔒"), "Cofre do Mestre"]),
-                        el('button', { onClick: () => setShowSettings(true), className: "w-full text-left px-4 py-3 hover:bg-slate-800 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 transition-colors" }, [el('span', { className: "text-base" }, "⚙️"), "Configurações"]),
-                        el('button', { onClick: () => setShowTutorial(true), className: "w-full text-left px-4 py-3 hover:bg-slate-800 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 transition-colors border-t border-slate-700 mt-1 pt-3" }, [el('span', { className: "text-base" }, "❔"), "Tutorial"])
-                    ])
-                ]),
-
-                // Botão Fechar
+                // Botão Hamburguer (Mobile Only)
                 el('button', {
-                    onClick: onBack,
-                    className: "w-10 h-10 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded-xl border border-slate-700 flex items-center justify-center transition-all shadow-lg ml-2",
-                    title: "Sair da Sala"
-                }, "✕")
-            ]),
-
-            // Botão Hamburguer (Mobile Only)
-            el('button', {
-                className: "lg:hidden w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-xl text-purple-500 border border-slate-700 relative",
-                onClick: () => setMenuOpen(true)
-            }, [
-                "☰",
-                hasNewMessage && el('span', { className: "w-3 h-3 bg-red-500 rounded-full animate-pulse absolute -top-1 -right-1 border-2 border-slate-800" })
+                    className: "lg:hidden w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-xl text-purple-500 border border-slate-700 relative",
+                    onClick: () => setMenuOpen(true)
+                }, [
+                    "☰",
+                    hasNewMessage && el('span', { className: "w-3 h-3 bg-red-500 rounded-full animate-pulse absolute -top-1 -right-1 border-2 border-slate-800" })
+                ])
             ])
-        ]),
+        ),
 
         // Overlay Menu Mobile
         menuOpen && el('div', { className: "fixed inset-0 z-[1000] bg-slate-950/95 backdrop-blur-xl p-6 md:p-8 flex flex-col gap-6 animate-fade-in overflow-y-auto custom-scrollbar pb-10" }, [
@@ -725,7 +727,7 @@ export function MasterView({
             ])
         ]),
 
-        el('div', { key: 'master-main-grid', className: "max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 mb-24" }, [
+        el('main', { key: 'master-main-grid', className: "max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 p-4 md:p-6 mb-24" }, [
             el('div', { 
                 key: 'master-left-col', 
                 className: "lg:col-span-8 space-y-12 min-h-[150px]",

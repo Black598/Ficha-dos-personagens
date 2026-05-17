@@ -6,6 +6,7 @@ const { useState, useEffect } = React;
 export function MasterControls({ sessionState, updateSessionState }) {
     const el = React.createElement;
     const [isSfxMenuOpen, setIsSfxMenuOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState('audio'); // 'audio', 'clock', 'climate', 'notes'
     
     // Estado local para as Notas do Mestre (Evita que o cursor pule pro final a cada digitação)
     const [localNotes, setLocalNotes] = useState(sessionState?.masterNotes || '');
@@ -153,302 +154,363 @@ export function MasterControls({ sessionState, updateSessionState }) {
         }
     };
 
-    return el('div', { key: 'master-controls-root', className: "bg-slate-900 border-2 border-slate-800 rounded-[2.5rem] p-6 shadow-xl space-y-10" }, [
-        
-        // SEÇÃO SOUNDBOARD
-        el('div', { key: 'soundboard-section', className: "space-y-6" }, [
-            el('div', { className: "flex justify-between items-center" }, [
-                el('h3', { key: 'soundboard-title', className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-2" }, [
-                    el('span', { key: 'soundboard-icon' }, "🎼"), "Atmosferas"
-                ]),
-                el('div', { className: "flex items-center gap-3" }, [
-                    // Botão Adicionar Atmosfera
-                    el('button', {
-                        onClick: addCustomAtmosphere,
-                        className: "w-8 h-8 bg-emerald-900/30 text-emerald-500 rounded-full flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all text-xl"
-                    }, "+"),
-                    sessionState.ambientMusic && el('div', { key: 'playing-indicator', className: "flex items-center gap-3" }, [
-                        el('button', {
-                            onClick: () => {
-                                // Envia comando de fade via session state para todos
-                                updateSessionState({ ambientMusic: { ...sessionState.ambientMusic, fadeOut: true } });
-                                // Localmente para o mestre também
-                                AudioManager.stopAmbient('global', true);
-                            },
-                            className: "text-[8px] bg-red-900/20 text-red-400 px-2 py-1 rounded border border-red-500/30 hover:bg-red-600 hover:text-white transition-all uppercase font-black",
-                            title: "Para a música suavemente para todos"
-                        }, "Parar (Fade)"),
-                        el('span', { key: 'pulse', className: "w-2 h-2 bg-emerald-500 rounded-full animate-pulse" }),
-                        el('span', { key: 'label', className: "text-[8px] font-black text-emerald-500 uppercase" }, "Tocando")
-                    ])
-                ])
+    return el('div', { key: 'master-controls-root', className: "bg-slate-900 border-2 border-slate-800 rounded-[2.5rem] p-6 shadow-xl flex flex-col gap-6" }, [
+        // CONTROLES DE ABAS (Premium Glass Tab Switcher)
+        el('div', { key: 'tabs-header', className: "grid grid-cols-4 gap-1.5 p-1.5 bg-slate-950/60 border border-slate-800/80 rounded-2xl md:rounded-3xl shadow-inner" }, [
+            el('button', {
+                key: 'tab-audio',
+                onClick: () => { setActiveTab('audio'); AudioManager.play('click'); },
+                className: `py-3 px-1 rounded-xl md:rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-300 border text-[9px] font-black uppercase tracking-widest ${
+                    activeTab === 'audio' 
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)] scale-105' 
+                        : 'bg-transparent text-slate-500 border-transparent hover:text-slate-300'
+                }`
+            }, [
+                el('span', { className: "text-lg" }, "🔊"),
+                el('span', { className: "hidden md:inline" }, "Áudio")
             ]),
-
-            // GRID DE ATMOSFERAS (Dinâmico)
-            el('div', { key: 'atmospheres-grid', className: "grid grid-cols-3 gap-2" }, 
-                atmospheres.map(track => {
-                    const isActive = sessionState.ambientMusic?.id === track.id;
-                    const isCustom = track.id.startsWith('custom-');
-                    return el('div', { key: track.id, className: "relative group" }, [
-                        el('button', {
-                            onClick: () => toggleAtmosphere(track),
-                            className: `w-full p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all border ${
-                                isActive ? 'bg-amber-600 border-amber-400 text-white shadow-lg' : 'bg-slate-950/50 border-slate-800 text-slate-400 hover:border-slate-600'
-                            }`
-                        }, [
-                            el('span', { key: 'icon', className: "text-lg" }, track.icon),
-                            el('span', { key: 'label', className: "text-[8px] font-black uppercase tracking-widest" }, track.label)
-                        ]),
-                        // Editar/Remover Customizados
-                        isCustom && el('button', {
-                            onClick: () => removeAtmosphere(track.id),
-                            className: "absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-lg"
-                        }, "×")
-                    ]);
-                })
-            ),
-
-            // VOLUME
-            sessionState.ambientMusic && el('div', { key: 'volume-control', className: "bg-slate-950/50 p-4 rounded-2xl border border-slate-800 space-y-2" }, [
-                el('div', { key: 'volume-header', className: "flex justify-between items-center" }, [
-                    el('span', { key: 'label', className: "text-[8px] font-black text-slate-500 uppercase tracking-widest" }, "Volume da Música"),
-                    el('span', { key: 'value', className: "text-[8px] font-black text-amber-500" }, `${Math.round(sessionState.ambientMusic.volume * 100)}%`)
-                ]),
-                el('input', {
-                    key: 'slider',
-                    type: 'range',
-                    min: 0, max: 1, step: 0.05,
-                    value: sessionState.ambientMusic.volume,
-                    onChange: (e) => updateMusicVolume(e.target.value),
-                    className: "w-full accent-amber-500 cursor-pointer"
-                })
+            el('button', {
+                key: 'tab-clock',
+                onClick: () => { setActiveTab('clock'); AudioManager.play('click'); },
+                className: `py-3 px-1 rounded-xl md:rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-300 border text-[9px] font-black uppercase tracking-widest ${
+                    activeTab === 'clock' 
+                        ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)] scale-105' 
+                        : 'bg-transparent text-slate-500 border-transparent hover:text-slate-300'
+                }`
+            }, [
+                el('span', { className: "text-lg" }, "🕒"),
+                el('span', { className: "hidden md:inline" }, "Tempo")
             ]),
-
-            // EFEITOS SONOROS (Hamburger Menu)
-            el('div', { key: 'sfx-section', className: "relative" }, [
-                el('div', { className: "flex items-center justify-between mb-4" }, [
-                    el('h3', { className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500" }, "Efeitos Sonoros"),
-                    el('button', {
-                        onClick: () => setIsSfxMenuOpen(!isSfxMenuOpen),
-                        className: `w-10 h-10 rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${isSfxMenuOpen ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`
-                    }, [
-                        el('div', { className: "w-5 h-0.5 bg-current rounded-full" }),
-                        el('div', { className: "w-5 h-0.5 bg-current rounded-full" }),
-                        el('div', { className: "w-5 h-0.5 bg-current rounded-full" })
-                    ])
-                ]),
-
-                // Menu Hambúrguer Aberto (Sobreposição ou Expansão)
-                isSfxMenuOpen && el('div', { className: "bg-slate-950 border border-slate-800 rounded-3xl p-4 space-y-6 animate-in slide-in-from-top duration-300 shadow-2xl" }, 
-                    SFX_LIBRARY.map(cat => el('div', { key: cat.category, className: "space-y-2" }, [
-                        el('p', { key: 'cat-label', className: "text-[7px] font-black uppercase text-slate-600 tracking-widest px-1" }, cat.category),
-                        el('div', { key: 'cat-grid', className: "grid grid-cols-5 gap-2" }, 
-                            cat.sounds.map(s => el('button', {
-                                key: s.id,
-                                onClick: () => triggerSound(s.id),
-                                className: "bg-slate-900 hover:bg-amber-600/20 border border-slate-800 hover:border-amber-500/50 p-2 rounded-xl flex flex-col items-center gap-1 transition-all group"
-                            }, [
-                                el('span', { key: 'icon', className: "text-lg group-hover:scale-120 transition-transform" }, s.icon),
-                                el('span', { key: 'label', className: "text-[6px] font-black uppercase text-slate-500 group-hover:text-amber-500" }, s.label)
-                            ]))
-                        )
-                    ]))
-                ),
-
-                // Sons Rápidos (Sempre Visíveis)
-                !isSfxMenuOpen && el('div', { key: 'quick-sfx', className: "grid grid-cols-4 gap-2" }, 
-                    QUICK_SOUNDS.map(s => el('button', {
-                        key: s.id,
-                        onClick: () => triggerSound(s.id),
-                        className: "bg-slate-900 border border-slate-800 hover:border-amber-500/50 p-3 rounded-2xl flex flex-col items-center gap-1 transition-all group"
-                    }, [
-                        el('span', { key: 'icon', className: "text-lg" }, s.icon),
-                        el('span', { key: 'label', className: "text-[7px] font-black uppercase text-slate-500" }, s.label)
-                    ]))
-                )
+            el('button', {
+                key: 'tab-climate',
+                onClick: () => { setActiveTab('climate'); AudioManager.play('click'); },
+                className: `py-3 px-1 rounded-xl md:rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-300 border text-[9px] font-black uppercase tracking-widest ${
+                    activeTab === 'climate' 
+                        ? 'bg-blue-500/20 text-blue-400 border-blue-500/30 shadow-[0_0_15px_rgba(37,99,235,0.15)] scale-105' 
+                        : 'bg-transparent text-slate-500 border-transparent hover:text-slate-300'
+                }`
+            }, [
+                el('span', { className: "text-lg" }, "⛅"),
+                el('span', { className: "hidden md:inline" }, "Clima")
+            ]),
+            el('button', {
+                key: 'tab-notes',
+                onClick: () => { setActiveTab('notes'); AudioManager.play('click'); },
+                className: `py-3 px-1 rounded-xl md:rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-300 border text-[9px] font-black uppercase tracking-widest ${
+                    activeTab === 'notes' 
+                        ? 'bg-purple-500/20 text-purple-400 border-purple-500/30 shadow-[0_0_15px_rgba(139,92,246,0.15)] scale-105' 
+                        : 'bg-transparent text-slate-500 border-transparent hover:text-slate-300'
+                }`
+            }, [
+                el('span', { className: "text-lg" }, "📝"),
+                el('span', { className: "hidden md:inline" }, "Notas")
             ])
         ]),
 
-        // RELÓGIO DE SESSÃO / CALENDÁRIO
-        el('div', { key: 'day-section', className: "space-y-4" }, [
-            el('h3', { key: 'day-title', className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-2" }, [
-                el('span', { key: 'day-icon' }, "🕒"), "Relógio de Sessão"
+        // CONTEÚDO DA ABA SELECIONADA
+        el('div', { key: 'tab-content-area', className: "transition-all duration-300" }, [
+            // ABA: AUDIO
+            activeTab === 'audio' && el('div', { key: 'content-audio', className: "space-y-6 animate-fade-in-fast" }, [
+                el('div', { className: "flex justify-between items-center" }, [
+                    el('h3', { key: 'soundboard-title', className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-2" }, [
+                        el('span', { key: 'soundboard-icon' }, "🎼"), "Atmosferas"
+                    ]),
+                    el('div', { className: "flex items-center gap-3" }, [
+                        // Botão Adicionar Atmosfera
+                        el('button', {
+                            onClick: addCustomAtmosphere,
+                            className: "w-8 h-8 bg-emerald-900/30 text-emerald-500 rounded-full flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all text-xl"
+                        }, "+"),
+                        sessionState.ambientMusic && el('div', { key: 'playing-indicator', className: "flex items-center gap-3" }, [
+                            el('button', {
+                                onClick: () => {
+                                    // Envia comando de fade via session state para todos
+                                    updateSessionState({ ambientMusic: { ...sessionState.ambientMusic, fadeOut: true } });
+                                    // Localmente para o mestre também
+                                    AudioManager.stopAmbient('global', true);
+                                },
+                                className: "text-[8px] bg-red-900/20 text-red-400 px-2 py-1 rounded border border-red-500/30 hover:bg-red-600 hover:text-white transition-all uppercase font-black",
+                                title: "Para a música suavemente para todos"
+                            }, "Parar (Fade)"),
+                            el('span', { key: 'pulse', className: "w-2 h-2 bg-emerald-500 rounded-full animate-pulse" }),
+                            el('span', { key: 'label', className: "text-[8px] font-black text-emerald-500 uppercase" }, "Tocando")
+                        ])
+                    ])
+                ]),
+
+                // GRID DE ATMOSFERAS (Dinâmico)
+                el('div', { key: 'atmospheres-grid', className: "grid grid-cols-3 gap-2" }, 
+                    atmospheres.map(track => {
+                        const isActive = sessionState.ambientMusic?.id === track.id;
+                        const isCustom = track.id.startsWith('custom-');
+                        return el('div', { key: track.id, className: "relative group" }, [
+                            el('button', {
+                                onClick: () => toggleAtmosphere(track),
+                                className: `w-full p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all border ${
+                                    isActive ? 'bg-emerald-600/35 border-emerald-400 text-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'bg-slate-950/50 border-slate-800 text-slate-400 hover:border-slate-600'
+                                }`
+                            }, [
+                                el('span', { key: 'icon', className: "text-lg" }, track.icon),
+                                el('span', { key: 'label', className: "text-[8px] font-black uppercase tracking-widest text-center" }, track.label)
+                            ]),
+                            // Editar/Remover Customizados
+                            isCustom && el('button', {
+                                onClick: () => removeAtmosphere(track.id),
+                                className: "absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-lg"
+                            }, "×")
+                        ]);
+                    })
+                ),
+
+                // VOLUME
+                sessionState.ambientMusic && el('div', { key: 'volume-control', className: "bg-slate-950/50 p-4 rounded-2xl border border-slate-800 space-y-2" }, [
+                    el('div', { key: 'volume-header', className: "flex justify-between items-center" }, [
+                        el('span', { key: 'label', className: "text-[8px] font-black text-slate-500 uppercase tracking-widest" }, "Volume da Música"),
+                        el('span', { key: 'value', className: "text-[8px] font-black text-emerald-400" }, `${Math.round(sessionState.ambientMusic.volume * 100)}%`)
+                    ]),
+                    el('input', {
+                        key: 'slider',
+                        type: 'range',
+                        min: 0, max: 1, step: 0.05,
+                        value: sessionState.ambientMusic.volume,
+                        onChange: (e) => updateMusicVolume(e.target.value),
+                        className: "w-full accent-emerald-500 cursor-pointer"
+                    })
+                ]),
+
+                // EFEITOS SONOROS (Hamburger Menu)
+                el('div', { key: 'sfx-section', className: "relative pt-4 border-t border-slate-800/80" }, [
+                    el('div', { className: "flex items-center justify-between mb-4" }, [
+                        el('h3', { className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500" }, "Efeitos Sonoros"),
+                        el('button', {
+                            onClick: () => setIsSfxMenuOpen(!isSfxMenuOpen),
+                            className: `w-10 h-10 rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${isSfxMenuOpen ? 'bg-emerald-600/25 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`
+                        }, [
+                            el('div', { className: "w-5 h-0.5 bg-current rounded-full" }),
+                            el('div', { className: "w-5 h-0.5 bg-current rounded-full" }),
+                            el('div', { className: "w-5 h-0.5 bg-current rounded-full" })
+                        ])
+                    ]),
+
+                    // Menu Hambúrguer Aberto (Sobreposição ou Expansão)
+                    isSfxMenuOpen && el('div', { className: "bg-slate-950 border border-slate-800 rounded-3xl p-4 space-y-6 animate-in slide-in-from-top duration-300 shadow-2xl" }, 
+                        SFX_LIBRARY.map(cat => el('div', { key: cat.category, className: "space-y-2" }, [
+                            el('p', { key: 'cat-label', className: "text-[7px] font-black uppercase text-slate-600 tracking-widest px-1" }, cat.category),
+                            el('div', { key: 'cat-grid', className: "grid grid-cols-5 gap-2" }, 
+                                cat.sounds.map(s => el('button', {
+                                    key: s.id,
+                                    onClick: () => triggerSound(s.id),
+                                    className: "bg-slate-900 hover:bg-emerald-600/20 border border-slate-800 hover:border-emerald-500/50 p-2 rounded-xl flex flex-col items-center gap-1 transition-all group"
+                                }, [
+                                    el('span', { key: 'icon', className: "text-lg group-hover:scale-120 transition-transform" }, s.icon),
+                                    el('span', { key: 'label', className: "text-[6px] font-black uppercase text-slate-500 group-hover:text-emerald-400" }, s.label)
+                                ]))
+                            )
+                        ]))
+                    ),
+
+                    // Sons Rápidos (Sempre Visíveis)
+                    !isSfxMenuOpen && el('div', { key: 'quick-sfx', className: "grid grid-cols-4 gap-2" }, 
+                        QUICK_SOUNDS.map(s => el('button', {
+                            key: s.id,
+                            onClick: () => triggerSound(s.id),
+                            className: "bg-slate-900 border border-slate-800 hover:border-emerald-500/50 p-3 rounded-2xl flex flex-col items-center gap-1 transition-all group"
+                        }, [
+                            el('span', { key: 'icon', className: "text-lg" }, s.icon),
+                            el('span', { key: 'label', className: "text-[7px] font-black uppercase text-slate-500" }, s.label)
+                        ]))
+                    )
+                ])
             ]),
-            el('div', { key: 'day-counter-box', className: "bg-slate-950 border border-slate-800 rounded-3xl p-4 shadow-inner space-y-4" }, [
-                el('div', { className: "flex items-center justify-between" }, [
-                    el('div', { className: "flex flex-col" }, [
-                        el('span', { className: "text-[8px] font-black text-slate-600 uppercase tracking-widest" }, "Tempo Passado"),
-                        el('div', { className: "flex items-center text-3xl font-black text-amber-500 tracking-tighter" }, [
-                            "Dia ",
-                            el('input', {
-                                type: 'number',
-                                min: 1,
-                                value: sessionState?.day || 1,
-                                onChange: (e) => updateSessionState({ day: parseInt(e.target.value) || 1 }),
-                                className: "bg-transparent w-16 outline-none text-amber-500 ml-1 hover:bg-slate-800 rounded px-1"
+
+            // ABA: CLOCK
+            activeTab === 'clock' && el('div', { key: 'content-clock', className: "space-y-4 animate-fade-in-fast" }, [
+                el('h3', { key: 'day-title', className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-2" }, [
+                    el('span', { key: 'day-icon' }, "🕒"), "Relógio de Sessão"
+                ]),
+                el('div', { key: 'day-counter-box', className: "bg-slate-950 border border-slate-800 rounded-3xl p-4 shadow-inner space-y-4" }, [
+                    el('div', { className: "flex items-center justify-between" }, [
+                        el('div', { className: "flex flex-col" }, [
+                            el('span', { className: "text-[8px] font-black text-slate-600 uppercase tracking-widest" }, "Tempo Passado"),
+                            el('div', { className: "flex items-center text-3xl font-black text-amber-500 tracking-tighter" }, [
+                                "Dia ",
+                                el('input', {
+                                    type: 'number',
+                                    min: 1,
+                                    value: sessionState?.day || 1,
+                                    onChange: (e) => updateSessionState({ day: parseInt(e.target.value) || 1 }),
+                                    className: "bg-transparent w-16 outline-none text-amber-500 ml-1 hover:bg-slate-800 rounded px-1"
+                                })
+                            ])
+                        ]),
+                        el('div', { className: "flex flex-col text-right" }, [
+                            el('span', { className: "text-[8px] font-black text-slate-600 uppercase tracking-widest" }, "Hora Atual"),
+                            el('input', { 
+                                type: 'text',
+                                value: localTime,
+                                placeholder: "08:00",
+                                onChange: (e) => setLocalTime(e.target.value),
+                                onBlur: () => {
+                                    const match = localTime.match(/^([0-9]{1,2}):([0-9]{2})$/);
+                                    if (match) {
+                                        let hours = parseInt(match[1]);
+                                        let minutes = parseInt(match[2]);
+                                        if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
+                                            const newTime = (hours * 60) + minutes;
+                                            const updates = { timeMinutes: newTime };
+                                            if (time < 360 && newTime >= 360) updates.environment = 'none';
+                                            else if (time < 1080 && newTime >= 1080) updates.environment = 'night';
+                                            updateSessionState(updates);
+                                            return;
+                                        }
+                                    }
+                                    setLocalTime(timeStr);
+                                },
+                                onKeyDown: (e) => {
+                                    if (e.key === 'Enter') e.target.blur();
+                                },
+                                className: "w-24 text-2xl font-black text-amber-400 font-mono bg-slate-900 px-3 py-1 rounded-xl border border-slate-800 outline-none hover:border-amber-500 transition-colors text-center" 
                             })
                         ])
                     ]),
-                    el('div', { className: "flex flex-col text-right" }, [
-                        el('span', { className: "text-[8px] font-black text-slate-600 uppercase tracking-widest" }, "Hora Atual"),
-                        el('input', { 
-                            type: 'text',
-                            value: localTime,
-                            placeholder: "08:00",
-                            onChange: (e) => setLocalTime(e.target.value),
-                            onBlur: () => {
-                                const match = localTime.match(/^([0-9]{1,2}):([0-9]{2})$/);
-                                if (match) {
-                                    let hours = parseInt(match[1]);
-                                    let minutes = parseInt(match[2]);
-                                    if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
-                                        const newTime = (hours * 60) + minutes;
-                                        const updates = { timeMinutes: newTime };
-                                        if (time < 360 && newTime >= 360) updates.environment = 'none';
-                                        else if (time < 1080 && newTime >= 1080) updates.environment = 'night';
-                                        updateSessionState(updates);
-                                        return;
-                                    }
+                    el('div', { className: "grid grid-cols-4 gap-2 border-t border-slate-800 pt-4" }, [
+                        el('button', {
+                            onClick: () => {
+                                let currentDay = sessionState?.day || 1;
+                                let oldTime = sessionState?.timeMinutes !== undefined ? sessionState.timeMinutes : 480;
+                                let time = oldTime + 10;
+                                if (time >= 1440) { time -= 1440; currentDay++; }
+                                
+                                const updates = { day: currentDay, timeMinutes: time };
+                                if (oldTime < 360 && time >= 360) updates.environment = 'none'; // Amanheceu
+                                else if (oldTime < 1080 && time >= 1080) updates.environment = 'night'; // Anoiteceu
+                                
+                                updateSessionState(updates);
+                                AudioManager.play('click');
+                            },
+                            className: "bg-slate-900 border border-slate-700 hover:border-amber-500 hover:text-white text-slate-400 font-black text-[10px] py-2 rounded-xl transition-all shadow-md"
+                        }, "+ 10m"),
+                        el('button', {
+                            onClick: () => {
+                                let currentDay = sessionState?.day || 1;
+                                let oldTime = sessionState?.timeMinutes !== undefined ? sessionState.timeMinutes : 480;
+                                let time = oldTime + 60;
+                                if (time >= 1440) { time -= 1440; currentDay++; }
+                                
+                                const updates = { day: currentDay, timeMinutes: time };
+                                if (oldTime < 360 && time >= 360) updates.environment = 'none'; // Amanheceu
+                                else if (oldTime < 1080 && time >= 1080) updates.environment = 'night'; // Anoiteceu
+                                
+                                updateSessionState(updates);
+                                AudioManager.play('click');
+                            },
+                            className: "bg-slate-900 border border-slate-700 hover:border-amber-500 hover:text-white text-slate-400 font-black text-[10px] py-2 rounded-xl transition-all shadow-md"
+                        }, "+ 1h"),
+                        el('button', {
+                            onClick: () => {
+                                let currentDay = sessionState?.day || 1;
+                                let oldTime = sessionState?.timeMinutes !== undefined ? sessionState.timeMinutes : 480;
+                                let time = oldTime + 480; // 8 hours
+                                if (time >= 1440) { time -= 1440; currentDay++; }
+                                
+                                const updates = { day: currentDay, timeMinutes: time };
+                                // Check if crossed 6am or 6pm
+                                if (oldTime < 360 && time >= 360) updates.environment = 'none';
+                                else if (oldTime < 1080 && time >= 1080) updates.environment = 'night';
+                                else if (time < oldTime) { // Crossed midnight
+                                    if (time >= 360) updates.environment = 'none';
                                 }
-                                setLocalTime(timeStr);
+                                
+                                updateSessionState(updates);
+                                AudioManager.play('rest');
                             },
-                            onKeyDown: (e) => {
-                                if (e.key === 'Enter') e.target.blur();
+                            className: "col-span-2 bg-indigo-900/30 border border-indigo-700/50 hover:bg-indigo-600 hover:text-white text-indigo-400 font-black text-[10px] py-2 rounded-xl transition-all shadow-md uppercase tracking-wider flex items-center justify-center gap-2"
+                        }, [el('span', { key: 'icon' }, "🏕️"), "+ 8h (Descanso)"])
+                    ])
+                ])
+            ]),
+
+            // ABA: CLIMATE (Cenas & Clima)
+            activeTab === 'climate' && el('div', { key: 'content-climate', className: "space-y-6 animate-fade-in-fast" }, [
+                // Cenas e Revelações
+                el('div', { key: 'scene-section', className: "space-y-4" }, [
+                    el('h3', { key: 'scene-title', className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-2" }, [
+                        el('span', { key: 'scene-icon' }, "🎬"), "Controle de Cenas"
+                    ]),
+                    el('div', { key: 'scene-grid', className: "grid grid-cols-1 gap-3" }, [
+                        el('button', {
+                            key: 'btn-cinematic',
+                            onClick: () => {
+                                const rawUrl = prompt("Link da Imagem para Cinematic (Revelação Dramática):", "https://");
+                                if (rawUrl && rawUrl !== "https://") {
+                                    const url = parseImageUrl(rawUrl);
+                                    updateSessionState({ 
+                                        cutscene: { url, timestamp: Date.now() } 
+                                    });
+                                }
                             },
-                            className: "w-24 text-2xl font-black text-purple-400 font-mono bg-slate-900 px-3 py-1 rounded-xl border border-slate-800 outline-none hover:border-purple-500 transition-colors text-center" 
-                        })
+                            className: "w-full bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-500/30 hover:from-blue-600 hover:to-indigo-600 text-blue-200 font-black text-[10px] py-4 rounded-2xl transition-all shadow-lg uppercase tracking-[0.2em] flex items-center justify-center gap-3 group"
+                        }, [
+                            el('span', { key: 'icon', className: "text-lg group-hover:scale-125 transition-transform" }, "📽️"),
+                            "Iniciar Cinematic"
+                        ])
                     ])
                 ]),
-                el('div', { className: "grid grid-cols-4 gap-2 border-t border-slate-800 pt-4" }, [
-                    el('button', {
-                        onClick: () => {
-                            let currentDay = sessionState?.day || 1;
-                            let oldTime = sessionState?.timeMinutes !== undefined ? sessionState.timeMinutes : 480;
-                            let time = oldTime + 10;
-                            if (time >= 1440) { time -= 1440; currentDay++; }
-                            
-                            const updates = { day: currentDay, timeMinutes: time };
-                            if (oldTime < 360 && time >= 360) updates.environment = 'none'; // Amanheceu
-                            else if (oldTime < 1080 && time >= 1080) updates.environment = 'night'; // Anoiteceu
-                            
-                            updateSessionState(updates);
-                            AudioManager.play('click');
-                        },
-                        className: "bg-slate-900 border border-slate-700 hover:border-amber-500 hover:text-white text-slate-400 font-black text-[10px] py-2 rounded-xl transition-all shadow-md"
-                    }, "+ 10m"),
-                    el('button', {
-                        onClick: () => {
-                            let currentDay = sessionState?.day || 1;
-                            let oldTime = sessionState?.timeMinutes !== undefined ? sessionState.timeMinutes : 480;
-                            let time = oldTime + 60;
-                            if (time >= 1440) { time -= 1440; currentDay++; }
-                            
-                            const updates = { day: currentDay, timeMinutes: time };
-                            if (oldTime < 360 && time >= 360) updates.environment = 'none'; // Amanheceu
-                            else if (oldTime < 1080 && time >= 1080) updates.environment = 'night'; // Anoiteceu
-                            
-                            updateSessionState(updates);
-                            AudioManager.play('click');
-                        },
-                        className: "bg-slate-900 border border-slate-700 hover:border-amber-500 hover:text-white text-slate-400 font-black text-[10px] py-2 rounded-xl transition-all shadow-md"
-                    }, "+ 1h"),
-                    el('button', {
-                        onClick: () => {
-                            let currentDay = sessionState?.day || 1;
-                            let oldTime = sessionState?.timeMinutes !== undefined ? sessionState.timeMinutes : 480;
-                            let time = oldTime + 480; // 8 hours
-                            if (time >= 1440) { time -= 1440; currentDay++; }
-                            
-                            const updates = { day: currentDay, timeMinutes: time };
-                            // Check if crossed 6am or 6pm
-                            if (oldTime < 360 && time >= 360) updates.environment = 'none';
-                            else if (oldTime < 1080 && time >= 1080) updates.environment = 'night';
-                            else if (time < oldTime) { // Crossed midnight
-                                if (time >= 360) updates.environment = 'none';
-                            }
-                            
-                            updateSessionState(updates);
-                            AudioManager.play('rest');
-                        },
-                        className: "col-span-2 bg-indigo-900/30 border border-indigo-700/50 hover:bg-indigo-600 hover:text-white text-indigo-400 font-black text-[10px] py-2 rounded-xl transition-all shadow-md uppercase tracking-wider flex items-center justify-center gap-2"
-                    }, [el('span', { key: 'icon' }, "🏕️"), "+ 8h (Descanso)"])
+
+                // AMBIENTE
+                el('div', { key: 'env-section', className: "space-y-4 pt-4 border-t border-slate-800/80" }, [
+                    el('h3', { key: 'env-title', className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-2" }, [
+                        el('span', { key: 'env-icon' }, "⛅"), "Rastreador de Ambiente"
+                    ]),
+                    el('div', { key: 'env-grid', className: "grid grid-cols-2 gap-3" }, 
+                        ENVIRONMENTS.map(env => el('button', {
+                            key: env.id,
+                            onClick: () => {
+                                const newState = { environment: env.id };
+                                // Se existir uma trilha sonora com o mesmo ID, ativa ela também
+                                const matchingAtmos = atmospheres.find(a => a.id === env.id);
+                                if (matchingAtmos) {
+                                    newState.ambientMusic = {
+                                        id: matchingAtmos.id,
+                                        url: matchingAtmos.url,
+                                        volume: sessionState.ambientMusic?.volume || 0.4
+                                    };
+                                }
+                                updateSessionState(newState);
+                            },
+                            className: `p-4 rounded-2xl flex items-center gap-3 transition-all border ${
+                                sessionState?.environment === env.id 
+                                    ? 'bg-blue-600/30 border-blue-400 text-blue-200 shadow-[0_0_20px_rgba(37,99,235,0.25)]' 
+                                    : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-blue-500/30 hover:text-slate-300'
+                            }`
+                        }, [
+                            el('span', { key: `env-icon-${env.id}`, className: "text-lg" }, env.icon),
+                            el('span', { key: `env-label-${env.id}`, className: "text-[10px] font-black uppercase" }, env.label)
+                        ]))
+                    )
                 ])
-            ])
-        ]),
-
-        // Cenas e Revelações
-        el('div', { key: 'scene-section', className: "space-y-4" }, [
-            el('h3', { key: 'scene-title', className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-2" }, [
-                el('span', { key: 'scene-icon' }, "🎬"), "Controle de Cenas"
             ]),
-            el('div', { key: 'scene-grid', className: "grid grid-cols-1 gap-3" }, [
-                el('button', {
-                    key: 'btn-cinematic',
-                    onClick: () => {
-                        const rawUrl = prompt("Link da Imagem para Cinematic (Revelação Dramática):", "https://");
-                        if (rawUrl && rawUrl !== "https://") {
-                            const url = parseImageUrl(rawUrl);
-                            updateSessionState({ 
-                                cutscene: { url, timestamp: Date.now() } 
-                            });
-                        }
-                    },
-                    className: "w-full bg-gradient-to-r from-purple-900/40 to-indigo-900/40 border border-purple-500/30 hover:from-purple-600 hover:to-indigo-600 text-purple-200 font-black text-[10px] py-4 rounded-2xl transition-all shadow-lg uppercase tracking-[0.2em] flex items-center justify-center gap-3 group"
-                }, [
-                    el('span', { key: 'icon', className: "text-lg group-hover:scale-125 transition-transform" }, "📽️"),
-                    "Iniciar Cinematic"
-                ])
-            ])
-        ]),
 
-        // AMBIENTE
-        el('div', { key: 'env-section', className: "space-y-4" }, [
-            el('h3', { key: 'env-title', className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-2" }, [
-                el('span', { key: 'env-icon' }, "⛅"), "Rastreador de Ambiente"
-            ]),
-            el('div', { key: 'env-grid', className: "grid grid-cols-2 gap-3" }, 
-                ENVIRONMENTS.map(env => el('button', {
-                    key: env.id,
-                    onClick: () => {
-                        const newState = { environment: env.id };
-                        // Se existir uma trilha sonora com o mesmo ID, ativa ela também
-                        const matchingAtmos = atmospheres.find(a => a.id === env.id);
-                        if (matchingAtmos) {
-                            newState.ambientMusic = {
-                                id: matchingAtmos.id,
-                                url: matchingAtmos.url,
-                                volume: sessionState.ambientMusic?.volume || 0.4
-                            };
-                        }
-                        updateSessionState(newState);
-                    },
-                    className: `p-4 rounded-2xl flex items-center gap-3 transition-all border ${sessionState?.environment === env.id ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-blue-500/30'}`
-                }, [
-                    el('span', { key: `env-icon-${env.id}`, className: "text-lg" }, env.icon),
-                    el('span', { key: `env-label-${env.id}`, className: "text-[10px] font-black uppercase" }, env.label)
-                ]))
-            )
-        ]),
-
-        // NOTAS DO MESTRE
-        el('div', { key: 'notes-section', className: "space-y-4" }, [
-            el('div', { key: 'notes-header', className: "flex justify-between items-center px-2" }, [
-                el('h3', { key: 'notes-title', className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-2" }, [
-                    el('span', { key: 'notes-icon' }, "📝"), "Notas do Mestre (Privado)"
+            // ABA: NOTES
+            activeTab === 'notes' && el('div', { key: 'content-notes', className: "space-y-4 animate-fade-in-fast" }, [
+                el('div', { key: 'notes-header', className: "flex justify-between items-center px-2" }, [
+                    el('h3', { key: 'notes-title', className: "text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-2" }, [
+                        el('span', { key: 'notes-icon' }, "📝"), "Notas do Mestre (Privado)"
+                    ]),
+                    sessionState?.masterNotes && el('button', {
+                        key: 'notes-clear-btn',
+                        onClick: () => { if (confirm("Limpar todas as notas?")) updateSessionState({ masterNotes: '' }); },
+                        className: "text-[8px] text-red-500 font-bold uppercase hover:text-red-400"
+                    }, "Limpar")
                 ]),
-                sessionState?.masterNotes && el('button', {
-                    key: 'notes-clear-btn',
-                    onClick: () => updateSessionState({ masterNotes: '' }),
-                    className: "text-[8px] text-red-500 font-bold uppercase hover:text-red-400"
-                }, "Limpar")
-            ]),
-            el('textarea', {
-                key: 'notes-textarea',
-                className: "w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 text-xs text-slate-300 outline-none focus:border-amber-500/50 resize-none h-64 shadow-inner custom-scrollbar",
-                placeholder: "Segredos, nomes de NPCs, planos malignos...",
-                value: localNotes,
-                onChange: (e) => setLocalNotes(e.target.value)
-            })
+                el('textarea', {
+                    key: 'notes-textarea',
+                    className: "w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 text-xs text-slate-300 outline-none focus:border-purple-500/50 resize-none h-80 shadow-inner custom-scrollbar transition-colors",
+                    placeholder: "Segredos, nomes de NPCs, planos malignos...",
+                    value: localNotes,
+                    onChange: (e) => setLocalNotes(e.target.value)
+                })
+            ])
         ])
     ]);
 }

@@ -26,6 +26,8 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
     const [pings, setPings] = useState([]);
 
     const [isMapLibraryOpen, setIsMapLibraryOpen] = useState(false);
+    const [creatureSelectorOpen, setCreatureSelectorOpen] = useState(null); // 'bestiary', 'characters', 'animals' or null
+    const [creatureSearchQuery, setCreatureSearchQuery] = useState('');
     const [isFogMode, setIsFogMode] = useState(false);
     const [fogBrushType, setFogBrushType] = useState('hide'); // 'hide' ou 'reveal'
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -264,7 +266,7 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
             id: `token_player_${p.name}`,
             type: 'player',
             name: p.name,
-            imageUrl: p.sheetData?.info?.['Avatar'] || '',
+            imageUrl: p.imageUrl || p.sheetData?.info?.['Avatar'] || '',
             x: (idx * gs), y: 0, size: 1
         }));
         updateSessionState({ battlemap: { ...battlemapData, tokens: [...tokens, ...newTokens] } });
@@ -329,6 +331,157 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
         e.preventDefault();
     };
 
+    // --- MODAL DE SELEÇÃO VISUAL DE CRIATURAS (Monstros, NPCs, Animais) ---
+    const renderCreatureSelectorModal = () => {
+        if (!creatureSelectorOpen) return null;
+
+        const categories = [
+            { id: 'bestiary', label: 'Monstros', icon: '👹' },
+            { id: 'characters', label: 'NPCs / Personagens', icon: '👥' },
+            { id: 'animals', label: 'Glossário Animal', icon: '🐾' }
+        ];
+
+        let items = [];
+        if (creatureSelectorOpen === 'bestiary') {
+            items = [...(libraryData.bestiary || []), ...monsters];
+        } else if (creatureSelectorOpen === 'characters') {
+            items = libraryData.characters || [];
+        } else if (creatureSelectorOpen === 'animals') {
+            items = libraryData.animals || [];
+        }
+
+        const uniqueItemsMap = new Map();
+        items.forEach(item => {
+            const name = item.name || item.title;
+            if (name && !uniqueItemsMap.has(name.toLowerCase())) {
+                uniqueItemsMap.set(name.toLowerCase(), item);
+            }
+        });
+
+        const filteredItems = Array.from(uniqueItemsMap.values()).filter(item => {
+            const name = item.name || item.title || '';
+            const desc = item.description || '';
+            const type = item.type || '';
+            const query = creatureSearchQuery.toLowerCase();
+            return name.toLowerCase().includes(query) || 
+                   desc.toLowerCase().includes(query) || 
+                   type.toLowerCase().includes(query);
+        });
+
+        return el('div', {
+            key: 'creature-selector-modal',
+            onClick: () => { setCreatureSelectorOpen(null); setCreatureSearchQuery(''); },
+            className: "fixed inset-0 z-[400] bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-4 animate-fade-in text-slate-100 pointer-events-auto"
+        }, [
+            el('div', {
+                onClick: (e) => e.stopPropagation(),
+                className: "bg-slate-900 border border-slate-800 rounded-[3rem] w-full max-w-4xl h-[85vh] flex flex-col shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden animate-zoom-in"
+            }, [
+                // Header
+                el('header', { className: "p-6 border-b border-slate-800 flex flex-row justify-between items-center gap-4 bg-slate-950/40 relative" }, [
+                    el('div', { className: "flex items-center gap-4" }, [
+                        el('span', { className: "text-2xl animate-pulse-soft" }, "🔮"),
+                        el('div', null, [
+                            el('h3', { className: "text-xl font-black uppercase tracking-tighter bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent" }, "Invocador de Criaturas"),
+                            el('p', { className: "text-[9px] font-black text-slate-500 uppercase tracking-widest mt-0.5" }, "Selecione na lista para invocar um token no centro da câmera")
+                        ])
+                    ]),
+                    el('button', { 
+                        onClick: () => { setCreatureSelectorOpen(null); setCreatureSearchQuery(''); },
+                        className: "w-10 h-10 bg-slate-800 hover:bg-red-500 hover:text-white rounded-xl flex items-center justify-center text-xl transition-all shadow-lg border border-slate-700 hover:scale-105 active:scale-95"
+                    }, "×")
+                ]),
+
+                // Subheader (Search & Tabs)
+                el('div', { className: "p-6 border-b border-slate-850 bg-slate-950/20 flex flex-col md:flex-row gap-4 justify-between items-center" }, [
+                    el('div', { className: "flex bg-slate-950/60 p-1.5 rounded-2xl border border-slate-800 gap-1 w-full md:w-auto overflow-x-auto hide-scrollbar" }, 
+                        categories.map(cat => 
+                            el('button', {
+                                key: cat.id,
+                                onClick: () => { setCreatureSelectorOpen(cat.id); setCreatureSearchQuery(''); },
+                                className: `px-5 py-3 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 whitespace-nowrap ${creatureSelectorOpen === cat.id ? 'bg-amber-600 text-slate-900 shadow-md font-black' : 'text-slate-500 hover:text-slate-300'}`
+                            }, [
+                                el('span', { className: "text-sm" }, cat.icon),
+                                cat.label
+                            ])
+                        )
+                    ),
+                    el('div', { className: "relative w-full md:w-80" }, [
+                        el('span', { className: "absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs" }, "🔍"),
+                        el('input', {
+                            type: 'text',
+                            value: creatureSearchQuery,
+                            onChange: (e) => setCreatureSearchQuery(e.target.value),
+                            placeholder: `Buscar em ${categories.find(c => c.id === creatureSelectorOpen)?.label || ''}...`,
+                            className: "w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:border-amber-500/50 outline-none transition-all"
+                        })
+                    ])
+                ]),
+
+                // Content (Grid List)
+                el('div', { className: "flex-grow overflow-y-auto p-8 custom-scrollbar bg-slate-900/40" }, [
+                    filteredItems.length === 0 ? 
+                        el('div', { className: "h-64 flex flex-col items-center justify-center text-slate-600 italic gap-3" }, [
+                            el('span', { className: "text-5xl" }, "🕯️"),
+                            el('p', { className: "text-xs font-black uppercase tracking-wider" }, "Nenhuma criatura disponível nesta categoria...")
+                        ]) :
+                        el('div', { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" }, 
+                            filteredItems.map(item => {
+                                const name = item.name || item.title || 'Criatura';
+                                const img = item.image || item.imageUrl || '';
+                                return el('div', {
+                                    key: item.id,
+                                    className: "group bg-slate-950/40 border border-slate-850 hover:border-amber-500/30 rounded-[2rem] overflow-hidden flex flex-col p-5 transition-all duration-300 hover:-translate-y-1 shadow-md hover:shadow-xl relative"
+                                }, [
+                                    el('div', { className: "flex gap-4 items-start" }, [
+                                        el('div', { className: "w-16 h-16 rounded-2xl overflow-hidden bg-slate-900 border border-slate-850 flex-shrink-0 flex items-center justify-center" }, 
+                                            img ? 
+                                                el('img', { src: img, className: "w-full h-full object-cover" }) :
+                                                el('span', { className: "text-2xl opacity-40" }, categories.find(c => c.id === creatureSelectorOpen)?.icon || '🐾')
+                                        ),
+                                        el('div', { className: "flex-grow min-w-0" }, [
+                                            el('h4', { className: "font-black uppercase text-amber-500 text-xs tracking-tighter truncate" }, name),
+                                            item.type && el('span', { className: "text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 block" }, item.type),
+                                            (item.hp || item.ca || item.cr) && el('div', { className: "flex gap-1.5 mt-2 flex-wrap" }, [
+                                                item.cr && el('span', { className: "bg-amber-600/10 border border-amber-500/20 text-amber-500 text-[8px] font-black uppercase px-1.5 py-0.5 rounded" }, `CR ${item.cr}`),
+                                                item.hp && el('span', { className: "bg-red-950/40 border border-red-900/30 text-red-400 text-[8px] font-black uppercase px-1.5 py-0.5 rounded flex items-center gap-0.5" }, ["❤️", item.hp]),
+                                                item.ca && el('span', { className: "bg-blue-950/40 border border-blue-900/30 text-blue-400 text-[8px] font-black uppercase px-1.5 py-0.5 rounded flex items-center gap-0.5" }, ["🛡️", item.ca])
+                                            ].filter(Boolean))
+                                        ])
+                                    ]),
+                                    item.description && el('p', { className: "text-[10px] text-slate-400 italic line-clamp-2 mt-3 leading-normal border-t border-slate-800/40 pt-2" }, item.description),
+                                    el('button', {
+                                        onClick: () => {
+                                            const gs = activeMap.gridSize || 50;
+                                            let posX = 0;
+                                            let posY = 0;
+                                            if (containerRef.current) {
+                                                const rect = containerRef.current.getBoundingClientRect();
+                                                const cx = (rect.width / 2 - camera.x) / camera.scale;
+                                                const cy = (rect.height / 2 - camera.y) / camera.scale;
+                                                posX = Math.round(cx / gs) * gs;
+                                                posY = Math.round(cy / gs) * gs;
+                                            }
+                                            const newToken = {
+                                                id: `token_${creatureSelectorOpen}_${item.id || Date.now()}_${Math.random().toString(36).substr(2,5)}`,
+                                                type: creatureSelectorOpen === 'bestiary' ? 'monster' : 'npc',
+                                                name: name,
+                                                imageUrl: img,
+                                                x: posX, y: posY, size: 1,
+                                                createdBy: characterName
+                                            };
+                                            updateSessionState({ battlemap: { ...battlemapData, tokens: [...tokens, newToken] } });
+                                        },
+                                        className: "w-full bg-slate-900 hover:bg-amber-600 hover:text-slate-950 text-slate-300 text-[9px] font-black uppercase tracking-wider py-2.5 rounded-xl transition-all duration-200 mt-4 border border-slate-800 hover:border-amber-500 shadow-sm"
+                                    }, "➕ Invocar Token")
+                                ]);
+                            })
+                        )
+                ])
+            ])
+        ]);
+    };
+
     // --- RENDERIZAÇÃO ---
     return el('div', { 
         className: "fixed inset-0 z-[200] bg-slate-950 flex flex-col animate-fade-in text-slate-100 overflow-hidden select-none",
@@ -357,117 +510,111 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                 className: "md:hidden w-10 h-10 bg-slate-900 border border-slate-700 rounded-xl flex items-center justify-center text-xl text-amber-500 pointer-events-auto shadow-lg"
             }, "☰"),
 
-            // TOOLBAR DESKTOP
-            el('div', { className: "hidden md:flex gap-2 pointer-events-auto bg-slate-900/80 p-2 rounded-2xl border border-slate-800 backdrop-blur-md overflow-x-auto max-w-[70vw] hide-scrollbar" }, [
-                mode === 'master' && el('button', {
-                    onClick: handleNextTurn,
-                    className: "px-4 py-2 hover:bg-emerald-600/20 text-emerald-500 rounded-xl text-xs font-bold uppercase border-r border-slate-700 whitespace-nowrap",
-                    title: "Passar a vez"
-                }, "▶️ Próximo"),
+            // TOOLBAR DESKTOP (Modular Frosted Glass Dropdowns - Match Master/Sheet consistency)
+            el('div', { className: "hidden md:flex gap-3 pointer-events-auto bg-slate-900/90 backdrop-blur-xl p-2 rounded-2xl border border-slate-800 shadow-2xl items-center z-[150]" }, [
                 
-                mode === 'master' && el('button', {
-                    onClick: handleUpdateBackground,
-                    className: "px-4 py-2 hover:bg-amber-600/20 text-amber-500 rounded-xl text-xs font-bold uppercase whitespace-nowrap"
-                }, "🖼️ Fundo"),
+                // GRUPO 1: MAPA (Master Only)
+                mode === 'master' && el('div', { className: "group relative" }, [
+                    el('button', { className: "bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-500/30 px-3.5 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider hover:scale-105 active:scale-95 shadow-[0_0_10px_rgba(16,185,129,0.05)]" }, [
+                        el('span', { className: "text-sm" }, "🗺️"), "Mapa"
+                    ]),
+                    el('div', { className: "absolute top-full mt-2 right-0 w-64 bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.6)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2 z-[200] transform origin-top group-hover:scale-100 scale-95 duration-200" }, [
+                        el('button', { onClick: handleUpdateBackground, className: "w-full text-left px-5 py-3 hover:bg-emerald-500/10 border-l-2 border-l-transparent hover:border-l-emerald-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-150" }, ["🖼️ Mudar Imagem Fundo"]),
+                        el('button', { onClick: () => setIsMapLibraryOpen(true), className: "w-full text-left px-5 py-3 hover:bg-emerald-500/10 border-l-2 border-l-transparent hover:border-l-emerald-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-150" }, ["📁 Biblioteca de Mapas"]),
+                        el('button', { onClick: handleUpdateGrid, className: "w-full text-left px-5 py-3 hover:bg-emerald-500/10 border-l-2 border-l-transparent hover:border-l-emerald-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-150" }, ["📏 Ajustar Grid de Células"])
+                    ])
+                ]),
 
-                mode === 'master' && el('button', {
-                    onClick: () => setIsMapLibraryOpen(true),
-                    className: "px-4 py-2 hover:bg-indigo-600/20 text-indigo-400 rounded-xl text-xs font-bold uppercase flex items-center gap-2 whitespace-nowrap"
-                }, ["🗺️", "Mapas"]),
+                // GRUPO 2: ENTIDADES / TOKENS
+                el('div', { className: "group relative" }, [
+                    el('button', { className: "bg-purple-950/40 hover:bg-purple-900/60 text-purple-400 border border-purple-500/30 px-3.5 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider hover:scale-105 active:scale-95 shadow-[0_0_10px_rgba(139,92,246,0.05)]" }, [
+                        el('span', { className: "text-sm" }, "👤"), "Tokens"
+                    ]),
+                    el('div', { className: "absolute top-full mt-2 right-0 w-64 bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.6)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2 z-[200] transform origin-top group-hover:scale-100 scale-95 duration-200" }, [
+                        mode === 'master' && el('button', { onClick: handleAddAllPlayers, className: "w-full text-left px-5 py-3 hover:bg-purple-500/10 border-l-2 border-l-transparent hover:border-l-purple-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-150" }, ["🎲 Puxar Todos os Jogadores"]),
+                        mode === 'master' && el('button', { onClick: () => setCreatureSelectorOpen('bestiary'), className: "w-full text-left px-5 py-3 hover:bg-purple-500/10 border-l-2 border-l-transparent hover:border-l-purple-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-150" }, ["👹 Invocar Monstro"]),
+                        mode === 'master' && el('button', { onClick: () => setCreatureSelectorOpen('characters'), className: "w-full text-left px-5 py-3 hover:bg-purple-500/10 border-l-2 border-l-transparent hover:border-l-purple-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-150" }, ["👥 Invocar NPC / Figurante"]),
+                        mode === 'master' && el('button', { onClick: () => setCreatureSelectorOpen('animals'), className: "w-full text-left px-5 py-3 hover:bg-purple-500/10 border-l-2 border-l-transparent hover:border-l-purple-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-150" }, ["🐾 Invocar Animal / Pet"]),
+                        el('button', { onClick: handleAddNewToken, className: "w-full text-left px-5 py-3 hover:bg-purple-500/10 border-l-2 border-l-transparent hover:border-l-purple-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-150 border-t border-slate-800/80 mt-1 pt-3" }, ["➕ Criar Token Livre"]),
+                        el('button', { onClick: handleAddProp, className: "w-full text-left px-5 py-3 hover:bg-purple-500/10 border-l-2 border-l-transparent hover:border-l-purple-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-150 border-t border-slate-800/80 mt-1 pt-3" }, ["📦 Criar Objeto / Cenário (Prop)"])
+                    ].filter(Boolean))
+                ]),
 
-                mode === 'master' && el('button', {
-                    onClick: handleUpdateGrid,
-                    className: "px-4 py-2 hover:bg-amber-600/20 text-amber-500 rounded-xl text-xs font-bold uppercase whitespace-nowrap"
-                }, "📏 Grid"),
+                // GRUPO 3: DESENHO E MEDIÇÃO
+                el('div', { className: "group relative" }, [
+                    el('button', { className: `bg-amber-950/40 hover:bg-amber-900/60 text-amber-400 border border-amber-500/30 px-3.5 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider hover:scale-105 active:scale-95 shadow-[0_0_10px_rgba(245,158,11,0.05)] ${drawMode ? 'border-amber-400 bg-amber-500/20' : ''}` }, [
+                        el('span', { className: "text-sm" }, "✏️"), drawMode ? `Desenho: ${drawMode}` : "Desenhar"
+                    ]),
+                    el('div', { className: "absolute top-full mt-2 right-0 w-64 bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.6)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2 z-[200] transform origin-top group-hover:scale-100 scale-95 duration-200" }, [
+                        el('div', { className: "px-5 py-3 border-b border-slate-800/80 flex items-center justify-between" }, [
+                            el('span', { className: "text-[9px] font-black text-slate-500 uppercase tracking-widest" }, "🎨 Cor do Pincel:"),
+                            el('input', {
+                                type: 'color', value: drawColor, onChange: (e) => setDrawColor(e.target.value),
+                                className: "w-6 h-6 bg-transparent cursor-pointer rounded-full overflow-hidden border-0 p-0 hover:scale-110 transition-transform"
+                            })
+                        ]),
+                        el('button', { onClick: () => setDrawMode(drawMode === 'cone' ? null : 'cone'), className: `w-full text-left px-5 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all duration-150 hover:bg-amber-500/10 border-l-2 ${drawMode === 'cone' ? 'border-l-amber-500 bg-amber-500/5 text-amber-300' : 'border-l-transparent text-slate-300'}` }, ["📐 Molde de Cone"]),
+                        el('button', { onClick: () => setDrawMode(drawMode === 'line' ? null : 'line'), className: `w-full text-left px-5 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all duration-150 hover:bg-amber-500/10 border-l-2 ${drawMode === 'line' ? 'border-l-amber-500 bg-amber-500/5 text-amber-300' : 'border-l-transparent text-slate-300'}` }, ["➖ Régua / Linha"]),
+                        el('button', { onClick: () => setDrawMode(drawMode === 'circle' ? null : 'circle'), className: `w-full text-left px-5 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all duration-150 hover:bg-amber-500/10 border-l-2 ${drawMode === 'circle' ? 'border-l-amber-500 bg-amber-500/5 text-amber-300' : 'border-l-transparent text-slate-300'}` }, ["⭕ Molde de Círculo"]),
+                        mode === 'master' && el('button', { onClick: () => setDrawMode(drawMode === 'wall' ? null : 'wall'), className: `w-full text-left px-5 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all duration-150 hover:bg-amber-500/10 border-l-2 ${drawMode === 'wall' ? 'border-l-blue-500 bg-blue-500/5 text-blue-300' : 'border-l-transparent text-slate-300'}` }, ["🧱 Parede de Bloqueio"]),
+                        el('button', {
+                            onClick: () => {
+                                if (drawings.length > 0) {
+                                    const newDrawings = [...drawings]; newDrawings.pop();
+                                    updateSessionState({ battlemap: { ...battlemapData, drawings: newDrawings } });
+                                }
+                            },
+                            className: "w-full text-left px-5 py-3 hover:bg-amber-500/10 border-l-2 border-l-transparent hover:border-l-amber-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white border-t border-slate-800/80 mt-1 pt-3 transition-all duration-150"
+                        }, ["↩️ Desfazer Último"])
+                    ].filter(Boolean))
+                ]),
 
-                mode === 'master' && el('button', {
-                    onClick: handleAddAllPlayers,
-                    className: "px-4 py-2 hover:bg-green-600/20 text-green-500 rounded-xl text-xs font-bold uppercase whitespace-nowrap"
-                }, "🎲 Jogadores"),
+                // GRUPO 4: NÉVOA DE GUERRA (Master Only)
+                mode === 'master' && el('div', { className: "group relative" }, [
+                    el('button', { className: `bg-indigo-950/40 hover:bg-indigo-900/60 text-indigo-400 border border-indigo-500/30 px-3.5 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider hover:scale-105 active:scale-95 shadow-[0_0_10px_rgba(99,102,241,0.05)] ${isFogMode ? 'border-indigo-400 bg-indigo-500/20' : ''}` }, [
+                        el('span', { className: "text-sm" }, "🌫️"), isFogMode ? `Névoa: ${fogBrushType === 'hide' ? 'Esconder' : 'Revelar'}` : "Névoa"
+                    ]),
+                    el('div', { className: "absolute top-full mt-2 right-0 w-64 bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.6)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2 z-[200] transform origin-top group-hover:scale-100 scale-95 duration-200" }, [
+                        el('button', { onClick: () => setIsFogMode(!isFogMode), className: `w-full text-left px-5 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all duration-150 hover:bg-indigo-500/10 border-l-2 ${isFogMode ? 'border-l-indigo-500 bg-indigo-500/5 text-indigo-300' : 'border-l-transparent text-slate-300'}` }, [isFogMode ? "✅ Ativa (Desligar)" : "❌ Inativa (Ativar)"]),
+                        isFogMode && el('button', { onClick: () => setFogBrushType('hide'), className: `w-full text-left px-5 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all duration-150 hover:bg-indigo-500/10 border-l-2 ${fogBrushType === 'hide' ? 'border-l-indigo-500 bg-indigo-500/5 text-indigo-300' : 'border-l-transparent text-slate-300'}` }, ["🌑 Pincel: Esconder"]),
+                        isFogMode && el('button', { onClick: () => setFogBrushType('reveal'), className: `w-full text-left px-5 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all duration-150 hover:bg-indigo-500/10 border-l-2 ${fogBrushType === 'reveal' ? 'border-l-indigo-500 bg-indigo-500/5 text-indigo-300' : 'border-l-transparent text-slate-300'}` }, ["👁️ Pincel: Revelar"])
+                    ].filter(Boolean))
+                ]),
 
-                mode === 'master' && el('button', {
-                    onClick: handleAddMonster,
-                    className: "px-4 py-2 hover:bg-red-600/20 text-red-500 rounded-xl text-xs font-bold uppercase whitespace-nowrap"
-                }, "👹 Bio"),
+                // GRUPO 5: COMBATE / AÇÕES GERAIS
+                el('div', { className: "group relative" }, [
+                    el('button', { className: "bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-500/30 px-3.5 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider hover:scale-105 active:scale-95 shadow-[0_0_10px_rgba(239,68,68,0.05)]" }, [
+                        el('span', { className: "text-sm" }, "⚙️"), "Ações"
+                    ]),
+                    el('div', { className: "absolute top-full mt-2 right-0 w-64 bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.6)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2 z-[200] transform origin-top group-hover:scale-100 scale-95 duration-200" }, [
+                        mode === 'master' && el('button', { onClick: handleNextTurn, className: "w-full text-left px-5 py-3 hover:bg-emerald-500/10 border-l-2 border-l-transparent hover:border-l-emerald-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 transition-all duration-150 font-black" }, ["▶️ Passar Vez (Próximo)"]),
+                        el('button', { onClick: handleClearDrawings, className: "w-full text-left px-5 py-3 hover:bg-red-500/10 border-l-2 border-l-transparent hover:border-l-red-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-150" }, ["🧹 Limpar Desenhos"]),
+                        mode === 'master' && el('button', { onClick: handleClearWalls, className: "w-full text-left px-5 py-3 hover:bg-red-500/10 border-l-2 border-l-transparent hover:border-l-red-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-150" }, ["🧱× Limpar Todas as Paredes"]),
+                        mode === 'master' && el('button', { onClick: handleClearTokens, className: "w-full text-left px-5 py-3 hover:bg-red-500/10 border-l-2 border-l-transparent hover:border-l-red-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-red-300 transition-all duration-150 border-t border-slate-800/80 mt-1 pt-3" }, ["🗑️ Limpar Todos os Tokens"])
+                    ].filter(Boolean))
+                ]),
 
-                el('button', {
-                    onClick: handleAddNewToken,
-                    className: "px-4 py-2 hover:bg-purple-600/20 text-purple-500 rounded-xl text-xs font-bold uppercase whitespace-nowrap"
-                }, "➕ Token"),
+                el('div', { className: "w-px bg-slate-800 h-6 mx-1" }),
 
-                el('button', {
-                    onClick: handleAddProp,
-                    className: "px-4 py-2 hover:bg-stone-600/20 text-stone-400 rounded-xl text-xs font-bold uppercase whitespace-nowrap"
-                }, "📦 Props"),
-                
-                el('div', { className: "w-px bg-slate-800 mx-1" }), 
-                el('div', { className: "flex items-center gap-1 bg-slate-950 p-1 rounded-xl" }, [
-                    el('button', {
-                        onClick: () => setDrawMode(drawMode === 'cone' ? null : 'cone'),
-                        className: `w-8 h-8 flex items-center justify-center rounded-lg ${drawMode === 'cone' ? 'bg-amber-500 text-slate-900' : 'text-slate-400 hover:bg-slate-800'}`
-                    }, "📐"),
-                    el('button', {
-                        onClick: () => setDrawMode(drawMode === 'line' ? null : 'line'),
-                        className: `w-8 h-8 flex items-center justify-center rounded-lg ${drawMode === 'line' ? 'bg-amber-500 text-slate-900' : 'text-slate-400 hover:bg-slate-800'}`
+                // ZOOM & CAMERA RÁPIDOS
+                el('div', { className: "flex items-center gap-1.5 bg-slate-950/60 p-1 rounded-xl border border-slate-800" }, [
+                    el('button', { 
+                        onClick: () => setCamera(prev => ({ ...prev, scale: Math.max(0.1, prev.scale - 0.15) })), 
+                        className: "w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all",
+                        title: "Diminuir Zoom"
                     }, "➖"),
-                    el('button', {
-                        onClick: () => setDrawMode(drawMode === 'circle' ? null : 'circle'),
-                        className: `w-8 h-8 flex items-center justify-center rounded-lg ${drawMode === 'circle' ? 'bg-amber-500 text-slate-900' : 'text-slate-400 hover:bg-slate-800'}`
-                    }, "⭕"),
-                    mode === 'master' && el('button', {
-                        onClick: () => setDrawMode(drawMode === 'wall' ? null : 'wall'),
-                        className: `w-8 h-8 flex items-center justify-center rounded-lg ${drawMode === 'wall' ? 'bg-blue-500 text-white' : 'text-blue-400 hover:bg-blue-900/50'}`
-                    }, "🧱"),
-                    el('input', {
-                        type: 'color', value: drawColor, onChange: (e) => setDrawColor(e.target.value),
-                        className: "w-6 h-6 ml-1 bg-transparent cursor-pointer rounded-full overflow-hidden border-0 p-0"
-                    }),
-                    el('button', {
-                        onClick: () => {
-                            if (drawings.length > 0) {
-                                const newDrawings = [...drawings]; newDrawings.pop();
-                                updateSessionState({ battlemap: { ...battlemapData, drawings: newDrawings } });
-                            }
-                        },
-                        className: `w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800`
-                    }, "↩️")
-                ]),
-
-                mode === 'master' && el('button', {
-                    onClick: handleClearDrawings,
-                    className: "px-4 py-2 hover:bg-red-600/20 text-red-500 rounded-xl text-xs font-bold uppercase whitespace-nowrap"
-                }, "🧹"),
-                
-                mode === 'master' && el('button', {
-                    onClick: handleClearWalls,
-                    className: "px-2 py-2 hover:bg-blue-600/20 text-blue-500 rounded-xl text-xs font-bold uppercase"
-                }, "🧱×"),
-                
-                mode === 'master' && el('div', { className: "flex items-center gap-1 bg-slate-950 p-1 rounded-xl" }, [
-                    el('button', {
-                        onClick: () => setIsFogMode(!isFogMode),
-                        className: `px-3 py-1.5 rounded-lg text-[10px] font-black uppercase ${isFogMode ? 'bg-indigo-500 text-white' : 'text-slate-400 hover:bg-slate-800'}`
-                    }, "🌬️ Névoa"),
-                    isFogMode && el('button', {
-                        onClick: () => setFogBrushType('hide'),
-                        className: `w-8 h-8 flex items-center justify-center rounded-lg ${fogBrushType === 'hide' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-slate-800'}`
-                    }, "🌑"),
-                    isFogMode && el('button', {
-                        onClick: () => setFogBrushType('reveal'),
-                        className: `w-8 h-8 flex items-center justify-center rounded-lg ${fogBrushType === 'reveal' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-slate-800'}`
-                    }, "👁️")
-                ]),
-
-                mode === 'master' && el('button', {
-                    onClick: handleClearTokens,
-                    className: "px-4 py-2 hover:bg-slate-700/50 text-slate-400 rounded-xl text-xs font-bold uppercase whitespace-nowrap"
-                }, "🗑️"),
-
-                el('div', { className: "w-px bg-slate-800 mx-1" }),
-                el('button', { onClick: () => setCamera(prev => ({ ...prev, scale: Math.max(0.1, prev.scale - 0.2) })), className: "px-3 py-2 hover:bg-white/10 rounded-xl text-xs font-bold" }, "➖"),
-                el('button', { onClick: () => setCamera(prev => ({ ...prev, scale: Math.min(10, prev.scale + 0.2) })), className: "px-3 py-2 hover:bg-white/10 rounded-xl text-xs font-bold" }, "➕"),
-                el('button', { onClick: () => setCamera({ x: 0, y: 0, scale: 1 }), className: "px-4 py-2 hover:bg-white/10 rounded-xl text-xs font-bold uppercase" }, "🎯 Centro"),
-                el('span', { className: "px-4 py-2 text-xs font-bold text-slate-500 min-w-[3rem] text-center" }, `${Math.round(camera.scale * 100)}%`)
+                    el('button', { 
+                        onClick: () => setCamera(prev => ({ ...prev, scale: Math.min(10, prev.scale + 0.15) })), 
+                        className: "w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all",
+                        title: "Aumentar Zoom"
+                    }, "➕"),
+                    el('button', { 
+                        onClick: () => setCamera({ x: 0, y: 0, scale: 1 }), 
+                        className: "px-3 py-1.5 bg-slate-900 border border-slate-700 hover:border-amber-500/50 hover:text-amber-400 text-slate-400 text-[9px] font-black uppercase rounded-lg transition-all",
+                        title: "Centralizar Câmera no Mapa"
+                    }, "🎯 Centro"),
+                    el('span', { className: "text-[9px] font-black text-slate-500 w-12 text-center select-none" }, `${Math.round(camera.scale * 100)}%`)
+                ])
             ])
         ]),
 
@@ -658,7 +805,13 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                             key: s, 
                             className: "text-lg drop-shadow-md animate-bounce-soft",
                             style: { animationDelay: `${Math.random()}s` }
-                        }, STATUS_ICONS[s] || '❓')))
+                        }, STATUS_ICONS[s] || '❓'))),
+
+                        // Nome do Token (Abaixo do Círculo)
+                        el('div', {
+                            key: 'token-name-label',
+                            className: "absolute top-[104%] left-1/2 -translate-x-1/2 bg-slate-950/90 backdrop-blur-sm border border-slate-800/80 px-2.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider text-slate-300 group-hover:text-amber-400 group-hover:border-amber-500/30 shadow-2xl pointer-events-none z-30 transition-all duration-200 select-none max-w-[130px] truncate text-center"
+                        }, renderToken.name)
                     ]);
                 }),
 
@@ -803,12 +956,12 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                             t.type === 'player' && canEdit && el('button', {
                                 onClick: () => {
                                     const char = allCharacters.find(c => c.name === t.name);
-                                    const avatar = char?.sheetData?.info?.['Avatar'];
+                                    const avatar = char?.imageUrl || char?.sheetData?.info?.['Avatar'];
                                     if (avatar) {
                                         const newTokens = tokens.map(tok => tok.id === t.id ? { ...tok, imageUrl: avatar } : tok);
                                         updateSessionState({ battlemap: { ...battlemapData, tokens: newTokens } });
                                     } else {
-                                        alert("Nenhum Avatar encontrado na ficha deste personagem!");
+                                        alert("Nenhum Avatar ou Imagem de Perfil encontrado na ficha deste personagem!");
                                     }
                                 },
                                 className: "mt-1 text-[8px] bg-blue-900/30 hover:bg-blue-600 text-blue-400 hover:text-white px-2 py-1 rounded-md transition-all font-black uppercase tracking-tighter w-fit self-end"
@@ -1099,7 +1252,9 @@ export function BattlemapView({ mode, battlemapData, updateSessionState, onBack,
                         className: "w-full md:w-auto bg-slate-800 hover:bg-slate-700 text-slate-400 px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
                     }, "Fechar")
                 ])
-            ])
-        ])
+            ]),
+        ]),
+
+        renderCreatureSelectorModal()
     ]);
 }
