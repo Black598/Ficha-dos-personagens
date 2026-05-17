@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
 
-export const PLAYER_TUTORIAL_VERSION = '2.6';
+export const PLAYER_TUTORIAL_VERSION = '3.0';
 
 export function PlayerTutorialPopup({ onClose }) {
     const [activeTab, setActiveTab] = useState('novidades'); // Abre direto nas novidades quando há update
@@ -24,21 +24,21 @@ export function PlayerTutorialPopup({ onClose }) {
         switch (activeTab) {
             case 'novidades':
                 return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
-                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 2.6 - Régua Dinâmica, Pings Sincronizados & HUD de HP"),
+                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 3.0 - Painel de Áudio Customizável, Órbitas Celestiais & Climas Sincronizados"),
                     
                     el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl shadow-lg" }, [
-                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "📐 Régua de Medição Tática"),
-                        el('p', { className: "text-xs" }, "As ferramentas de Linha, Cone e Círculo agora calculam a distância e quantidade de Quadrados exatos em tempo real. O indicador visual de metros (m) e pés (ft) rotaciona automaticamente para ficar sempre horizontal e 100% legível!")
+                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "🔊 Configurações de Áudio Customizáveis"),
+                        el('p', { className: "text-xs" }, "Chega de tudo fazer o mesmo barulho! Abra a Engrenagem (⚙️) -> Sons e customize o áudio de cada ação da mesa. Você pode habilitar/desabilitar cada som individualmente e até colar um link de som customizado (YouTube ou MP3) para tocar no lugar do som padrão de rolar dados, cura, moedas e mais!")
+                    ]),
+
+                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl shadow-lg" }, [
+                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🔇 Filtro de Soundpad de Terceiros"),
+                        el('p', { className: "text-xs" }, "Se você se incomoda com outros jogadores tocando gritos ou efeitos de áudio pelo Soundpad em momentos sérios, agora você pode desmarcar a opção 'Ouvir Soundpad dos outros Jogadores' no seu painel de sons para silenciá-los localmente!")
                     ]),
 
                     el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl shadow-lg" }, [
-                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2" }, "🔔 Sinalização / Pings no Mapa"),
-                        el('p', { className: "text-xs" }, "Precisa indicar um caminho ou perigo? Clique com o botão do meio (mouse wheel) ou dê duplo clique no fundo do mapa para gerar uma animação de ping luminosa que aparece em tempo real para todos na mesa!")
-                    ]),
-
-                    el('div', { className: "bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2" }, "❤️ HUD Flutuante de HP & Seleção"),
-                        el('p', { className: "text-xs" }, "Ao clicar no seu token, um anel dourado neon de seleção é ativado e um painel de status flutua sobre o personagem exibindo sua barra de vida em tempo real e controles rápidos para gerenciar seu HP com extrema facilidade!")
+                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2" }, "🌙 Climas & Luas Tridimensionais"),
+                        el('p', { className: "text-xs" }, "O mestre agora pode ativar múltiplos climas sincronizados de uma vez (como Noite e Chuva). E nos climas Noturnos e de Lua de Sangue, lindas luas 3D de alta luminescência orbitam em arcos perfeitos pelo fundo da tela, atrás de suas fichas para nunca obstruir sua visão!")
                     ])
                 ]);
             case 'mentor':

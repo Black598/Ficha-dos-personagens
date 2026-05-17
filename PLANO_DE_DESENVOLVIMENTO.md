@@ -261,6 +261,15 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Lua Prateada Celestial e Camada por Trás da Ficha:** Adicionamos o mesmo trajeto orbital parabólico cinematográfico para a **Lua Normal** (uma belíssima esfera 3D prateada/brilhante) no clima de noite comum. Para garantir que nenhuma lua interfira na legibilidade ou bloqueie informações, o corpo celeste é renderizado com `z-index: 1` enquanto o container principal das fichas tem `z-index: 10`, fazendo com que os astros fiquem elegantemente posicionados **por trás** dos cards do personagem, visíveis apenas nos fundos e margens da interface.
   - ✅ **Sistema Multiclimal Sincronizado (Multi-Environments):** O Rastreador de Ambiente agora suporta a **seleção de múltiplos climas simultâneos** através de arrays reativos no Firebase. O mestre pode combinar a Noite com Chuva, Tempestade com Névoa, ou até Lua de Sangue com Fuligem de Fogo! O processador de partículas e os filtros de tintura da tela sobrepõem e integram os efeitos de forma otimizada e automática para todos os jogadores em tempo real!
 
+### 🔊 31. Configurações de Som Customizáveis e Praticidades de Áudio (QoL)
+- **Status:** Concluído ✅
+- **Features:**
+  - ✅ **Chave Geral de Silenciamento**: Controle mestre para ligar ou desligar completamente todos os efeitos sonoros de interface.
+  - ✅ **Sons por Ação Configuráveis**: Caixa de configurações premium que permite ativar/desativar ou definir qualquer link customizado (MP3/WAV/YouTube) para ações específicas como *Abrir Ficha*, *Dados*, *Moedas/Inventário*, *Cura*, *Dano*, *Descanso Longo*, *Subir de Nível*, *Impacto Crítico* e *Magias*.
+  - ✅ **Filtro de Soundpad de Outros Jogadores**: Interruptor de privacidade para que o jogador decida se deseja escutar as faixas do Soundpad tocadas por terceiros.
+  - ✅ **Mute Total nos Lobbies**: Silenciamento total de músicas ambientes, dados 3D, efeitos climáticos ou sonoros durante as telas de lobby/seleção.
+  - ✅ **Persistência Local**: Configurações salvas de forma persistente e independente em `localStorage`, dando autonomia total a cada participante da mesa.
+
 ## 🚀 Próximas Implementações (Pendentes)
 
 ### 3. 🎙️ Narrador Inteligente (Gemini)

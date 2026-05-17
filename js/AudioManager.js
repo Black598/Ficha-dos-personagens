@@ -144,8 +144,52 @@ function playRestSound() {
     });
 }
 
+function getSettings() {
+    try {
+        const stored = localStorage.getItem('rpg_audio_settings');
+        if (stored) {
+            return JSON.parse(stored);
+        }
+    } catch(e) {
+        console.error("[AudioManager] Error parsing settings:", e);
+    }
+    return {
+        masterEnabled: true,
+        hearOthersSoundboard: true,
+        effects: {}
+    };
+}
+
 export const AudioManager = {
+    getSettings,
+    saveSettings: (settings) => {
+        try {
+            localStorage.setItem('rpg_audio_settings', JSON.stringify(settings));
+        } catch(e) {
+            console.error("[AudioManager] Error saving settings:", e);
+        }
+    },
+
     play: (name) => {
+        const settings = getSettings();
+        if (!settings.masterEnabled) return;
+        
+        const config = settings.effects?.[name] || { enabled: true, url: "" };
+        if (!config.enabled) return;
+
+        if (config.url) {
+            // Tocar som customizado
+            try {
+                const finalUrl = parseAudioUrl(config.url);
+                const audio = new Audio(finalUrl);
+                audio.volume = 0.5;
+                audio.play().catch(e => console.warn(`[AudioManager] Custom audio play failed for ${name}:`, e));
+                return;
+            } catch(e) {
+                console.warn(`[AudioManager] Failed to load custom audio for ${name}:`, e);
+            }
+        }
+
         if (SFX[name]) {
             try { SFX[name](); } catch(e) { console.warn("Audio play failed:", e); }
         }

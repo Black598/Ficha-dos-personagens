@@ -20,6 +20,7 @@ import { LootChest } from './components/LootChest.js'
 import { WorldMapView } from './components/WorldMapView.js'
 import { CraftingView } from './components/CraftingView.js'
 import { TradingSystem } from './components/TradingSystem.js'
+import { AudioSettingsModal } from './components/AudioSettingsModal.js'
 
 import { LandingView } from './components/LandingView.js'
 
@@ -48,6 +49,7 @@ function App() {
   const [rollHistory, setRollHistory] = useState([]);
   const [recentRolls, setRecentRolls] = useState([]);
   const [tooltip, setTooltip] = useState({ show: false, content: null, x: 0, y: 0 });
+  const [showAudioSettings, setShowAudioSettings] = useState(false);
   const [editableSheetData, setEditableSheetData] = useState(null);
   const [isRollingModalOpen, setRollingModalOpen] = useState(false);
   const [turnState, setTurnState] = useState({ activeChar: '', round: 1 });
@@ -166,11 +168,22 @@ function App() {
     if (sfx && sfx.url && (!lastGlobalSFX || sfx.timestamp !== lastGlobalSFX.timestamp)) {
       setLastGlobalSFX(sfx);
       if (Date.now() - sfx.timestamp < 10000) {
-        const audio = new Audio(sfx.url); audio.volume = 0.8;
-        audio.play().catch(e => console.error(e));
+        const settings = AudioManager.getSettings();
+        if (settings.masterEnabled) {
+          const isOwnSound = sfx.sender === characterName || (view === 'master' && sfx.sender === 'Mestre');
+          if (isOwnSound || settings.hearOthersSoundboard) {
+            try {
+              const audio = new Audio(sfx.url);
+              audio.volume = 0.8;
+              audio.play().catch(e => console.error(e));
+            } catch(e) {
+              console.error(e);
+            }
+          }
+        }
       }
     }
-  }, [sessionState.globalSFX, lastGlobalSFX, view]);
+  }, [sessionState.globalSFX, lastGlobalSFX, view, characterName]);
 
   // Chat
   useEffect(() => {
@@ -748,11 +761,16 @@ function App() {
     canEdit: view === 'login' || creatingCharacter || characterSheetData?.allowEditing || view === 'master'
   });
 
-  const AllOverlays = el(React.Fragment, null, ClockOverlay, AnnouncementOverlay, HandoutOverlay, LibraryOverlay, BargainOverlay, LetterOverlay, LootOverlay, CelestialOverlay, WeatherOverlay, BattlemapOverlay, WorldMapOverlay, CraftingOverlay, ShopOverlay, CutsceneOverlay, DiceOverlay, MentorOverlay);
+  const AudioSettingsOverlay = showAudioSettings && el(AudioSettingsModal, {
+    key: 'audio-settings',
+    onClose: () => setShowAudioSettings(false)
+  });
+
+  const AllOverlays = el(React.Fragment, null, ClockOverlay, AnnouncementOverlay, HandoutOverlay, LibraryOverlay, BargainOverlay, LetterOverlay, LootOverlay, CelestialOverlay, WeatherOverlay, BattlemapOverlay, WorldMapOverlay, CraftingOverlay, ShopOverlay, CutsceneOverlay, DiceOverlay, MentorOverlay, AudioSettingsOverlay);
 
   if (view === 'landing') return el('div', { key: 'lw-base', className: envClass }, el(LandingView, { campaigns, currentAppId, setCurrentAppId, createNewCampaign, importCampaign, onEnterRoom, onSync: () => window.location.reload() }), AllOverlays);
-  if (view === 'master') return el('div', { key: 'mw', className: envClass }, el(MasterView, { allCharacters, rollHistory, onBack: () => setView('login'), updateCharacterXP, updateCharacterConditions, updateCharacterHP, advanceTurn, turnState, geminiApiKey, setGeminiApiKey: (k) => { setGeminiApiKey(k); localStorage.setItem('gemini_api_key', k); }, askGemini, updateInitiative, souls, updateSouls, updateEditPermission, onViewSheet: (c) => { setCharacterSheetData(c.sheetData); setCharacterName(c.name); setView('sheet'); }, saveCharacter, rollDice, triggerExternalRoll, deleteCharacter, sessionState, updateSessionState, currentAppId, deleteCampaign, onOpenShop: () => setIsShopOpen(true), generateLoot, approveLoot, clearLoot, generateNPC, updateMasterPassword: (p) => db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('vault').set({ password: p }, { merge: true }), setIsLibraryOpen, setIsBattlemapOpen, setIsWorldMapOpen, setIsBargainOpen, allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name), chatMessages, sendChatMessage, clearRollHistory: async () => { if (confirm("Limpar?")) { const snap = await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('rolls').get(); const b = db.batch(); snap.forEach(d => b.delete(d.ref)); await b.commit(); } }, hasNewMessage, setHasNewMessage }), AllOverlays);
-  if (view === 'sheet' && characterSheetData) return el('div', { key: 'sw', className: envClass }, el(SheetView, { characterName, characterSheetData, characterImageUrl: characterData?.imageUrl, onUpdateImage: (u) => saveCharacter(characterName, { ...characterData, imageUrl: u }), onBack: () => { setIsNewCharacter(false); setView('login'); }, groupNotes: sessionState.groupNotes || [], shareNote, deleteNote, onOpenCrafting: () => setIsCraftingOpen(true), onRequestDelete: async () => { if(confirm('Excluir?')) { await saveCharacter(characterName, { ...characterData, pendingDeletion: true }); setView('login'); } }, onToggleTree: () => setView('character'), rollDice, iconMap, updateSheetField, onUpdateSheet, turnState, sessionState, updateSessionState, handleDescansoLongo: async () => { if (confirm("Descanso?")) { const n = JSON.parse(JSON.stringify(characterSheetData)); n.recursos['PV Perdido'] = 0; n.recursos['PV Temporário'] = 0; if (n.magias?.slots) Object.keys(n.magias.slots).forEach(c => n.magias.slots[c].used = 0); n.recursos['PV Atual'] = parseInt(n.recursos['PV Máximo']) || 0; await onUpdateSheet(n); AudioManager.play('rest'); } }, isRollingModalOpen, setRollingModalOpen, setEditableSheetData, triggerExternalRoll, recentRolls, isNewCharacter, setIsLibraryOpen, setIsBattlemapOpen, setIsWorldMapOpen, setIsBargainOpen, onOpenShop: () => setIsShopOpen(true), sendChatMessage, chatMessages: chatMessages.filter(m => m.sender === characterName || (m.sender === 'Mestre' && (m.recipient === characterName || !m.recipient))), onUpdatePIN: (pin) => saveCharacter(characterName, { ...characterData, pin }), onOpenMentor: () => setIsMentorOpen(true) }), editableSheetData && el(RawDataEditor, { key: 'editor', data: editableSheetData, onSave: onUpdateSheet, onClose: () => setEditableSheetData(null) }), AllOverlays);
+  if (view === 'master') return el('div', { key: 'mw', className: envClass }, el(MasterView, { allCharacters, rollHistory, onBack: () => setView('login'), updateCharacterXP, updateCharacterConditions, updateCharacterHP, advanceTurn, turnState, geminiApiKey, setGeminiApiKey: (k) => { setGeminiApiKey(k); localStorage.setItem('gemini_api_key', k); }, askGemini, updateInitiative, souls, updateSouls, updateEditPermission, onViewSheet: (c) => { setCharacterSheetData(c.sheetData); setCharacterName(c.name); setView('sheet'); }, saveCharacter, rollDice, triggerExternalRoll, deleteCharacter, sessionState, updateSessionState, currentAppId, deleteCampaign, onOpenShop: () => setIsShopOpen(true), generateLoot, approveLoot, clearLoot, generateNPC, updateMasterPassword: (p) => db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('vault').set({ password: p }, { merge: true }), setIsLibraryOpen, setIsBattlemapOpen, setIsWorldMapOpen, setIsBargainOpen, allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name), chatMessages, sendChatMessage, clearRollHistory: async () => { if (confirm("Limpar?")) { const snap = await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('rolls').get(); const b = db.batch(); snap.forEach(d => b.delete(d.ref)); await b.commit(); } }, hasNewMessage, setHasNewMessage, onOpenAudioSettings: () => setShowAudioSettings(true) }), AllOverlays);
+  if (view === 'sheet' && characterSheetData) return el('div', { key: 'sw', className: envClass }, el(SheetView, { characterName, characterSheetData, characterImageUrl: characterData?.imageUrl, onUpdateImage: (u) => saveCharacter(characterName, { ...characterData, imageUrl: u }), onBack: () => { setIsNewCharacter(false); setView('login'); }, groupNotes: sessionState.groupNotes || [], shareNote, deleteNote, onOpenCrafting: () => setIsCraftingOpen(true), onRequestDelete: async () => { if(confirm('Excluir?')) { await saveCharacter(characterName, { ...characterData, pendingDeletion: true }); setView('login'); } }, onToggleTree: () => setView('character'), rollDice, iconMap, updateSheetField, onUpdateSheet, turnState, sessionState, updateSessionState, handleDescansoLongo: async () => { if (confirm("Descanso?")) { const n = JSON.parse(JSON.stringify(characterSheetData)); n.recursos['PV Perdido'] = 0; n.recursos['PV Temporário'] = 0; if (n.magias?.slots) Object.keys(n.magias.slots).forEach(c => n.magias.slots[c].used = 0); n.recursos['PV Atual'] = parseInt(n.recursos['PV Máximo']) || 0; await onUpdateSheet(n); AudioManager.play('rest'); } }, isRollingModalOpen, setRollingModalOpen, setEditableSheetData, triggerExternalRoll, recentRolls, isNewCharacter, setIsLibraryOpen, setIsBattlemapOpen, setIsWorldMapOpen, setIsBargainOpen, onOpenShop: () => setIsShopOpen(true), sendChatMessage, chatMessages: chatMessages.filter(m => m.sender === characterName || (m.sender === 'Mestre' && (m.recipient === characterName || !m.recipient))), onUpdatePIN: (pin) => saveCharacter(characterName, { ...characterData, pin }), onOpenMentor: () => setIsMentorOpen(true), onOpenAudioSettings: () => setShowAudioSettings(true) }), editableSheetData && el(RawDataEditor, { key: 'editor', data: editableSheetData, onSave: onUpdateSheet, onClose: () => setEditableSheetData(null) }), AllOverlays);
   if (view === 'character') return el('div', { key: 'cw', className: envClass }, el(TreeView, { TALENT_TREES, characterData, characterName, characterSheetData, onBack: () => setView('login'), onToggleSheet: () => setView('sheet'), iconMap, upgradeTalent, saveCharacter, showTooltip: (e, n, l) => e ? setTooltip({ show: true, content: { talentName: n, ...l }, x: e.clientX, y: e.clientY, above: (window.innerHeight - e.clientY) < 250 }) : setTooltip({ show: false }) }), el(TalentTooltip, { key: 'tt', tooltip: tooltip }), AllOverlays);
 
   return el('div', { key: 'lw-wrap', className: envClass }, el(LoginView, { allCharacters, onSelectCharacter: selectCharacter, onCreateCharacter: createNewCharacter, creatingCharacter, isCreating, TALENT_TREES, iconMap, campaigns, currentAppId, setCurrentAppId, createNewCampaign, importCampaign, onBackToLanding: () => setView('landing'), onOpenMentor: () => setIsMentorOpen(true) }), AllOverlays);

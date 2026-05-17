@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
 
-export const MASTER_TUTORIAL_VERSION = '2.4';
+export const MASTER_TUTORIAL_VERSION = '3.0';
 
 export function MasterTutorialPopup({ onClose }) {
     const [activeTab, setActiveTab] = useState('novidades');
@@ -25,21 +25,21 @@ export function MasterTutorialPopup({ onClose }) {
         switch (activeTab) {
             case 'novidades':
                 return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
-                    el('p', { className: "text-purple-400 font-bold" }, "✨ Versão 2.4 - Régua Dinâmica, Pings Sincronizados & HUD de HP"),
+                    el('p', { className: "text-purple-400 font-bold" }, "✨ Versão 3.0 - Painel de Áudio Customizável, Órbitas Celestiais & Climas Sincronizados"),
                     
                     el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl shadow-lg" }, [
-                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "📐 Medição Tática Multidimensional"),
-                        el('p', { className: "text-xs" }, "As réguas de linha, cone e círculo no VTT agora mostram em tempo real a distância em Quadrados, Pés (ft) e Metros (m). E mais: o balão de texto rotaciona no sentido inverso do ângulo, ficando sempre horizontal e legível!")
+                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "🔊 Customização Premium de Som (QoL)"),
+                        el('p', { className: "text-xs" }, "Mestres e Jogadores agora têm total autonomia sonora! No botão de Engrenagem (⚙️) -> Sons, abra o novo modal para silenciar ou definir links customizados (MP3/WAV/YouTube) para ações específicas como rolagem de dados, dano, cura, moedas e mais!")
+                    ]),
+
+                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl shadow-lg" }, [
+                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🔇 Filtro de Soundpad Alheio"),
+                        el('p', { className: "text-xs" }, "Controle se deseja ouvir reproduções disparadas pelo soundpad de outros jogadores. Ideal para manter o foco em momentos dramáticos ou de roleplay sério, bastando desmarcar 'Ouvir Soundpad dos outros Jogadores' no seu painel de áudio local!")
                     ]),
 
                     el('div', { className: "bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl shadow-lg" }, [
-                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2" }, "🔔 Pings Rápidos por Clique/Toque"),
-                        el('p', { className: "text-xs" }, "Dispare sinalizações luminosas instantâneas no mapa para chamar a atenção dos jogadores! Basta clicar com o botão do meio do mouse (mouse wheel) ou dar duplo clique no fundo do mapa.")
-                    ]),
-
-                    el('div', { className: "bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl shadow-lg" }, [
-                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2" }, "❤️ HUD Flutuante de HP do Token"),
-                        el('p', { className: "text-xs" }, "Gerenciar a vida dos monstros e jogadores durante o combate ficou incrivelmente ágil! Clique em qualquer token no mapa para abrir o HUD rápido com atalhos de `-5`, `-1`, `+1`, `+5` e controle de dano/cura customizável.")
+                        el('h4', { className: "text-blue-400 font-bold mb-2 flex items-center gap-2" }, "🌌 Climas Combinados & Órbitas Tridimensionais"),
+                        el('p', { className: "text-xs" }, "O mestre agora pode ativar múltiplos climas simultâneos de uma só vez (ex: Noite + Névoa + Chuva). E os climas Noturnos e de Lua de Sangue agora contam com esferas lunares 3D que orbitam de forma suave pelo fundo da tela, atrás das fichas para uma experiência visual deslumbrante!")
                     ])
                 ]);
             case 'geral':

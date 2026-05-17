@@ -80,7 +80,8 @@ export function MasterView({
     updateMasterPassword,
     currentAppId,
     deleteCampaign,
-    onOpenShop
+    onOpenShop,
+    onOpenAudioSettings
 }) {
     const [showSettings, setShowSettings] = useState(false);
     const [showTutorial, setShowTutorial] = useState(() => localStorage.getItem('has_seen_master_tutorial') !== MASTER_TUTORIAL_VERSION);
@@ -639,7 +640,8 @@ export function MasterView({
                         el('button', { className: "w-11 h-11 bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white rounded-2xl border border-slate-700/80 hover:border-amber-500/50 flex items-center justify-center transition-all duration-200 shadow-lg hover:scale-105 active:scale-95" }, "⚙️"),
                         el('div', { className: "absolute top-full mt-3 right-0 w-48 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.6)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col py-2.5 z-[100] transform origin-top group-hover:scale-100 scale-95 duration-200" }, [
                             el('button', { onClick: () => setShowVault(true), className: "w-full text-left px-5 py-3 hover:bg-slate-800/80 border-l-2 border-l-transparent hover:border-l-slate-400 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-200" }, [el('span', { className: "text-base" }, "🔒"), "Cofre do Mestre"]),
-                            el('button', { onClick: () => setShowSettings(true), className: "w-full text-left px-5 py-3 hover:bg-slate-800/80 border-l-2 border-l-transparent hover:border-l-slate-400 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-200" }, [el('span', { className: "text-base" }, "⚙️"), "Configurações"]),
+                            el('button', { onClick: () => setShowSettings(true), className: "w-full text-left px-5 py-3 hover:bg-slate-800/80 border-l-2 border-l-transparent hover:border-l-slate-400 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-200 border-t border-slate-800/80" }, [el('span', { className: "text-base" }, "⚙️"), "Configurações"]),
+                            el('button', { onClick: () => onOpenAudioSettings(), className: "w-full text-left px-5 py-3 hover:bg-slate-800/80 border-l-2 border-l-transparent hover:border-l-amber-500 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-200 border-t border-slate-800/80" }, [el('span', { className: "text-base" }, "🔊"), "Sons"]),
                             el('button', { onClick: () => setShowTutorial(true), className: "w-full text-left px-5 py-3 hover:bg-slate-800/80 border-l-2 border-l-transparent hover:border-l-slate-400 hover:pl-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-200 border-t border-slate-800/80 mt-1 pt-3" }, [el('span', { className: "text-base" }, "❔"), "Tutorial"])
                         ])
                     ]),
@@ -721,6 +723,7 @@ export function MasterView({
                 el('div', { className: "grid grid-cols-2 gap-3" }, [
                     el('button', { onClick: () => { setShowVault(true); setMenuOpen(false); }, className: "bg-slate-900 border border-slate-700 p-4 rounded-xl flex flex-col items-center gap-2 text-slate-300 hover:bg-slate-800" }, [el('span', { className: "text-2xl" }, "🔒"), el('span', { className: "text-[9px] font-bold uppercase tracking-widest text-center" }, "Cofre")]),
                     el('button', { onClick: () => { setShowSettings(true); setMenuOpen(false); }, className: "bg-slate-900 border border-slate-700 p-4 rounded-xl flex flex-col items-center gap-2 text-slate-300 hover:bg-slate-800" }, [el('span', { className: "text-2xl" }, "⚙️"), el('span', { className: "text-[9px] font-bold uppercase tracking-widest text-center" }, "Configurações")]),
+                    el('button', { onClick: () => { onOpenAudioSettings(); setMenuOpen(false); }, className: "bg-slate-900 border border-slate-700 p-4 rounded-xl flex flex-col items-center gap-2 text-slate-300 hover:bg-slate-800" }, [el('span', { className: "text-2xl" }, "🔊"), el('span', { className: "text-[9px] font-bold uppercase tracking-widest text-center" }, "Sons")]),
                     el('button', { onClick: () => { setShowTutorial(true); setMenuOpen(false); }, className: "bg-slate-900 border border-slate-700 p-4 rounded-xl flex flex-col items-center gap-2 text-slate-300 hover:bg-slate-800" }, [el('span', { className: "text-2xl" }, "❔"), el('span', { className: "text-[9px] font-bold uppercase tracking-widest text-center" }, "Tutorial")]),
                     el('button', { onClick: onBack, className: "bg-red-900/10 border border-red-500/30 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-red-400 hover:bg-red-900/30 mt-auto col-span-2" }, [el('span', { className: "text-xl font-bold uppercase tracking-widest" }, "Sair da Sala")])
                 ])
