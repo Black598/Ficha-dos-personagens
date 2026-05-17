@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
 
-export const MASTER_TUTORIAL_VERSION = '2.2';
+export const MASTER_TUTORIAL_VERSION = '2.3';
 
 export function MasterTutorialPopup({ onClose }) {
     const [activeTab, setActiveTab] = useState('novidades');
@@ -25,26 +25,21 @@ export function MasterTutorialPopup({ onClose }) {
         switch (activeTab) {
             case 'novidades':
                 return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
-                    el('p', { className: "text-purple-400 font-bold" }, "✨ Versão 2.2 - Customização de Dashboard & Design Premium"),
+                    el('p', { className: "text-purple-400 font-bold" }, "✨ Versão 2.3 - Invocador de Criaturas & Crachás de Tokens"),
                     
-                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🎨 Editor de GUI Arraste-e-Solte"),
-                        el('p', { className: "text-xs" }, "Ative o modo de Edição de GUI nas Configurações (⚙️) e arraste qualquer bloco (Mural, Monstros, Loot, Histórico, etc.) para a Esquerda, Direita ou Rodapé para montar seu próprio layout de tela de Mestre!")
+                    el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl shadow-lg" }, [
+                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "👹 Invocador Visual de Criaturas"),
+                        el('p', { className: "text-xs" }, "Chega de prompts de texto! Agora você pode invocar criaturas (Monstros do Bestiário, NPCs/Personagens e Animais) clicando em abas organizadas no VTT. O token é inserido instantaneamente no centro da tela e alinhado no grid!")
                     ]),
 
                     el('div', { className: "bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2" }, "👁️ Módulos Ativos Seletivos"),
-                        el('p', { className: "text-xs" }, "Não quer ver certas abas? Desmarque os blocos na lista de 'Módulos Ativos' dentro das Configurações (⚙️) para manter a tela limpa e focada no que você usa.")
+                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2" }, "📛 Crachás nos Tokens"),
+                        el('p', { className: "text-xs" }, "Todos os tokens circulares agora exibem seus nomes centralizados logo abaixo em lindas pílulas acrílicas translúcidas que brilham em dourado ao passar o mouse, facilitando a identificação imediata.")
                     ]),
 
-                    el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "🔮 Modais Glassmorphism"),
-                        el('p', { className: "text-xs" }, "Todos os modais (Configurações, Chat, Guia, Cofre, Condições) agora contam com o lindíssimo design translúcido acrílico com desfoque de fundo em tempo real.")
-                    ]),
-
-                    el('div', { className: "bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-emerald-400 font-bold mb-2 flex items-center gap-2" }, "🔒 Prevenção de Autofill"),
-                        el('p', { className: "text-xs" }, "Corrigimos o auto-preenchimento intempestivo dos navegadores nos campos de senha, evitando piscadas inconvenientes nos modais administrados.")
+                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🎨 Editor de GUI Arraste-e-Solte"),
+                        el('p', { className: "text-xs" }, "Ative o modo de Edição de GUI nas Configurações (⚙️) e arraste qualquer bloco (Mural, Monstros, Loot, Histórico, etc.) para a Esquerda, Direita ou Rodapé para montar seu próprio layout de tela de Mestre!")
                     ])
                 ]);
             case 'geral':

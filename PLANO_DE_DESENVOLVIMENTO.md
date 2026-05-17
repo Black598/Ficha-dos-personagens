@@ -228,6 +228,15 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Visual Premium e Micro-Animações:** Efeitos acrílicos HSL glow de seleção ativos para cada aba temática, transições de fade-in ultra-responsivas (`animate-fade-in-fast`), e botões e layouts unificados.
   - ✅ **Header do Mestre Premium Unificado:** Redesenho completo do cabeçalho da Sala do Mestre (`MasterView.js`) para ser sticky (fixado no topo), translúcido com backdrop desfoque e em largura total (`max-w-7xl`), alinhado exatamente ao layout das fichas dos jogadores.
 
+### 👹 28. Invocador Visual de Criaturas & Crachás de Tokens
+
+- **Status:** Concluído ✅
+- **Features:**
+  - ✅ **Invocador de Criaturas em Abas:** Nova interface visual para o mestre puxar monstros do Bestiário (`bestiary`), NPCs (`characters`) e animais (`animals`) em abas compactas e dinâmicas com filtragem rápida.
+  - ✅ **Informações Rápidas e Visual Premium:** Cards de criaturas com foto do perfil, tipo de criatura e badges de status cruciais como desafio (**CR**), vida (**PV**) e armadura (**CA**).
+  - ✅ **Spawn Inteligente na Câmera (Smart-Spawn):** Tokens spawnados são encaixados de forma inteligente e precisa no grid de células diretamente no centro do foco atual da câmera do mestre.
+  - ✅ **Crachás de Identificação nos Tokens:** Pílulas de nomes em acrílico translúcido com desfoque de fundo centralizadas abaixo de cada token no VTT, com efeitos de realce dourado neon ao passar o mouse.
+
 ## 🚀 Próximas Implementações (Pendentes)
 
 ### 2. 📏 Praticidade Tática e HUD no Mapa

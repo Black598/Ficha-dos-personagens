@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 const el = React.createElement;
 
-export const PLAYER_TUTORIAL_VERSION = '2.4';
+export const PLAYER_TUTORIAL_VERSION = '2.5';
 
 export function PlayerTutorialPopup({ onClose }) {
     const [activeTab, setActiveTab] = useState('novidades'); // Abre direto nas novidades quando há update
@@ -24,21 +24,21 @@ export function PlayerTutorialPopup({ onClose }) {
         switch (activeTab) {
             case 'novidades':
                 return el('div', { className: "space-y-6 text-slate-300 text-sm leading-relaxed" }, [
-                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 2.4 - Interface Acrílica & UX Refinada"),
+                    el('p', { className: "text-amber-400 font-bold" }, "✨ Versão 2.5 - Crachás de Tokens & UX Refinada"),
                     
-                    el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "🔮 Modais Glassmorphism"),
+                    el('div', { className: "bg-amber-900/20 border border-amber-500/30 p-4 rounded-xl shadow-lg" }, [
+                        el('h4', { className: "text-amber-400 font-bold mb-2 flex items-center gap-2" }, "📛 Crachás nos Tokens"),
+                        el('p', { className: "text-xs" }, "Todos os tokens circulares no mapa agora exibem seus nomes centralizados logo abaixo em lindas pílulas acrílicas translúcidas que brilham em dourado ao passar o mouse, facilitando a identificação imediata durante o combate!")
+                    ]),
+
+                    el('div', { className: "bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2" }, "🔮 Modais Glassmorphism"),
                         el('p', { className: "text-xs" }, "Todos os popups, modais e guias agora têm um visual acrílico translúcido com desfoque de fundo super premium, deixando a imersão na arte do jogo ainda mais incrível!")
                     ]),
                     
-                    el('div', { className: "bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-indigo-400 font-bold mb-2 flex items-center gap-2" }, "🎒 Sem Sobreposição de Botões"),
+                    el('div', { className: "bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl" }, [
+                        el('h4', { className: "text-purple-400 font-bold mb-2 flex items-center gap-2" }, "🎒 Sem Sobreposição de Botões"),
                         el('p', { className: "text-xs" }, "Otimizamos a parte inferior da ficha! O menu de ações rápidas e o menu de itens fixos foram reposicionados para funcionar em paralelo ou abaixo, garantindo visibilidade total sem cobrir seus botões.")
-                    ]),
-
-                    el('div', { className: "bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl" }, [
-                        el('h4', { className: "text-emerald-400 font-bold mb-2 flex items-center gap-2" }, "🔒 PIN de Segurança Seguro"),
-                        el('p', { className: "text-xs" }, "O botão de definir o PIN de proteção de 4 dígitos foi movido do menu de ações para dentro da aba de Configurações, tornando as ações rápidas muito mais focadas.")
                     ])
                 ]);
             case 'mentor':
