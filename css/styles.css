@@ -375,11 +375,28 @@ input[type="text"], input[type="email"], input[type="password"], textarea {
     to { transform: translateX(110vw) translateY(calc(var(--y) + 50px)) rotate(360deg); }
 }
 
-/* Noite / Filtros - Suavizados */
-.env-night { filter: brightness(0.7) contrast(1.1) hue-rotate(200deg); }
-.env-blood-moon { filter: brightness(0.8) sepia(0.5) hue-rotate(-50deg) saturate(1.5); }
-.env-poison { filter: brightness(0.9) hue-rotate(40deg) saturate(1.2); }
-.env-sandstorm { filter: sepia(0.5) saturate(1.5) contrast(0.8); }
+/* Noite / Filtros - Suavizados (Premium e Sem Distorção de Matizes) */
+.env-night { filter: brightness(0.52) contrast(1.08) saturate(0.7) sepia(0.1) hue-rotate(-10deg); }
+.env-blood-moon { filter: brightness(0.65) contrast(1.15) saturate(1.25) sepia(0.15) hue-rotate(-20deg); }
+.env-poison { filter: sepia(0.22) saturate(0.92) hue-rotate(12deg) brightness(0.95); }
+.env-sandstorm { filter: sepia(0.4) saturate(1.3) contrast(0.85) brightness(0.95); }
+
+/* Esporo de Veneno (Poison Spores) */
+.poison-spore {
+    position: absolute;
+    background: rgba(34, 197, 94, 0.5);
+    border-radius: 50%;
+    filter: blur(1.5px);
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.7);
+    pointer-events: none;
+    animation: poison-spore-rise var(--duration) ease-out infinite;
+}
+@keyframes poison-spore-rise {
+    0% { transform: translateY(110vh) translateX(0) scale(0.6); opacity: 0; }
+    15% { opacity: 0.8; }
+    85% { opacity: 0.8; }
+    100% { transform: translateY(-10vh) translateX(var(--drift)) scale(1.3); opacity: 0; }
+}
 
 @keyframes twinkle {
   0%, 100% { opacity: 0.2; transform: scale(1); }

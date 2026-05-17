@@ -463,30 +463,57 @@ export function MasterControls({ sessionState, updateSessionState }) {
                         el('span', { key: 'env-icon' }, "⛅"), "Rastreador de Ambiente"
                     ]),
                     el('div', { key: 'env-grid', className: "grid grid-cols-2 gap-3" }, 
-                        ENVIRONMENTS.map(env => el('button', {
-                            key: env.id,
-                            onClick: () => {
-                                const newState = { environment: env.id };
-                                // Se existir uma trilha sonora com o mesmo ID, ativa ela também
-                                const matchingAtmos = atmospheres.find(a => a.id === env.id);
-                                if (matchingAtmos) {
-                                    newState.ambientMusic = {
-                                        id: matchingAtmos.id,
-                                        url: matchingAtmos.url,
-                                        volume: sessionState.ambientMusic?.volume || 0.4
-                                    };
-                                }
-                                updateSessionState(newState);
-                            },
-                            className: `p-4 rounded-2xl flex items-center gap-3 transition-all border ${
-                                sessionState?.environment === env.id 
-                                    ? 'bg-blue-600/30 border-blue-400 text-blue-200 shadow-[0_0_20px_rgba(37,99,235,0.25)]' 
-                                    : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-blue-500/30 hover:text-slate-300'
-                            }`
-                        }, [
-                            el('span', { key: `env-icon-${env.id}`, className: "text-lg" }, env.icon),
-                            el('span', { key: `env-label-${env.id}`, className: "text-[10px] font-black uppercase" }, env.label)
-                        ]))
+                        ENVIRONMENTS.map(env => {
+                            const activeEnvs = Array.isArray(sessionState?.environment)
+                                ? sessionState.environment
+                                : (sessionState?.environment && sessionState.environment !== 'none'
+                                    ? [sessionState.environment]
+                                    : []);
+                            const isActive = (env.id === 'none' && (activeEnvs.length === 0 || activeEnvs.includes('none'))) || activeEnvs.includes(env.id);
+
+                            return el('button', {
+                                key: env.id,
+                                onClick: () => {
+                                    let nextEnvs = [...activeEnvs].filter(x => x !== 'none');
+                                    if (env.id === 'none') {
+                                        nextEnvs = ['none'];
+                                    } else {
+                                        if (nextEnvs.includes(env.id)) {
+                                            nextEnvs = nextEnvs.filter(x => x !== env.id);
+                                        } else {
+                                            // Exclusividade mútua entre Noite e Lua de Sangue
+                                            if (env.id === 'night') nextEnvs = nextEnvs.filter(x => x !== 'blood-moon');
+                                            if (env.id === 'blood-moon') nextEnvs = nextEnvs.filter(x => x !== 'night');
+                                            nextEnvs.push(env.id);
+                                        }
+                                    }
+                                    if (nextEnvs.length === 0) nextEnvs = ['none'];
+
+                                    const newState = { environment: nextEnvs };
+
+                                    // Se ativou um clima com áudio correspondente, toca automaticamente
+                                    if (env.id !== 'none' && nextEnvs.includes(env.id)) {
+                                        const matchingAtmos = atmospheres.find(a => a.id === env.id);
+                                        if (matchingAtmos) {
+                                            newState.ambientMusic = {
+                                                id: matchingAtmos.id,
+                                                url: matchingAtmos.url,
+                                                volume: sessionState.ambientMusic?.volume || 0.4
+                                            };
+                                        }
+                                    }
+                                    updateSessionState(newState);
+                                },
+                                className: `p-4 rounded-2xl flex items-center gap-3 transition-all border ${
+                                    isActive 
+                                        ? 'bg-amber-600/20 border-amber-400 text-amber-200 shadow-[0_0_20px_rgba(245,158,11,0.25)]' 
+                                        : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-amber-500/30 hover:text-slate-300'
+                                }`
+                            }, [
+                                el('span', { key: `env-icon-${env.id}`, className: "text-lg" }, env.icon),
+                                el('span', { key: `env-label-${env.id}`, className: "text-[10px] font-black uppercase" }, env.label)
+                            ]);
+                        })
                     )
                 ])
             ]),

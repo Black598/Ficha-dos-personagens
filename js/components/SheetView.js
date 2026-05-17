@@ -500,7 +500,7 @@ export function SheetView({
     };
 
     return el('div', {
-        className: `min-h-screen ${charData.outros?.['Background'] ? 'bg-slate-950/80' : 'bg-slate-950'} text-slate-100 pb-32 animate-fade-in relative transition-all duration-500 ${isMyTurn ? 'ring-8 ring-amber-500/30' : ''} ${effectClass.replace('animate-bag', '')}`
+        className: `min-h-screen ${charData.outros?.['Background'] ? 'bg-slate-950/70' : 'bg-slate-950/0'} text-slate-100 pb-32 animate-fade-in relative z-10 transition-all duration-500 ${isMyTurn ? 'ring-8 ring-amber-500/30' : ''} ${effectClass.replace('animate-bag', '')}`
     }, [
         // --- BACKGROUND CUSTOMIZADO ---
         charData.outros?.['Background'] && el('div', {
@@ -636,52 +636,57 @@ export function SheetView({
             }
         }),
  
-        // --- CAMADA DE AMBIENTE (CLIMA) ---
-        sessionState?.environment && sessionState.environment !== 'none' && el('div', {
-            key: 'env-overlay',
-            className: "fixed inset-0 pointer-events-none z-[1]"
-        }, [
-            // Overlay de Cor Básica
-            el('div', {
-                key: 'env-tint',
-                className: `absolute inset-0 transition-all duration-[2000ms] ${
-                    sessionState.environment === 'rain' ? 'bg-blue-500/10' :
-                    sessionState.environment === 'fog' ? 'bg-slate-300/10' :
-                    sessionState.environment === 'storm' ? 'bg-indigo-900/20' :
-                    sessionState.environment === 'night' ? 'bg-slate-950/40' :
-                    sessionState.environment === 'cave' ? 'bg-black/40' : ''
-                }`
-            }),
+        // --- CAMADA DE AMBIENTE (CLIMA MULTIPLO) ---
+        (() => {
+            const activeEnvs = Array.isArray(sessionState?.environment)
+                ? sessionState.environment
+                : (sessionState?.environment && sessionState.environment !== 'none'
+                    ? [sessionState.environment]
+                    : []);
+            if (activeEnvs.length === 0 || activeEnvs.includes('none')) return null;
 
-            // Efeito de Raios (Storm)
-            sessionState.environment === 'storm' && el('div', {
-                key: 'lightning-effect',
-                className: "absolute inset-0 animate-lightning"
-            }),
+            // Determina a classe de cor combinada do tint (sutil)
+            let tintClass = "";
+            if (activeEnvs.includes('rain')) tintClass = 'bg-blue-500/10';
+            else if (activeEnvs.includes('fog')) tintClass = 'bg-slate-300/10';
+            else if (activeEnvs.includes('storm')) tintClass = 'bg-indigo-900/20';
+            else if (activeEnvs.includes('night')) tintClass = 'bg-slate-950/45';
+            else if (activeEnvs.includes('cave')) tintClass = 'bg-black/40';
 
-            // Efeito de Estrelas (Night)
-            sessionState.environment === 'night' && el('div', {
-                key: 'stars-container',
-                className: "absolute inset-0"
-            }, Array.from({ length: 40 }).map((_, i) => el('div', {
-                key: `star-${i}`,
-                className: "absolute bg-white rounded-full animate-twinkle",
-                style: {
-                    top: `${Math.random() * 100}%`,
-                    left: `${Math.random() * 100}%`,
-                    width: `${Math.random() * 3}px`,
-                    height: (Math.random() * 3) + 'px',
-                    '--twinkle-duration': `${2 + Math.random() * 4}s`,
-                    opacity: 0.1 + Math.random() * 0.5
-                }
-            }))),
+            const overlays = [];
+            overlays.push(el('div', { key: 'env-tint', className: `absolute inset-0 transition-all duration-[2000ms] ${tintClass}` }));
 
-            // Efeito de Névoa Extra (Fog)
-            sessionState.environment === 'fog' && el('div', {
-                key: 'fog-extra',
-                className: "absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-white/5 animate-pulse-soft"
-            })
-        ]),
+            if (activeEnvs.includes('storm')) {
+                overlays.push(el('div', { key: 'lightning-effect', className: "absolute inset-0 animate-lightning" }));
+            }
+
+            if (activeEnvs.includes('night') || activeEnvs.includes('blood-moon')) {
+                overlays.push(el('div', {
+                    key: 'stars-container',
+                    className: "absolute inset-0"
+                }, Array.from({ length: 40 }).map((_, i) => el('div', {
+                    key: `star-${i}`,
+                    className: "absolute bg-white rounded-full animate-twinkle",
+                    style: {
+                        top: `${Math.random() * 100}%`,
+                        left: `${Math.random() * 100}%`,
+                        width: `${Math.random() * 3}px`,
+                        height: (Math.random() * 3) + 'px',
+                        '--twinkle-duration': `${2 + Math.random() * 4}s`,
+                        opacity: 0.1 + Math.random() * 0.5
+                    }
+                }))));
+            }
+
+            if (activeEnvs.includes('fog')) {
+                overlays.push(el('div', {
+                    key: 'fog-extra',
+                    className: "absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-white/5 animate-pulse-soft"
+                }));
+            }
+
+            return el('div', { key: 'env-overlay', className: "fixed inset-0 pointer-events-none z-[1]" }, overlays);
+        })(),
 
         // --- BANNER DE TURNO ---
         isMyTurn && el('div', {

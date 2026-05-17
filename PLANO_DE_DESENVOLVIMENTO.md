@@ -243,6 +243,23 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
   - ✅ **Régua de Medição Dinâmica:** As ferramentas de linha/régua, cone e círculo agora exibem badges em acrílico translúcido calculando a distância exata em tempo real (número de Quadrados, Pés/ft e Metros/m). A pílula de texto de medição rotaciona de forma inteligente na direção oposta ao ângulo do desenho para permanecer 100% horizontal e legível!
   - ✅ **Ping Sincronizado Expandido:** Disparo de sinalizações animadas no mapa usando o botão do meio do mouse (Middle-click) ou duplo clique no fundo do cenário, com propagação e auto-limpeza em tempo real para todos os jogadores.
   - ✅ **HUD de HP Rápido e Seleção:** Clicar em um token agora o seleciona ativando um anel de brilho neon dourado e revelando um painel flutuante de HP (barra de progresso de vida, leitura de PV atual/máximo, botões de atalho rápidos `-5`, `-1`, `+1`, `+5` e controle de alteração livre). Visível apenas para o mestre e proprietário do personagem.
+### 30. 👓 Imersão Visual Premium, Filtros Atmosféricos & Climas Realistas (Clima v2)
+- **Status:** Concluído ✅
+- **Features:**
+  - ✅ **Filtro de Noite & Lua de Sangue Realistas:** Substituição dos antigos filtros de matiz (`hue-rotate(200deg)` e `hue-rotate(40deg)`) que distorciam as cores de avatares, moedas e componentes de UI. O novo filtro de noite preserva matizes originais, ajustando apenas brilho, contraste e saturação com um leve tom azulado extremamente cinematográfico!
+  - ✅ **Filtro de Veneno Não Distorcido:** O ambiente de veneno agora aplica um filtro sutil e doentio sem transformar os avatares em monstros verdes neon, mantendo o design do jogo intacto e limpo!
+  - ✅ **Partículas Globais Expandidas (VTT & Ficha):** A sobreposição climática global (`WeatherOverlay`) agora renderiza partículas animadas complexas para **todos** os 10 climas integrados:
+    * 🌧️ **Chuva**: Gotas fluidas caindo.
+    * 🌩️ **Tempestade**: Chuva torrencial pesada acoplada a efeitos de relâmpagos estroboscópicos e flashes de luz rápidos!
+    * ❄️ **Neve**: Flocos geométricos suaves girando em queda livre.
+    * 🌫️ **Névoa**: Nuvens de fumaça e névoa densa com opacidade flutuante.
+    * 🔥 **Fogo**: Fagulhas e cinzas incandescentes subindo com vento lateral.
+    * 🏜️ **Tempestade de Areia**: Grãos de poeira e areia fina cortando a tela horizontalmente em alta velocidade.
+    * 🌸 **Pétalas**: Pétalas de cerejeira cor-de-rosa caindo e girando suavemente.
+    * ☣️ **Veneno**: Esporos tóxicos verdes e bolhas radioativas flutuando de baixo para cima com desfoque de lente!
+  - ✅ **Lua de Sangue Celestial em Órbita Parabólica:** Quando o clima de *Lua de Sangue* está ativo, a partir das **17:30** do relógio do jogo, um corpo celeste em formato de esfera carmesim e halo brilhante surge na extrema esquerda (horizonte leste), sobe até o topo do céu (meio-céu) às 23:45 e desce em um arco geométrico perfeito até se pôr na extrema direita (horizonte oeste) às **06:00** da manhã seguinte! A posição da lua atualiza-se de forma sincronizada com os minutos reais de jogo.
+  - ✅ **Lua Prateada Celestial e Camada por Trás da Ficha:** Adicionamos o mesmo trajeto orbital parabólico cinematográfico para a **Lua Normal** (uma belíssima esfera 3D prateada/brilhante) no clima de noite comum. Para garantir que nenhuma lua interfira na legibilidade ou bloqueie informações, o corpo celeste é renderizado com `z-index: 1` enquanto o container principal das fichas tem `z-index: 10`, fazendo com que os astros fiquem elegantemente posicionados **por trás** dos cards do personagem, visíveis apenas nos fundos e margens da interface.
+  - ✅ **Sistema Multiclimal Sincronizado (Multi-Environments):** O Rastreador de Ambiente agora suporta a **seleção de múltiplos climas simultâneos** através de arrays reativos no Firebase. O mestre pode combinar a Noite com Chuva, Tempestade com Névoa, ou até Lua de Sangue com Fuligem de Fogo! O processador de partículas e os filtros de tintura da tela sobrepõem e integram os efeitos de forma otimizada e automática para todos os jogadores em tempo real!
 
 ## 🚀 Próximas Implementações (Pendentes)
 
@@ -254,11 +271,7 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 
 - **Conceito:** Aba dedicada na ficha para Pets com tokens independentes no mapa.
 
-### 5. 👓 Imersão Visual no Mapa (Filtros e Clima v2)
-
-- **Features:** Filtros de Visão no Escuro (P&B) e partículas climáticas vinculadas ao Rastreador de Ambiente.
-
-### 🃏 6. Deck de Cartas Sincronizado
+### 🃏 5. Deck de Cartas Sincronizado
 
 - **Conceito:** Baralhos customizáveis (ex: Tarô, Encontros) com animação 3D de revelação global.
 

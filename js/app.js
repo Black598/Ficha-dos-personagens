@@ -130,12 +130,14 @@ function App() {
           setSessionState(prev => ({ ...prev, ...data }));
           if (data.triggerSound && (!lastTriggerSound || data.triggerSound.timestamp !== lastTriggerSound.timestamp)) {
             setLastTriggerSound(data.triggerSound);
-            if (data.triggerSound.type) AudioManager.play(data.triggerSound.type);
+            if (data.triggerSound.type && (view === 'sheet' || view === 'character' || view === 'master')) {
+              AudioManager.play(data.triggerSound.type);
+            }
           }
         }
       });
     return () => unsub();
-  }, [user, currentAppId]);
+  }, [user, currentAppId, view]);
 
   // Turnos e Almas
   useEffect(() => {
@@ -147,14 +149,19 @@ function App() {
     return () => { unsubTurns(); unsubSouls(); };
   }, [user, currentAppId]);
 
-  // Música e SFX
+  // Música e SFX (Apenas silenciados em landing e login)
   useEffect(() => {
+    if (view !== 'sheet' && view !== 'character' && view !== 'master') {
+      AudioManager.stopAmbient('global');
+      return;
+    }
     const amb = sessionState.ambientMusic;
     if (amb && amb.url) amb.fadeOut ? AudioManager.stopAmbient('global', true) : AudioManager.playAmbient(amb.url, 'global', amb.volume || 0.5);
     else AudioManager.stopAmbient('global');
-  }, [sessionState.ambientMusic]);
+  }, [sessionState.ambientMusic, view]);
 
   useEffect(() => {
+    if (view !== 'sheet' && view !== 'character' && view !== 'master') return;
     const sfx = sessionState.globalSFX;
     if (sfx && sfx.url && (!lastGlobalSFX || sfx.timestamp !== lastGlobalSFX.timestamp)) {
       setLastGlobalSFX(sfx);
@@ -163,7 +170,7 @@ function App() {
         audio.play().catch(e => console.error(e));
       }
     }
-  }, [sessionState.globalSFX, lastGlobalSFX]);
+  }, [sessionState.globalSFX, lastGlobalSFX, view]);
 
   // Chat
   useEffect(() => {
@@ -585,21 +592,119 @@ function App() {
 
   if (loading) return el(LoadingScreen);
 
+  const activeEnvs = Array.isArray(sessionState.environment)
+    ? sessionState.environment
+    : (sessionState.environment && sessionState.environment !== 'none'
+        ? [sessionState.environment]
+        : []);
+
   const WeatherOverlay = (() => {
-    const env = sessionState.environment || 'none';
-    if (env === 'none' || view === 'master') return null;
+    if (view === 'master') return null;
     const parts = [];
-    if (env === 'rain') for(let i=0; i<50; i++) parts.push(el('div', { key: i, className: "drop", style: { left: `${Math.random()*100}%`, top: `-${Math.random()*100}px`, '--duration': `${0.5 + Math.random()*0.5}s` } }));
-    else if (env === 'snow') for(let i=0; i<30; i++) parts.push(el('div', { key: i, className: "snowflake", style: { left: `${Math.random()*100}%`, '--duration': `${3 + Math.random()*5}s` } }, '❄'));
+
+    activeEnvs.forEach(env => {
+      if (env === 'rain') {
+        for(let i=0; i<40; i++) {
+          parts.push(el('div', { key: `rain-${i}`, className: "drop", style: { left: `${Math.random()*100}%`, top: `-${Math.random()*100}px`, '--duration': `${0.5 + Math.random()*0.5}s` } }));
+        }
+      } else if (env === 'storm') {
+        for(let i=0; i<50; i++) {
+          parts.push(el('div', { key: `storm-${i}`, className: "drop", style: { left: `${Math.random()*100}%`, top: `-${Math.random()*100}px`, '--duration': `${0.4 + Math.random()*0.4}s` } }));
+        }
+        parts.push(el('div', { key: 'lightning', className: "lightning-effect" }));
+      } else if (env === 'snow') {
+        for(let i=0; i<30; i++) {
+          parts.push(el('div', { key: `snow-${i}`, className: "snowflake", style: { left: `${Math.random()*100}%`, '--duration': `${3 + Math.random()*5}s` } }, '❄'));
+        }
+      } else if (env === 'fog') {
+        for(let i=0; i<4; i++) {
+          parts.push(el('div', { key: `fog-${i}`, className: "mist", style: { top: `${Math.random()*60}%`, opacity: 0.12 + Math.random()*0.08, animationDelay: `${i * 3.5}s` } }));
+        }
+      } else if (env === 'fire') {
+        for(let i=0; i<20; i++) {
+          parts.push(el('div', { key: `fire-${i}`, className: "ember", style: { left: `${Math.random()*100}%`, '--duration': `${2 + Math.random()*3}s`, '--drift': `${-60 + Math.random()*120}px` } }));
+        }
+      } else if (env === 'sandstorm') {
+        for(let i=0; i<25; i++) {
+          parts.push(el('div', { key: `sand-${i}`, className: "sand", style: { top: `${Math.random()*100}%`, '--y': `${Math.random()*100}px`, '--duration': `${0.8 + Math.random()*1.2}s` } }));
+        }
+      } else if (env === 'petals') {
+        for(let i=0; i<15; i++) {
+          parts.push(el('div', { key: `petal-${i}`, className: "petal", style: { left: `${Math.random()*100}%`, '--duration': `${4 + Math.random()*6}s` } }));
+        }
+      } else if (env === 'poison') {
+        for(let i=0; i<20; i++) {
+          const size = 6 + Math.random()*8;
+          parts.push(el('div', { 
+            key: `poison-${i}`, 
+            className: "poison-spore", 
+            style: { 
+              left: `${Math.random()*100}%`, 
+              width: `${size}px`, 
+              height: `${size}px`, 
+              '--duration': `${3 + Math.random()*4}s`, 
+              '--drift': `${-80 + Math.random()*160}px` 
+            } 
+          }));
+        }
+      }
+    });
+
     return el('div', { key: 'env', className: "environment-overlay" }, parts);
   })();
 
-  const envClass = (view !== 'master') ? (
-    (sessionState.environment === 'night') ? 'env-night' : 
-    (sessionState.environment === 'blood-moon') ? 'env-blood-moon' :
-    (sessionState.environment === 'poison') ? 'env-poison' : 
-    (sessionState.environment === 'sandstorm') ? 'env-sandstorm' : ''
-  ) : '';
+  const CelestialOverlay = (() => {
+    if (view !== 'sheet' && view !== 'character') return null;
+    const isNight = activeEnvs.includes('night');
+    const isBloodMoon = activeEnvs.includes('blood-moon');
+    if (!isNight && !isBloodMoon) return null;
+
+    const timeMinutes = sessionState.timeMinutes !== undefined ? sessionState.timeMinutes : 480;
+    const isVisibleTime = (timeMinutes >= 1050 || timeMinutes <= 360);
+    if (!isVisibleTime) return null;
+
+    const elapsed = timeMinutes >= 1050 ? (timeMinutes - 1050) : (390 + timeMinutes);
+    const progress = elapsed / 750;
+
+    const leftPercent = -15 + (progress * 130);
+    const topPercent = 15 + 4 * (progress - 0.5) * (progress - 0.5) * 60;
+
+    const bg = isBloodMoon
+      ? 'radial-gradient(circle, #ff4444 15%, #ef4444 60%, #7f1d1d 100%)'
+      : 'radial-gradient(circle, #ffffff 15%, #f8fafc 60%, #cbd5e1 100%)';
+    const shadow = isBloodMoon
+      ? '0 0 60px rgba(239, 68, 68, 0.95), 0 0 120px rgba(239, 68, 68, 0.65), inset 0 0 15px rgba(255, 255, 255, 0.4)'
+      : '0 0 60px rgba(255, 255, 255, 0.95), 0 0 120px rgba(255, 255, 255, 0.65), inset 0 0 15px rgba(255, 255, 255, 0.8)';
+
+    return el('div', {
+      key: 'celestial-bg',
+      className: "fixed inset-0 pointer-events-none overflow-hidden",
+      style: { zIndex: 1 } // Mantém atrás de todos os cards da ficha (que possuem z-10)
+    }, [
+      el('div', {
+        key: 'celestial-body',
+        className: "absolute rounded-full pointer-events-none opacity-100 animate-pulse-soft",
+        style: {
+          left: `${leftPercent}%`,
+          top: `${topPercent}vh`,
+          width: '120px',
+          height: '120px',
+          transform: 'translate(-50%, -50%)',
+          background: bg,
+          boxShadow: shadow,
+          transition: 'left 1s linear, top 1s linear'
+        }
+      })
+    ]);
+  })();
+
+  const envClass = (view !== 'master') ? activeEnvs.map(env => {
+    if (env === 'night') return 'env-night';
+    if (env === 'blood-moon') return 'env-blood-moon';
+    if (env === 'poison') return 'env-poison';
+    if (env === 'sandstorm') return 'env-sandstorm';
+    return '';
+  }).filter(Boolean).join(' ') : '';
 
   const LibraryOverlay = isLibraryOpen && el(LibraryView, { key: 'lib', mode: view === 'master' ? 'master' : 'player', libraryData: sessionState.library || {}, updateSessionState, onBack: () => setIsLibraryOpen(false) });
   const BattlemapOverlay = isBattlemapOpen && el(BattlemapView, { key: 'map', mode: view === 'master' ? 'master' : 'player', battlemapData: sessionState.battlemap || {}, monsters: sessionState.monsters || [], libraryData: sessionState.library || {}, allCharacters, characterName, turnState, advanceTurn, updateSessionState, onBack: () => setIsBattlemapOpen(false) });
@@ -609,9 +714,9 @@ function App() {
   const WorldMapOverlay = isWorldMapOpen && el(WorldMapView, { key: 'wmap', mode: view === 'master' ? 'master' : 'player', worldMapData: sessionState.worldMap || {}, updateSessionState, onBack: () => setIsWorldMapOpen(false), battlemaps: sessionState.battlemap?.maps || [], onOpenBattlemap: (mid) => { updateSessionState({ battlemap: { ...sessionState.battlemap, activeMapId: mid } }); setIsWorldMapOpen(false); setIsBattlemapOpen(true); } });
   const CraftingOverlay = isCraftingOpen && el(CraftingView, { key: 'craft', sheetData: characterSheetData, onUpdateSheet: (d) => Object.keys(d).forEach(k => updateSheetField(k, null, d[k])), onBack: () => setIsCraftingOpen(false), askGemini, isMaster: view === 'master' });
   const ShopOverlay = isShopOpen && (view === 'master' || sessionState.isShopEnabled) && el(TradingSystem, { key: 'shop', sheetData: characterSheetData, sessionState, updateSessionState, onUpdateSheet: (d) => Object.keys(d).forEach(k => updateSheetField(k, null, d[k])), onBack: () => setIsShopOpen(false), isMaster: view === 'master', characterName, askGemini });
-  const DiceOverlay = view !== 'login' && view !== 'landing' && el(DiceRoller, { key: 'dice', rollDice, recentRolls, characterName: view === 'master' ? 'Mestre' : characterName, view, isRollingModalOpen, setRollingModalOpen, tabletopMode: true, externalRoll, isBattlemapOpen });
+  const DiceOverlay = (view === 'sheet' || view === 'character' || view === 'master') && el(DiceRoller, { key: 'dice', rollDice, recentRolls, characterName: view === 'master' ? 'Mestre' : characterName, view, isRollingModalOpen, setRollingModalOpen, tabletopMode: true, externalRoll, isBattlemapOpen });
   
-  const ClockOverlay = view !== 'login' && view !== 'landing' && (() => {
+  const ClockOverlay = (view === 'sheet' || view === 'character' || view === 'master') && (() => {
     const day = sessionState.day || 1; const time = sessionState.timeMinutes || 480;
     const h = Math.floor(time/60).toString().padStart(2,'0'); const m = (time%60).toString().padStart(2,'0');
     const night = (time < 360 || time >= 1080);
@@ -643,7 +748,7 @@ function App() {
     canEdit: view === 'login' || creatingCharacter || characterSheetData?.allowEditing || view === 'master'
   });
 
-  const AllOverlays = el(React.Fragment, null, ClockOverlay, AnnouncementOverlay, HandoutOverlay, LibraryOverlay, BargainOverlay, LetterOverlay, LootOverlay, WeatherOverlay, BattlemapOverlay, WorldMapOverlay, CraftingOverlay, ShopOverlay, CutsceneOverlay, DiceOverlay, MentorOverlay);
+  const AllOverlays = el(React.Fragment, null, ClockOverlay, AnnouncementOverlay, HandoutOverlay, LibraryOverlay, BargainOverlay, LetterOverlay, LootOverlay, CelestialOverlay, WeatherOverlay, BattlemapOverlay, WorldMapOverlay, CraftingOverlay, ShopOverlay, CutsceneOverlay, DiceOverlay, MentorOverlay);
 
   if (view === 'landing') return el('div', { key: 'lw-base', className: envClass }, el(LandingView, { campaigns, currentAppId, setCurrentAppId, createNewCampaign, importCampaign, onEnterRoom, onSync: () => window.location.reload() }), AllOverlays);
   if (view === 'master') return el('div', { key: 'mw', className: envClass }, el(MasterView, { allCharacters, rollHistory, onBack: () => setView('login'), updateCharacterXP, updateCharacterConditions, updateCharacterHP, advanceTurn, turnState, geminiApiKey, setGeminiApiKey: (k) => { setGeminiApiKey(k); localStorage.setItem('gemini_api_key', k); }, askGemini, updateInitiative, souls, updateSouls, updateEditPermission, onViewSheet: (c) => { setCharacterSheetData(c.sheetData); setCharacterName(c.name); setView('sheet'); }, saveCharacter, rollDice, triggerExternalRoll, deleteCharacter, sessionState, updateSessionState, currentAppId, deleteCampaign, onOpenShop: () => setIsShopOpen(true), generateLoot, approveLoot, clearLoot, generateNPC, updateMasterPassword: (p) => db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('global').doc('vault').set({ password: p }, { merge: true }), setIsLibraryOpen, setIsBattlemapOpen, setIsWorldMapOpen, setIsBargainOpen, allPlayers: allCharacters.filter(c => c.name.toLowerCase() !== 'mestre').map(c => c.name), chatMessages, sendChatMessage, clearRollHistory: async () => { if (confirm("Limpar?")) { const snap = await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('rolls').get(); const b = db.batch(); snap.forEach(d => b.delete(d.ref)); await b.commit(); } }, hasNewMessage, setHasNewMessage }), AllOverlays);
