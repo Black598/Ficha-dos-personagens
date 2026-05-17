@@ -151,6 +151,17 @@ function App() {
     return () => { unsubTurns(); unsubSouls(); };
   }, [user, currentAppId]);
 
+  // Sincroniza o escopo de áudio do AudioManager (Mestre vs Jogadores individuais)
+  useEffect(() => {
+    let scope = 'default';
+    if (view === 'master') {
+      scope = 'Mestre';
+    } else if ((view === 'sheet' || view === 'character') && characterName) {
+      scope = characterName;
+    }
+    AudioManager.setScope(scope);
+  }, [view, characterName]);
+
   // Música e SFX (Apenas silenciados em landing e login)
   useEffect(() => {
     if (view !== 'sheet' && view !== 'character' && view !== 'master') {

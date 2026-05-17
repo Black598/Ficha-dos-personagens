@@ -7,6 +7,7 @@ let ambientTracks = {};
 let ytPlayer = null;
 let ytReady = false;
 let pendingYt = null;
+let currentScope = 'default';
 
 // Carrega API do YouTube dinamicamente
 if (!window.YT) {
@@ -144,15 +145,24 @@ function playRestSound() {
     });
 }
 
-function getSettings() {
+function getSettings(scope) {
+    const activeScope = scope || currentScope || 'default';
     try {
-        const stored = localStorage.getItem('rpg_audio_settings');
+        const stored = localStorage.getItem(`rpg_audio_settings_${activeScope}`);
         if (stored) {
             return JSON.parse(stored);
         }
     } catch(e) {
-        console.error("[AudioManager] Error parsing settings:", e);
+        console.error(`[AudioManager] Error parsing settings for scope ${activeScope}:`, e);
     }
+
+    try {
+        const legacy = localStorage.getItem('rpg_audio_settings');
+        if (legacy) {
+            return JSON.parse(legacy);
+        }
+    } catch(e) {}
+
     return {
         masterEnabled: true,
         hearOthersSoundboard: true,
@@ -161,12 +171,18 @@ function getSettings() {
 }
 
 export const AudioManager = {
+    setScope: (scope) => {
+        currentScope = scope || 'default';
+        console.log(`[AudioManager] Scope set to: ${currentScope}`);
+    },
+    getScope: () => currentScope,
     getSettings,
-    saveSettings: (settings) => {
+    saveSettings: (settings, scope) => {
+        const activeScope = scope || currentScope || 'default';
         try {
-            localStorage.setItem('rpg_audio_settings', JSON.stringify(settings));
+            localStorage.setItem(`rpg_audio_settings_${activeScope}`, JSON.stringify(settings));
         } catch(e) {
-            console.error("[AudioManager] Error saving settings:", e);
+            console.error(`[AudioManager] Error saving settings for scope ${activeScope}:`, e);
         }
     },
 

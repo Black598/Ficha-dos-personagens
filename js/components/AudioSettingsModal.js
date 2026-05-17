@@ -4,13 +4,14 @@ export function AudioSettingsModal({ onClose }) {
     const el = React.createElement;
     const { useState } = React;
     
-    const [settings, setSettings] = useState(() => AudioManager.getSettings());
+    const activeScope = AudioManager.getScope() || 'default';
+    const [settings, setSettings] = useState(() => AudioManager.getSettings(activeScope));
     const [playingPreview, setPlayingPreview] = useState(null);
 
     const updateField = (field, value) => {
         const next = { ...settings, [field]: value };
         setSettings(next);
-        AudioManager.saveSettings(next);
+        AudioManager.saveSettings(next, activeScope);
     };
 
     const updateEffect = (effectKey, field, value) => {
@@ -22,7 +23,7 @@ export function AudioSettingsModal({ onClose }) {
         
         const next = { ...settings, effects: nextEffects };
         setSettings(next);
-        AudioManager.saveSettings(next);
+        AudioManager.saveSettings(next, activeScope);
     };
 
     const handlePreview = (key) => {
@@ -55,7 +56,7 @@ export function AudioSettingsModal({ onClose }) {
             el('div', { className: "flex justify-between items-center border-b border-slate-800 pb-4 shrink-0" }, [
                 el('div', null, [
                     el('h3', { className: "text-amber-500 text-xl md:text-2xl font-black uppercase tracking-tighter italic flex items-center gap-3" }, ["🔊", "Configurações de Áudio"]),
-                    el('p', { className: "text-slate-500 text-[9px] font-bold uppercase tracking-widest" }, "Customize ou silencia qualquer som da sua mesa")
+                    el('p', { className: "text-slate-500 text-[9px] font-bold uppercase tracking-widest" }, `Customize ou silencia os sons de: ${activeScope === 'Mestre' ? '👑 MESTRE' : activeScope === 'default' ? '⚙️ PADRÃO' : '👤 ' + activeScope.toUpperCase()}`)
                 ]),
                 el('button', { onClick: onClose, className: "text-slate-500 hover:text-white text-2xl font-black" }, "✕")
             ]),
