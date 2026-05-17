@@ -297,5 +297,29 @@ As funcionalidades abaixo já foram implementadas e estão operacionais.
 
 ---
 
+## 🛠️ Recursos de Praticidade e Qualidade de Vida (QoL)
+
+### 👑 Para Facilitação do Mestre (DM QoL)
+* **⚡ Distribuidor de Dano/Cura em Massa (Mass Damage/Heal Broadcaster):**
+  * **Conceito:** Um controle central onde o mestre pode digitar um valor, selecionar múltiplos jogadores (ou monstros) e aplicar dano/cura ou condições a todos simultaneamente com um único clique (excelente para efeitos de área como bolas de fogo ou cura em massa!).
+* **🎲 Rolagem Expressa de Iniciativa (NPC Fast Initiative):**
+  * **Conceito:** Rolagem automática de iniciativa para todos os NPCs e monstros ativos no combate baseada em suas fichas do bestiário, organizando e iniciando a ordem de turnos instantaneamente.
+* **📌 Marcador Tático Espacial (DM Focus & Ping):**
+  * **Conceito:** O mestre segura `Shift` e clica em qualquer ponto do Battlemap para gerar um ping brilhante e mover a câmera de todos os jogadores ativos diretamente para aquele local de foco.
+* **🎭 Improvisador Instantâneo de NPCs (Insta-NPC Generator):**
+  * **Conceito:** Um gerador rápido alimentado pela IA Gemini que cria um nome, traço de personalidade marcante, segredo oculto e um boato que o NPC conhece em 2 segundos para auxiliar na improvisação em tavernas ou cidades.
+
+### ⚔️ Para Facilitação dos Jogadores (Player QoL)
+* **🗡️ HUD Flutuante de Ações Rápidas (Quick Action HUD):**
+  * **Conceito:** Uma pequena barra colapsável no canto da tela que abriga atalhos das 3 principais armas/magias do jogador, permitindo realizar ataques e rolar dano com 1 clique sem abrir a aba de combate ou rolar a ficha.
+* **🏥 Gestor Rápido de Descanso Curto (Short Rest Recovery):**
+  * **Conceito:** Uma interface limpa que permite rolar e gastar Dados de Vida (`Hit Dice`) nas pausas, somando o bônus de Constituição e recuperando a vida do personagem de forma automatizada e segura.
+* **🧪 Calculadora e Automação de Condições (Auto-Modifiers):**
+  * **Conceito:** O sistema lê as condições ativas na ficha (ex: *Envenenado* ou *Caído*) e aplica desvantagem ou vantagem automaticamente nos testes de dados pertinentes, poupando cálculo manual.
+* **🎯 Retícula de Marcação de Alvo (Target Lock Reticle):**
+  * **Conceito:** O jogador clica no token de um monstro para marcá-lo como "Alvo Ativo". Suas rolagens subsequentes de ataque no chat exibirão automaticamente se atingiram ou falharam contra a CA secreta do alvo!
+
+---
+
 **Última atualização:** 17/05/2026
 **Próximo passo:** Iniciar o Desenvolvimento do **🎙️ Narrador Inteligente (Gemini)**.
