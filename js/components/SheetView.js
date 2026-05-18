@@ -1172,6 +1172,11 @@ export function SheetView({
                                     defaultValue: (() => {
                                         const saved = characterSheetData.recursos?.[label];
                                         const parsed = parseInt(saved);
+                                        if (label === 'CA') {
+                                            if (saved === undefined || saved === "" || isNaN(parsed) || parsed === 10) {
+                                                return val;
+                                            }
+                                        }
                                         return (saved !== undefined && saved !== "" && !isNaN(parsed) && parsed !== 0) ? saved : val;
                                     })(),
                                     onBlur: (e) => onUpdate(e.target.value)
