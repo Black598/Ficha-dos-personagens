@@ -10,6 +10,27 @@ import { PlayerSoundboard } from './PlayerSoundboard.js';
 const { useState, useEffect } = React;
 const el = React.createElement;
 
+const defaultPericias = {
+    'Acrobacia': { val: '+0', prof: false },
+    'Arcanismo': { val: '+0', prof: false },
+    'Atletismo': { val: '+0', prof: false },
+    'Atuação': { val: '+0', prof: false },
+    'Enganação': { val: '+0', prof: false },
+    'Furtividade': { val: '+0', prof: false },
+    'História': { val: '+0', prof: false },
+    'Intimidação': { val: '+0', prof: false },
+    'Intuição': { val: '+0', prof: false },
+    'Investigação': { val: '+0', prof: false },
+    'Lidar com Animais': { val: '+0', prof: false },
+    'Medicina': { val: '+0', prof: false },
+    'Natureza': { val: '+0', prof: false },
+    'Percepção': { val: '+0', prof: false },
+    'Persuasão': { val: '+0', prof: false },
+    'Prestidigitação': { val: '+0', prof: false },
+    'Religião': { val: '+0', prof: false },
+    'Sobrevivência': { val: '+0', prof: false }
+};
+
 export function SheetView({
     characterName,
     characterSheetData,
@@ -1359,7 +1380,40 @@ export function SheetView({
             el('div', { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8" },
                 // Perícias (4 colunas)
                 el('div', { className: "lg:col-span-4 bg-slate-900 border border-slate-800 p-6 rounded-[2.5rem] shadow-xl flex flex-col h-[500px]" },
-                    el('h4', { className: "text-amber-500 font-black mb-6 flex items-center gap-2 uppercase text-xs italic border-b border-amber-900/20 pb-3" }, "🎯 Perícias"),
+                    el('div', { className: "flex justify-between items-center mb-6 border-b border-amber-900/20 pb-3" }, [
+                        el('h4', { key: 'title', className: "text-amber-500 font-black flex items-center gap-2 uppercase text-xs italic" }, "🎯 Perícias"),
+                        characterSheetData.allowEditing && el('button', {
+                            key: 'sync-btn',
+                            className: "bg-amber-900/20 hover:bg-amber-600/50 text-amber-500 hover:text-amber-200 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border border-amber-500/30 transition-all flex items-center gap-1 cursor-pointer",
+                            title: "Recalcular e sincronizar todas as perícias com base nos atributos e proficiências atuais",
+                            onClick: () => {
+                                const currentProf = parseInt(characterSheetData.info?.['Proficiência']) || Math.floor((parseInt(characterSheetData.info?.['Nivel'] || 1) - 1) / 4) + 2;
+                                const periciaToAttr = {
+                                    'Acrobacia': 'DES', 'Arcanismo': 'INT', 'Atletismo': 'FOR',
+                                    'Atuação': 'CAR', 'Enganação': 'CAR', 'Furtividade': 'DES',
+                                    'História': 'INT', 'Intimidação': 'CAR', 'Intuição': 'SAB',
+                                    'Investigação': 'INT', 'Lidar com Animais': 'SAB', 'Medicina': 'SAB',
+                                    'Natureza': 'INT', 'Percepção': 'SAB', 'Persuasão': 'CAR',
+                                    'Prestidigitação': 'DES', 'Religião': 'INT', 'Sobrevivência': 'SAB'
+                                };
+                                const newPericias = JSON.parse(JSON.stringify(characterSheetData.pericias || {}));
+                                Object.keys(defaultPericias).forEach(key => {
+                                    if (typeof newPericias[key] !== 'object' || newPericias[key] === null) {
+                                        newPericias[key] = { val: '+0', prof: false };
+                                    }
+                                    const attr = periciaToAttr[key];
+                                    const attrVal = (parseInt(characterSheetData.atributos?.[attr]) || 10) + (invBonuses[attr] || 0);
+                                    const attrMod = Math.floor((attrVal - 10) / 2);
+                                    const isProf = newPericias[key].prof;
+                                    const skillBonus = invBonuses.skills[key.toUpperCase()] || 0;
+                                    const finalVal = attrMod + (isProf ? currentProf : 0) + skillBonus;
+                                    newPericias[key].val = finalVal >= 0 ? `+${finalVal}` : `${finalVal}`;
+                                });
+                                updateSheetData({ ...characterSheetData, pericias: newPericias });
+                                AudioManager.play('level_up');
+                            }
+                        }, "🔄 Recalcular")
+                    ]),
                     el('div', { className: "flex-grow overflow-y-auto pr-2 custom-scrollbar space-y-1" },
                         (() => {
                             const currentProf = parseInt(characterSheetData.info?.['Proficiência']) || Math.floor((parseInt(characterSheetData.info?.['Nivel'] || 1) - 1) / 4) + 2;
@@ -1372,30 +1426,10 @@ export function SheetView({
                                 'Prestidigitação': 'DES', 'Religião': 'INT', 'Sobrevivência': 'SAB'
                             };
 
-                            const defaultPericias = {
-                                'Acrobacia': { val: '+0', prof: false },
-                                'Arcanismo': { val: '+0', prof: false },
-                                'Atletismo': { val: '+0', prof: false },
-                                'Atuação': { val: '+0', prof: false },
-                                'Enganação': { val: '+0', prof: false },
-                                'Furtividade': { val: '+0', prof: false },
-                                'História': { val: '+0', prof: false },
-                                'Intimidação': { val: '+0', prof: false },
-                                'Intuição': { val: '+0', prof: false },
-                                'Investigação': { val: '+0', prof: false },
-                                'Lidar com Animais': { val: '+0', prof: false },
-                                'Medicina': { val: '+0', prof: false },
-                                'Natureza': { val: '+0', prof: false },
-                                'Percepção': { val: '+0', prof: false },
-                                'Persuasão': { val: '+0', prof: false },
-                                'Prestidigitação': { val: '+0', prof: false },
-                                'Religião': { val: '+0', prof: false },
-                                'Sobrevivência': { val: '+0', prof: false }
-                            };
-
                             const currentPericias = { ...defaultPericias, ...(characterSheetData.pericias || {}) };
+                            const sortedPericias = Object.entries(currentPericias).sort((a, b) => a[0].localeCompare(b[0]));
 
-                            return Object.entries(currentPericias).map(([key, data]) => {
+                            return sortedPericias.map(([key, data]) => {
                                 // Suporte a compatibilidade: se for string, converte pra novo formato assumindo sem proficiência
                                 const isNewFormat = typeof data === 'object' && data !== null;
                                 const value = isNewFormat ? data.val : data;
